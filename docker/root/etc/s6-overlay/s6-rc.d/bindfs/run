@@ -1,0 +1,2 @@
+#!/command/execlineb -P
+sh -c "bindfs -f -o allow_other --resolve-symlinks --map=root/www-data /mounts /Video_Library > /jellygrail/log/bindfs 2>&1"

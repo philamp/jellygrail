@@ -1,0 +1,2 @@
+#!/command/execlineb -P
+sh -c "rclone-linux mount <service_name>: <dst_folder> --config=<cfg_file> --vfs-fast-fingerprint --vfs-read-chunk-size 128M --vfs-read-chunk-size-limit 640M --vfs-cache-poll-interval 24h --vfs-cache-max-age 1000000h --cache-dir=/jellygrail/vfs_cache --vfs-cache-mode full --vfs-read-ahead 16M --no-modtime --dir-cache-time 10s --vfs-read-wait 100ms --tpslimit 4 --transfers 4 --buffer-size 32M --allow-other --allow-non-empty > /jellygrail/log/<service_name> 2>&1"

@@ -1,0 +1,8 @@
+psutil
+pycountry
+requests
+parse-torrent-title
+rapidfuzz
+thefuzz
+rd_api_py
+colorlog

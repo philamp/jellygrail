@@ -1,0 +1,8 @@
+env/*
+config/*
+cache/*
+jellygrail/*
+Video_Library/*
+fallbackdata/*
+mounts/*
+CUSTOM_HOST_MOUNT.SH

@@ -1,0 +1,10 @@
+#!/bin/bash
+# use this if you want to mount the resulting tree somewhere else (initially in ./Video_Library)
+cd "$(dirname "$0")"
+MOUNTP="/somewhere/else"
+fusermount -uz $MOUNTP
+fusermount -uz $MOUNTP
+umount $MOUNTP
+umount $MOUNTP
+mkdir -p $MOUNTP
+mount --bind ./Video_Library $MOUNTP

@@ -1,0 +1,2 @@
+#!/command/execlineb -P
+python3 /usr/local/bin/jelly_update.py

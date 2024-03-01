@@ -1,0 +1,2 @@
+#!/command/execlineb -P
+bindfs -f -o allow_other --resolve-symlinks --map=root/www-data /mounts /Cache_Check_Video_Library
