@@ -18,7 +18,7 @@ JellyGrail is a modified Jellyfin docker image to manage all your video storages
   - It can be shared on your local network through any protocol (There is a WebDAV server included but you can also share it through SMB, DLNA or NFS)
   - Smart deletion of actual assets behind virtual files, including rclone **cache files.
 - Preconfigured Jellyfin included if needed.
-- Included Webdav/HTTP server (nginx).
+- Included Webdav/HTTP server (nginx) on port 8085.
   - TODO: include an additional share protocol like DLNA.
 
 # ⚠️ Warnings 
