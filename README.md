@@ -72,7 +72,9 @@ sudo ./PREPARE.SH
 
 ## 🐳 4/ Docker command
 
-Take a notepad and progressively paste portions of code below (TODO: docker-compose version):
+ (TODO: docker-compose version)
+
+Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4.3 below:
 > don't forget the "\\" after each line
 >
 > ignore blank lines and "..."
