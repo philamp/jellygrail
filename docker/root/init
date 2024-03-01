@@ -107,7 +107,7 @@ for dir_path in /mounts/*; do
   esac
 done
 
-
+# this part triggers only if /root/devmode folder is found, it's for devleopment purposes only
 if [ -d "/root/devmode" ]; then
   apt install openssh-server nano libsqlite3-dev sqlite3 cmake -y
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/*
@@ -126,7 +126,7 @@ if [ -d "/root/devmode" ]; then
   # end dev-context services
   git config --global user.email "phil.gaultier@gmail.com"
 fi
-
+# the above part triggers only if /root/devmode folder is found, it's for devleopment purposes only
 
 # Now we're good: s6-overlay-suexec is accessible via PATH, as are
 # all our binaries.
