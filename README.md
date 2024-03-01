@@ -138,11 +138,11 @@ philamp/jellygrail:latest
 
 1. Verify that jellygrail/setting.env is populated with proper values.
 2. Verify that mounts/remote_realdebrid is populated with proper values.
-3. Paste your command in your bash prompt
-> ⚠ You must run the command in the same folder containing PREPARE.SH file
-4. hit enter !
+3. Verify that your working directory is the folder containing PREPARE.SH file (= root folder of this repo).
+4. Paste your command in your bash prompt.
+6. Hit enter !
 
-It should run in bash interactive mode (-it) but when first tasks are finished it stops and restarts in deamonized mode
+...It should run in bash interactive mode (-it) but when first tasks are finished it stops and restarts in deamonized mode
 
 ## 📡 6/ Tasks triggering 
 
