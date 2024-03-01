@@ -166,14 +166,11 @@ COPY root/ /
 # expose nginx
 EXPOSE 8085
 
-# expose adb
-EXPOSE 5037
+# expose adb if needed
+# EXPOSE 5037
 
 # expose 6502 jelly_update script
 EXPOSE 6502
-
-# H2static - routing, 8096 is already exposed in original image 8082 is for the HTTP server (TODO)
-# EXPOSE 8082
 
 # overwrite run jellyfin main original process as CMD instead of entrypoint
 ENTRYPOINT ["/init"]
