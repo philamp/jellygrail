@@ -209,7 +209,7 @@ sudo docker ps
 
 ## ✅ Logs
 
-logs are in **jellygrail/logs/**
+logs are in **jellygrail/log/**
 
 ## ✅ Python service 
 
