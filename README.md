@@ -26,6 +26,7 @@ JellyGrail is a modified Jellyfin docker image to manage all your video storages
 > ⚠ This is experimental stuff.
 
 - I'm not responsible of any data loss.
+- Do not open ports 8085 and 6502 to the internet.
 - I'm not responsible of any illegal use.
 - Use at your own risks.
 - I'm not a professional developer.
