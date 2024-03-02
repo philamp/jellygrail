@@ -10,4 +10,4 @@ mount -o bind ./Video_Library ./Video_Library
 mount --make-shared ./Video_Library
 docker start jellygrail3
 # call to additonal host mount
-./CUSTOM_HOST_MOUNT.SH
+# ./CUSTOM_HOST_MOUNT.SH
