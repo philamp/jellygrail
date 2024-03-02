@@ -11,14 +11,14 @@ JellyGrail is a modified Jellyfin docker image to manage all your video storages
 - Real-Debrid magnet hashes management:
   - Automatic backup of last 2500 Real-Debrid torrents (TODO: service to restore them if lost).
   - RD torrent-hashes sync from another instance of JellyGrail (but no secured proxy or VPN is provied here, so be careful).
-- ✨ Auto-organized TV shows and movies in a virtual folder (browse your library without Plex or Jellyfin if you don't feel the need for them):
+- ✨ Auto-organized TV shows and movies in a virtual folder:
   - Subtitle files renamed following standards.
   - Movies merged into same folder when possible
   - You can manage this virtual folder as if it were a real one (rename and move files the way you want)
-  - TODO: detect extras video files to put then in an /extras subfolder
-- ✨ Every storage is merged into one filesystem folder (thanks to https://github.com/philamp/bindfs_jelly):
+  - ✨ Every storage is merged into this unique virtual folder (thanks to https://github.com/philamp/bindfs_jelly):
   - It can be shared on your local network through any protocol (There is a WebDAV server included but you can also share it through SMB, DLNA or NFS)
   - Smart deletion of actual assets behind virtual files, including rclone **cache files.
+  - TODO: detect extras video files to put then in an /extras subfolder
 - Preconfigured Jellyfin included if needed.
 - Included Webdav/HTTP server (nginx) on port 8085.
   - TODO: include an additional share protocol like DLNA.
