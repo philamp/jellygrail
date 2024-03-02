@@ -1,6 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-docker stop jellygrail3
+docker stop jellygrail
 fusermount -uz ./Video_Library
 fusermount -uz ./Video_Library
 umount ./Video_Library
@@ -8,6 +8,6 @@ umount ./Video_Library
 mkdir -p ./Video_Library
 mount -o bind ./Video_Library ./Video_Library
 mount --make-shared ./Video_Library
-docker start jellygrail3
+docker start jellygrail
 # call to additonal host mount
 # ./CUSTOM_HOST_MOUNT.SH
