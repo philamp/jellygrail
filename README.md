@@ -30,8 +30,8 @@ JellyGrail is a modified Jellyfin docker image to manage all your video storages
 - I'm not responsible of any illegal use.
 - Use at your own risks.
 - I'm not a professional developer.
-- This does not included any torrent indexer search or RD downloader. You have to setup this on your own.
-- ⚠️ You should absolutely not open the python service to internet (do not open port 6502 or its mapping).
+- This does not included any torrent indexer search or RD downloader.
+- ⚠️ File Deletion in the virtual folder actually deletes the corresponding files of the underlying file-system.
 
 # 📥️ Installation
 
@@ -192,6 +192,7 @@ As JellyGrail is experimental, a daily restart is recommended: add in your cront
 7. Beware to have a paid RD account:
     - configure **/backup** cron (See Tasks triggering section)
     - (if you forgot a payment you can find your torrents backup in jellygrail/data/backup/ ) TODO: service to restore the dump.
+8. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in **Video_Library/virtual** folder as it will also delete corresponding files in the underlying file-systems. Just delete the .bindfs_jelly.db file in **jellygrail/** folder and trigger a new **/scan**
 
 > **fallbackdata/** folder contains files added by any process that tries to write a file in _virtual_ folder and its subfolders.
 > 
@@ -226,6 +227,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
 
 # Good to know / Known issues
 - only last 2500 real-debrid torrents are backuped.
+- ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in **Video_Library/virtual** folder as it will also delete corresponding files in the underlying file-systems. Just delete the .bindfs_jelly.db file in **jellygrail/** folder and trigger a new **/scan**
 - A daily docker restart is still needed so far.
 - **rclone_jelly is an experimental fork of https://github.com/itsToggle/rclone_RD to change the normal behavior of rclone's vfs_cache and thus it's not a "cache" anymore: it stores RAR/ISO file structure data to improve access reliability especially when using Real-Debrid service.
   - This cache will have a size equal to 0.5%~ of you real-debrid storage size, using it on an SSD is better (but not mandatory).
