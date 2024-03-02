@@ -123,8 +123,6 @@ Example with 2 local folders
 
 ### 🐳 4.3/ Final part
 
-> You can change the name if you want
-
 ````
 ...
 
