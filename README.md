@@ -50,7 +50,7 @@ Follow sections 1/ to 7/
 
 ## 🚧 2/ Build
 
-Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of you real-debrid storage size)_
+Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_
 
 ````
 git clone https://github.com/philamp/jellygrail.git
@@ -230,7 +230,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
 - ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in **Video_Library/virtual** folder, as it will also delete corresponding files in the underlying file-systems. Just delete the .bindfs_jelly.db file in **jellygrail/** folder, RESTART THE DOCKER CONTAINER and trigger a new **/scan**
 - A daily docker restart is still needed so far.
 - **rclone_jelly is an experimental fork of https://github.com/itsToggle/rclone_RD to change the normal behavior of rclone's vfs_cache and thus it's not a "cache" anymore: it stores RAR/ISO file structure data to improve access reliability especially when using Real-Debrid service.
-  - This cache will have a size equal to 0.5%~ of you real-debrid storage size, using it on an SSD is better (but not mandatory).
+  - This cache will have a size equal to 0.5%~ of your real-debrid storage size, using it on an SSD is better (but not mandatory).
 - bindfs_jelly is a fork of https://github.com/mpartel/bindfs that brings virtual folders and virtual renaming.
   - Its sqlite DB is initialized through inluded Python service that scans mounted local and remote folders (upon first start the virtual folder is empty).
   - Direct virtual renaming/moving is not possible outside the virtual folder of the bindfs mount.
