@@ -1,7 +1,7 @@
 <img src="jellygrail_logo.png">
 
 # What is JellyGrail ?
-JellyGrail is a modified Jellyfin docker image to manage all your video storages (local and remote) in one merged folder. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
+JellyGrail is a modified Jellyfin docker image to manage all your video storages (local and remote) in one merged virtual folder that you can manage as it if were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
 
 - You can stream your Real-Debrid video files directly (thanks to https://github.com/itsToggle/rclone_RD)
 - RAR archives extracted on the fly (thanks to rar2fs):
