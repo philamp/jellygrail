@@ -64,13 +64,12 @@ sudo docker build -t philamp/jellygrail .
 
 > You can find your Real-Debrid API key here : https://real-debrid.com/apitoken.
 
-Generate the settings' file (then used by python service and rclone service) :
-
 ````
 cd ..
 sudo ./PREPARE.SH
 ````
 
+This will create settings files.
 > This script throws unmounting errors but don't worry
 
 ## 🐳 4/ Docker command
