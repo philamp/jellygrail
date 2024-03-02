@@ -136,10 +136,10 @@ philamp/jellygrail:latest
 
 ## 🚀 5/ Run
 
-1. Verify that jellygrail/setting.env is populated with proper values.
-2. Verify that mounts/remote_realdebrid is populated with proper values.
+1. Verify that jellygrail/config/settings.env is populated with proper values.
+2. Verify that mounts/remote_realdebrid/rclone.conf is populated with proper values.
 3. Verify that your working directory is the folder containing PREPARE.SH file (= root folder of this repo).
-4. Paste your command in your bash prompt.
+4. Paste your docker command in your bash prompt.
 6. Hit enter !
 
 ...It should run in bash interactive mode (-it) but when first tasks are finished it stops and restarts in deamonized mode
