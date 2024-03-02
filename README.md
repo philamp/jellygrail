@@ -179,7 +179,7 @@ When your RD torrents are updated only through /remotescan, this is a service to
 
 As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to RESTART.SH
 
-# 🚀 Daily Usage
+# 🚀 First and daily Usage
 
 1. Verify that you have some torrents in your RD account _(JellyGrail does not provide any torrent indexer search or RD downloader)_.
 2. Trigger a first **/scan** to fill the **Video_Library/virtual** folder (See Tasks triggering section).
