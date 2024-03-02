@@ -233,8 +233,8 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
   - This cache will have a size equal to 0.5%~ of your real-debrid storage size, using it on an SSD is better (but not mandatory).
 - bindfs_jelly is a fork of https://github.com/mpartel/bindfs that brings virtual folders and virtual renaming.
   - Its sqlite DB is initialized through inluded Python service that scans mounted local and remote folders (upon first start the virtual folder is empty).
-  - Direct virtual renaming/moving is not possible outside the virtual folder of the bindfs mount.
-- You have to manage your assets through the virtual folder (rename/delete/move) otherwise linkage will be lost between virtual tree and actual trees.
+- ⚠️ You have to manage your assets through the virtual folder (rename/delete/move) otherwise linkage will be lost between virtual tree and actual trees.
+  - If you do so, don't forget to trigger a Library scan in Jellyfin (you can also trigger /scan service, it won't mess up your renamed/moved files)
 - You have to use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
 - Must follow some naming conventions constrains in your local folders (at least a _movies_ folder or a _shows_ folder)
 - data written in virtual folder (by kodi or jellyfin for example) are actually written in  folder.
