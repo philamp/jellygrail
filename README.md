@@ -189,7 +189,7 @@ As JellyGrail is experimental, a daily restart is recommended: add in your cront
     - You can also point your plex Libraries to the **Video_Library/virtual/movies** and **Video_Library/virtual/shows** folders.
     - TODO: functionnality to disable jellyfin.
 5. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
-6. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player)
+6. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
 7. Beware to have a paid RD account:
     - configure **/backup** cron (See Tasks triggering section)
     - (if you forgot a payment you can find your torrents backup in jellygrail/data/backup/ ) TODO: service to restore the dump.
