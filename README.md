@@ -30,7 +30,7 @@ JellyGrail is a modified Jellyfin docker image to manage all your video storages
 - I'm not responsible of any illegal use.
 - Use at your own risks.
 - I'm not a professional developer.
-- This does not included any torrent indexer search or RD downloader.
+- This does not include any torrent indexer search or RD downloader.
 - ⚠️ File Deletion in the virtual folder actually deletes the corresponding files of the underlying file-system.
 
 # 📥️ Installation
