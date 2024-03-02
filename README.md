@@ -196,9 +196,9 @@ As JellyGrail is experimental, a daily restart is recommended: add in your cront
 
 > **fallbackdata/** folder contains files added by any process that tries to write a file in _virtual_ folder and its subfolders.
 > 
-> **Video_Library/virtual_dv/** is a dynnamically filtered folder containing only Dolby Vision MP4/MKV files.
+> **Video_Library/virtual_dv/** is a dynamically filtered folder containing only Dolby Vision MP4/MKV files.
 > 
-> **Video_Library/virtual_bdmv/** is a dynnamically filtered folder containing only DVDs and Blu-rays data.
+> **Video_Library/virtual_bdmv/** is a dynamically filtered folder containing only DVDs and Blu-rays data.
 
 
 # ✅ Sanity checks / Troubleshooting (Draft section)
