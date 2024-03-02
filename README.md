@@ -14,6 +14,7 @@ JellyGrail is a modified Jellyfin docker image to manage all your video storages
 - ✨ Auto-organized TV shows and movies (browse your library without Plex or Jellyfin if you don't feel the need for them):
   - Subtitle files renamed following standards.
   - Movies merged into same folder when possible
+  - TODO: detect extras video files to put then in an /extras subfolder
 - ✨ Every storage is merged into one filesystem folder (thanks to https://github.com/philamp/bindfs_jelly):
   - It can be shared on your local network through any protocol (There is a WebDAV server included but you can also share it through SMB, DLNA or NFS)
   - Smart deletion of actual assets behind virtual files, including rclone **cache files.
