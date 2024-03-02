@@ -82,7 +82,7 @@ Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4
 >
 > ignore blank lines and "..."
 
-### 🐳 4.1/ Mandatory part
+### 🐳 4.1/ Docker run base
 
 Example with common transcoding device access mounted and running in host mode (TODO: provide ports forwarding version)
 
@@ -122,7 +122,7 @@ Example with 2 local folders
 > 
 > ⚠ local 'movies' folders supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : video/shows/scrubs/video.mkv)
 
-### 🐳 4.3/ Final mandatory part
+### 🐳 4.3/ Final part
 
 > You can change the name if you want
 
