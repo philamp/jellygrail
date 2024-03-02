@@ -193,6 +193,7 @@ As JellyGrail is experimental, a daily restart is recommended: add in your cront
     - configure **/backup** cron (See Tasks triggering section)
     - (if you forgot a payment you can find your torrents backup in jellygrail/data/backup/ ) TODO: service to restore the dump.
 8. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in **Video_Library/virtual** folder, as it will also delete corresponding files in the underlying file-systems. Just delete the .bindfs_jelly.db file in **jellygrail/** folder, RESTART THE DOCKER CONTAINER and trigger a new **/scan**
+9. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
 
 > **fallbackdata/** folder contains files added by any process that tries to write a file in _virtual_ folder and its subfolders.
 > 
