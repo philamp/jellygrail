@@ -239,7 +239,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
   - Its sqlite DB is initialized through inluded Python service that scans mounted local and remote folders (upon first start the virtual folder is empty).
 - ⚠️ You have to manage your assets through the virtual folder (rename/delete/move) otherwise linkage will be lost between virtual tree and actual trees.
   - If you do so, don't forget to trigger a Library scan in Jellyfin (you can also trigger /scan service, it won't mess up your renamed/moved files)
-- You have to use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
+- You can use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and disable downloading files to host since you don't need to have these files stored locally anymore. Thus you also have to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
 - Must follow some naming conventions constrains in your local folders (at least a _movies_ folder or a _shows_ folder)
 - data written in virtual folder (by kodi or jellyfin for example) are actually written in  folder.
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (a popup error appears) but it's actually working, just refresh the content of the folder and you'll see the renaming effective. (TODO: fix that in bindfs_jelly if possible).
