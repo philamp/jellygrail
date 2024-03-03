@@ -23,7 +23,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 - Included Webdav/HTTP server (nginx) on port 8085.
   - TODO: include an additional share protocol like DLNA.
 
-# ⚠️ Warnings 
+## ⚠️ Warnings 
 
 > ⚠ This is experimental stuff.
 
@@ -35,11 +35,11 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 - This does not include any torrent indexer search or RD downloader.
 - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of the underlying file-systems.
 
-# 📥️ Installation
+## 📥️ Installation
 
 Follow sections 1/ to 7/
 
-## ✋ 1/ Prerequisites
+### ✋ 1/ Prerequisites
 
 - Linux system 🐧.
 - FUSE installed on host.
@@ -50,7 +50,7 @@ Follow sections 1/ to 7/
 - Having a Real-Debrid account is better.
 
 
-## 🚧 2/ Build
+### 🚧 2/ Build
 
 Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_
 
@@ -60,7 +60,7 @@ cd jellygrail/docker
 sudo docker build -t philamp/jellygrail .
 ````
 
-## ✨ 3/ Configuration wizard
+### ✨ 3/ Configuration wizard
 
 > You can find your Real-Debrid API key here : https://real-debrid.com/apitoken.
 
@@ -72,7 +72,7 @@ sudo ./PREPARE.SH
 This will create settings files and prepare rshared mounted folder **./Video_Library** (so it's accessible from the host)
 > This script throws unmounting errors but don't worry
 
-## 🐳 4/ Docker command
+### 🐳 4/ Docker command
 
  (TODO: docker-compose version)
 
@@ -81,7 +81,7 @@ Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4
 >
 > ignore blank lines and "..."
 
-### 🐳 4.1/ Docker run base
+#### 🐳 4.1/ Docker run base
 
 Example with common transcoding device access mounted and running in host mode (TODO: provide ports forwarding version)
 
@@ -104,7 +104,7 @@ sudo docker run -it --privileged --security-opt apparmor=unconfined \
 
 > ⚠ Not yet tested without "--privileged --security-opt apparmor=unconfined", so I let it and thus it's unsecure. **Remember its experimental stuff.**
 
-### 🐳 4.2/ Mounting local storages (optionnal)
+#### 🐳 4.2/ Mounting local storages (optionnal)
 
 Example with 2 local folders
 
@@ -121,7 +121,7 @@ Example with 2 local folders
 > 
 > ⚠ local 'movies' folders supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : video/shows/scrubs/video.mkv)
 
-### 🐳 4.3/ Final part
+#### 🐳 4.3/ Final part
 
 ````
 ...
@@ -133,7 +133,7 @@ philamp/jellygrail:latest
 
 
 
-## 🚀 5/ Run
+### 🚀 5/ Run
 
 1. Verify that jellygrail/config/settings.env is populated with proper values.
 2. Verify that mounts/remote_realdebrid/rclone.conf is populated with proper values.
@@ -143,21 +143,21 @@ philamp/jellygrail:latest
 
 ...It should run in bash interactive mode (-it) but when first tasks are finished it stops and restarts in deamonized mode
 
-## 📡 6/ Tasks triggering 
+### 📡 6/ Tasks triggering 
 
 An http service is provided on http://your_system_ip:6502 you can open these paths and/or configure them in you crontab (TODO: provide more help on how to use crontab) :
 
-### 📡 Path: /scan (⚠️mandatory)
+#### 📡 Path: /scan (⚠️mandatory)
 
 http://localhost:6502/scan should be triggered to scan your folders in order to fill the **Video_Library/virtual** folder.
 You can call this service from rdtclient (upon finished real-debrid download), but you can also have it scheduled frequently in a crontab.
 Beware it also calls Jellyfin library refresh automatically.
 
-### 📡 Path: /backup 
+#### 📡 Path: /backup 
 
 http://localhost:6502/backup should be triggered frequently to backup your RD torrents (dump file stored in jellygrail/data/backup).
 
-### 📡 Path: /remotescan
+#### 📡 Path: /remotescan
 
 http://localhost:6502/remotescan to trigger the pull of new hashes from another JellyGrail instance (if configured in jellygrail/config/settings.env)
 
@@ -167,13 +167,13 @@ http://localhost:6502/remotescan to trigger the pull of new hashes from another 
 
 Basically you won't use this trigger unless you want to synchronize your RD torrents with another instance of this app (aka friend remote instance).
 
-### 📡 Path: /rd_progress
+#### 📡 Path: /rd_progress
 
 http://localhost:6502/remotescan
 When your RD torrents are updated only through **/remotescan**, this is a service to check if there are changes worth calling **/scan** subsequently.
 
 
-## 7/ ➰ Daily restart
+### 7/ ➰ Daily restart
 
 As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to RESTART.SH.
 
@@ -181,7 +181,7 @@ It also redoes the rshared mounted folder ./Video_Library (so it's accessible fr
 > This script throws unmounting errors but don't worry.
 > ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared folder (./Video_Library) was not redone so you have to run RESTART.SH to fix it.
 
-# 🚀 First and daily Usage
+## 🚀 First and daily Usage
 
 1. Verify that you have some torrents in your RD account _(JellyGrail does not provide any torrent indexer search or RD downloader)_.
 2. Trigger a first **/scan** to fill the **Video_Library/virtual** folder (See Tasks triggering section).
@@ -204,17 +204,17 @@ It also redoes the rshared mounted folder ./Video_Library (so it's accessible fr
 > **Video_Library/virtual_bdmv/** is a dynamically filtered folder containing only DVDs and Blu-rays data.
 
 
-# ✅ Sanity checks / Troubleshooting (Draft section)
+## ✅ Sanity checks / Troubleshooting (Draft section)
 
 You can check it's running with following commands:
 
-## ✅ Is the container running ? 
+### ✅ Is the container running ? 
 
 ````
 sudo docker ps
 ````
 
-## ✅ Logs
+### ✅ Logs
 
 logs are in **jellygrail/log/**.
 you can do:
@@ -223,23 +223,23 @@ you can do:
 tail -f ./jellygrail/log/jelly_update.log
 ````
 
-## ✅ Live container logs
+### ✅ Live container logs
 
 ````
 sudo docker logs --follow jellygrail
 ````
 
-## ✅ Python service 
+### ✅ Python service 
 
 ````
 curl http://localhost:6502/test
 ````
 
-## ✅ Jellyfin 
+### ✅ Jellyfin 
 
 Open http://your_system_ip:8096 to launch Jellyfin web interface
 
-# Good to know / Known issues
+## Good to know / Known issues
 - only last 2500 real-debrid torrents are backuped.
 - ⚠️ If you restart your system, the docker container was maybe restarted but the rshared folder (./Video_Library) was not prepared so you have to run RESTART.SH to fix it
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration
