@@ -273,7 +273,6 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
 - Jellyfin add-on
 - Artic Horizon 2 skin 
 - Keymap editor add-on
-- Sleepy watchdog add-on
 - a4k subtitles add-on
 
 
