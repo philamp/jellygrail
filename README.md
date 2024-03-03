@@ -176,6 +176,9 @@ When your RD torrents are updated only through **/remotescan**, this is a servic
 ## 7/ ➰ Daily restart
 
 As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to RESTART.SH
+It also redoes the rshared mounted folder ./Video_Library (so it's accessible from the host)
+> This script throws unmounting errors but don't worry.
+> ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared folder (./Video_Library) was not redone so you have to run RESTART.SH to fix it.
 
 # 🚀 First and daily Usage
 
@@ -226,6 +229,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
 
 # Good to know / Known issues
 - only last 2500 real-debrid torrents are backuped.
+- ⚠️ If you restart your system, the docker container was maybe restarted but the rshared folder (./Video_Library) was not prepared so you have to run RESTART.SH to fix it
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration
 - You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in **/mounts** folder provided but:
     - Follow this convention:
