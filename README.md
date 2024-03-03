@@ -216,7 +216,18 @@ sudo docker ps
 
 ## ✅ Logs
 
-logs are in **jellygrail/log/**
+logs are in **jellygrail/log/**.
+you can do:
+
+````
+tail -f ./jellygrail/log/jelly_update.log
+````
+
+## ✅ Live container logs
+
+````
+sudo docker logs --follow jellygrail
+````
 
 ## ✅ Python service 
 
