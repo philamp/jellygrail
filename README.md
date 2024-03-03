@@ -244,7 +244,6 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
 - data written in virtual folder (by kodi or jellyfin for example) are actually written in  folder.
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (a popup error appears) but it's actually working, just refresh the content of the folder and you'll see the renaming effective. (TODO: fix that in bindfs_jelly if possible).
 - The PREPARE.SH script throws mounting errors but they're not.
-- /rd_progress service won't trigger /scan all the time if your number of torrents exceeds 2500 items (only relevant if you use RD torrent hashes sync from a 'friend' remote instance, see _Tasks triggering_ section ).
 
 
 
