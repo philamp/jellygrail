@@ -57,6 +57,7 @@ DEFAULT_DATE = os.getenv('DEFAULT_DATE')
 logger = logging.getLogger("jellygrail")
 # Set the lowest level to log messages; this can be DEBUG, INFO, WARNING, ERROR, CRITICAL
 logger.setLevel(logging.DEBUG)
+logger.propagate = False
 
 # Create file handler which logs even debug messages
 fh = logging.FileHandler('/jellygrail/log/jelly_update.log')
