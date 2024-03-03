@@ -13,7 +13,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - RD torrent-hashes sync from another instance of JellyGrail (but no secured proxy or VPN is provided here, so be careful).
 - ✨ Auto-organized TV shows and movies in a virtual folder:
   - Subtitle files renamed following standards.
-  - Movies merged into same folder when possible
+  - Same movie variants merged into same folder when possible
   - You can manage this virtual folder as if it were a real one (rename and move files the way you want)
   - ✨ Every storage is merged into this unique virtual folder (thanks to https://github.com/philamp/bindfs_jelly):
   - It can be shared on your local network through any protocol (There is a WebDAV server included but you can also share it through SMB, DLNA or NFS)
