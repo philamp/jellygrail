@@ -161,7 +161,7 @@ http://localhost:6502/backup should be triggered frequently to backup your RD to
 
 http://localhost:6502/remotescan to trigger the pull of new hashes from another JellyGrail instance (if configured in jellygrail/config/settings.env)
 
-> ⚠️ This is the **local** trigger that will call a remote service (which is actually /getrdincrement) on the other JellyGrail instance (but no secured proxy or VPN is provied here, so be careful). 
+> ⚠️ **/remotescan** is the **local** trigger that will call a remote service (which is actually **/getrdincrement**) on the other JellyGrail instance (but no secured proxy or VPN is provied here, so be careful). 
 >
 > ⚠️ You should absolutely not open the python service to internet (do not open port 6502).
 
@@ -170,8 +170,7 @@ Basically you won't use this trigger unless you want to synchronize your RD torr
 ### 📡 Path: /rd_progress
 
 http://localhost:6502/remotescan
-When your RD torrents are updated only through /remotescan, this is a service to check if there are changes worth calling **/scan** subsequently.
-> ⚠️ known issue: /scan won't be triggered all the time if your number of torrents exceeds 2500
+When your RD torrents are updated only through **/remotescan**, this is a service to check if there are changes worth calling **/scan** subsequently.
 
 
 ## 7/ ➰ Daily restart
