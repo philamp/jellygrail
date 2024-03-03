@@ -227,6 +227,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
 
 # Good to know / Known issues
 - only last 2500 real-debrid torrents are backuped.
+- JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration
 - ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in **Video_Library/virtual** folder, as it will also delete corresponding files in the underlying file-systems. Just delete the .bindfs_jelly.db file in **jellygrail/** folder, RESTART THE DOCKER CONTAINER and trigger a new **/scan**
 - A daily docker restart is still needed so far.
 - RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
