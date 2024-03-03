@@ -175,7 +175,8 @@ When your RD torrents are updated only through **/remotescan**, this is a servic
 
 ## 7/ ➰ Daily restart
 
-As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to RESTART.SH
+As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to RESTART.SH.
+
 It also redoes the rshared mounted folder ./Video_Library (so it's accessible from the host)
 > This script throws unmounting errors but don't worry.
 > ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared folder (./Video_Library) was not redone so you have to run RESTART.SH to fix it.
