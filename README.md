@@ -268,6 +268,13 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (a popup error appears) but it's actually working, just refresh the content of the folder and you'll see the renaming effective. (TODO: fix that in bindfs_jelly if possible).
 - The PREPARE.SH script throws mounting errors but they're not.
 
+## Kodi setup recommended
+
+- Jellyfin add-on
+- Artic Horizon 2 skin 
+- Keymap editor add-on
+- Sleepy watchdog add-on
+- a4k subtitles add-on
 
 
 
