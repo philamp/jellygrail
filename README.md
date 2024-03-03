@@ -69,7 +69,7 @@ cd ..
 sudo ./PREPARE.SH
 ````
 
-This will create settings files.
+This will create settings files and prepare rshared mounted folder **./Video_Library** (so it's accessible from the host)
 > This script throws unmounting errors but don't worry
 
 ## 🐳 4/ Docker command
