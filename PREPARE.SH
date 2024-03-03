@@ -7,6 +7,10 @@ CONF_EXAMPLE_PATH="./mounts/remote_realdebrid/rclone.conf.example"
 SETTINGS_PATH="./jellygrail/config/settings.env"
 SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
 
+if [ ! -f "RESTART.SH"  ]; then
+    cp -f "RESTART.SH.example" "RESTART.SH"
+fi
+
 # Check if the configuration file already exists
 if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ]; then
 
