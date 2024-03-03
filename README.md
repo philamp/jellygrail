@@ -236,9 +236,11 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
 - ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in **Video_Library/virtual** folder, as it will also delete corresponding files in the underlying file-systems. Just delete the .bindfs_jelly.db file in **jellygrail/** folder, RESTART THE DOCKER CONTAINER and trigger a new **/scan**
 - A daily docker restart is still needed so far.
 - RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
+- Some interesting Kodi add-ons/repos are available in the **Video_Library/actual/kodi/software** folder and accessible through WebDAV http protocol in kodi.
 - 3 Jellyfin plugins are pre-installed:
-  - including "subbuzz" which is not enabled on library scan but can be used on induvidual items. You can enable it on library scan if you want but beware it will cause additional download requests to Real-Debrid.
-  - Movies not merged by initial scan can be merged thanks to "Merge Version" Jellyfin plugin. Shows episodes are not set to be merged because in this case it causes troubles (like whole season merged into one media item).
+  - **SubBuzz:**  not enabled on library scan but can be used on induvidual items. You can enable it on library scan if you want but beware it will cause additional download requests to Real-Debrid.
+  - **Merge Versions:** Movies not merged by initial scan can be merged thanks to this Jellyfin plugin. Shows episodes are not set to be merged because in this case it causes troubles (like whole season merged into one media item).
+  - **Kodi Sync Queue:** to improve the experience with Jellyfin kodi add-on 
 - **rclone_jelly is an experimental fork of https://github.com/itsToggle/rclone_RD to change the normal behavior of rclone's vfs_cache and thus it's not a "cache" anymore: it stores RAR/ISO file structure data to improve access reliability especially when using Real-Debrid service.
   - This cache will have a size equal to 0.5%~ of your real-debrid storage size, using it on an SSD is better (but not mandatory).
 - bindfs_jelly is a fork of https://github.com/mpartel/bindfs that brings virtual folders and virtual renaming.
