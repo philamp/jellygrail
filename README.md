@@ -264,7 +264,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
   - Don't forget to trigger a Library scan in Jellyfin (you can also trigger /scan service, it won't mess up your renamed/moved files in the virtual folder)
 - You can use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and disable downloading files to host since you don't need to have these files stored locally anymore. Thus you also have to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
 - Must follow some naming conventions constrains in your local folders (at least a _movies_ folder or a _shows_ folder)
-- data written in virtual folder (by kodi or jellyfin for example) are actually written in  folder.
+- data written in virtual folder (by you, kodi or jellyfin for example) are actually written in **./fallbackdata** folder.
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (a popup error appears) but it's actually working, just refresh the content of the folder and you'll see the renaming effective. (TODO: fix that in bindfs_jelly if possible).
 - The PREPARE.SH script throws mounting errors but they're not.
 
