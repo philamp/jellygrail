@@ -119,7 +119,7 @@ Example with 2 local folders
 
 > ⚠ Your local folders must be mounted inside /mounts and they must contain at least a 'movies' folder or a 'shows' folder (it follows the same naming convention as when mounting with rclone RD fork)
 > 
-> ⚠ local 'movies' folders supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : video/shows/scrubs/video.mkv)
+> ⚠ local 'movies' folders also supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : video/shows/scrubs/video.mkv)
 
 #### 🐳 4.3/ Final part
 
