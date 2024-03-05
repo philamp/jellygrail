@@ -270,9 +270,9 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface
 
 ## Kodi setup recommended
 
-- Jellyfin add-on
-- Artic Horizon 2 skin 
-- Keymap editor add-on
+- Jellyfin add-on (with 'add-on' paths, not 'native' paths, otherwise you loose the functionnality to choose the video variant upon play)
+- Artic Horizon 2 skin
+- Keymap editor add-on (optionnal)
 - a4k subtitles add-on
 
 
