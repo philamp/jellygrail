@@ -80,8 +80,6 @@ This creates settings files and also prepares "rshared" mounted folder ``./Video
 
 ### 🐳 4/ Docker command
 
- (TODO: docker-compose version)
-
 Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4.3 below:
 > don't forget the "\\" before a new line
 >
