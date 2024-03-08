@@ -96,7 +96,6 @@ sudo docker run -it --privileged --security-opt apparmor=unconfined \
 --device /dev/fuse \
 --device /dev/dri/renderD128 \
 --device /dev/dri/card0 \
--e TZ=Europe/London \
 --network host \
 -v ${PWD}/jellygrail:/jellygrail \
 -v ${PWD}/Video_Library:/Video_Library:rshared \
