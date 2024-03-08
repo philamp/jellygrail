@@ -74,6 +74,7 @@ sudo ./PREPARE.SH
 ````
 
 This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container)
+> Learn more about "rshared" here : https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759
 > This script throws unmounting errors but don't worry
 
 ### 🐳 4/ Docker command
