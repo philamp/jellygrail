@@ -73,7 +73,7 @@ Run the bash script:
 sudo ./PREPARE.SH
 ````
 
-This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects what's happening inside the docker container)
+This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container)
 > This script throws unmounting errors but don't worry
 
 ### 🐳 4/ Docker command
