@@ -251,7 +251,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
     - Follow this convention:
       - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
       - and name the file "rclone.conf".
-    - underlying files deletion is following rclone RD fork system : Among multiple files folders, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion is uncomplete in this case.
+    - underlying files deletion follows rclone RD fork system : Inside folders containing multiple video files, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion are sometimes uncomplete in this case.
 - A daily docker restart is still needed so far.
 - RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
 - Some interesting Kodi add-ons/repos are available in the ``./Video_Library/actual/kodi/software/`` folder and accessible through WebDAV http protocol in kodi.
