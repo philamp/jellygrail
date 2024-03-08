@@ -69,7 +69,7 @@ cd ..
 sudo ./PREPARE.SH
 ````
 
-This will create settings files and prepare rshared mounted folder ./Video_Library (so it's accessible from the host)
+This will create settings files and prepare "rshared" mounted folder ``./Video_Library/`` (so it's content reflects what's happening inside the docker container)
 > This script throws unmounting errors but don't worry
 
 ### 🐳 4/ Docker command
@@ -117,9 +117,9 @@ Example with 2 local folders
 ...
 ````
 
-> ⚠ Your local folders must be mounted inside **/mounts** and they must contain at least a _movies/_ folder or a _shows/_ folder (it follows the same naming convention as when mounting with rclone RD fork)
+> ⚠ Your local folders must be mounted inside ``/mounts`` and they must contain at least a _movies_ folder or a _shows_ folder (it follows the same naming convention as when mounting with rclone RD fork)
 > 
-> ⚠ local storage _movies/_ folders also supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : video/shows/scrubs/video.mkv)
+> ⚠ local storage _movies/_ folders also supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : _video/shows/scrubs/video.mkv_)
 
 #### 🐳 4.3/ Final part
 
@@ -135,9 +135,9 @@ philamp/jellygrail:latest
 
 ### 🚀 5/ Run
 
-1. Verify that **./jellygrail/config/settings.env** is populated with proper values.
-2. Verify that **./mounts/remote_realdebrid/rclone.conf** is populated with proper values.
-3. Verify that your working directory is the folder containing PREPARE.SH file (= root folder of this repo).
+1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
+2. Verify that ``./mounts/remote_realdebrid/rclone.conf`` is populated with proper values.
+3. Verify that your working directory is the folder containing _PREPARE.SH_ file (= root folder of this repo).
 4. Paste your docker command in your bash prompt.
 6. Hit enter !
 
@@ -149,19 +149,19 @@ An http service is provided on http://your_system_ip:6502 you can open these pat
 
 #### 📡 Path: /scan (⚠️mandatory)
 
-http://localhost:6502/scan should be triggered to scan your folders in order to fill the **Video_Library/virtual/** folder.
+http://localhost:6502/scan should be triggered to scan your folders in order to fill the ``Video_Library/virtual/`` folder.
 You can call this service from rdtclient (upon finished real-debrid download), but you can also have it scheduled frequently in a crontab.
 Beware it also calls Jellyfin library refresh automatically.
 
 #### 📡 Path: /backup 
 
-http://localhost:6502/backup should be triggered frequently to backup your RD torrents (dump file stored in **./jellygrail/data/backup**).
+http://localhost:6502/backup should be triggered frequently to backup your RD torrents (dump file stored in ``./jellygrail/data/backup``).
 
 #### 📡 Path: /remotescan
 
-http://localhost:6502/remotescan to trigger the pull of new hashes from another JellyGrail instance (if configured in **./jellygrail/config/settings.env**)
+http://localhost:6502/remotescan to trigger the pull of new hashes from another JellyGrail instance (if configured in ``./jellygrail/config/settings.env``)
 
-> ⚠️ **/remotescan** is the **local** trigger that will call a remote service (which is actually **/getrdincrement**) on the other JellyGrail instance (but no secured proxy or VPN is provied here, so be careful). 
+> ⚠️ ``/remotescan`` is the local trigger that will call a remote service (which is actually ``/getrdincrement``) on the other JellyGrail instance (but no secured proxy or VPN is provied here, so be careful). 
 >
 > ⚠️ You should absolutely not open the python service to internet (do not open port 6502).
 
@@ -170,38 +170,38 @@ Basically you won't use this trigger unless you want to synchronize your RD torr
 #### 📡 Path: /rd_progress
 
 http://localhost:6502/remotescan
-When your RD torrents are updated only through **/remotescan**, this is a service to check if there are changes worth calling **/scan** subsequently.
+When your RD torrents are updated only through ``/remotescan``, this is a service to check if there are changes worth calling ``/scan`` subsequently.
 
 
 ### 7/ ➰ Daily restart
 
-As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to **./RESTART.SH**.
+As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to ``./RESTART.SH``.
 
-It also remakes the rshared mounted folder **./Video_Library/** (so it's accessible from the host)
+It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessible from the host)
 > This script throws unmounting errors but don't worry.
-> ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared folder **./Video_Library/** was not remade so you have to run **./RESTART.SH** to fix it.
+> ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared folder ``./Video_Library/`` was not remade so you have to run ``./RESTART.SH`` to fix it.
 
 ## 🚀 First and daily Usage
 
 1. Verify that you have some torrents in your RD account _(JellyGrail does not provide any torrent indexer search or RD downloader)_.
-2. Trigger a first **/scan** to fill the **Video_Library/virtual** folder (See Tasks triggering section).
-3. Access the content: **./Video_Library/virtual/** in the folder you run the docker command.
+2. Trigger a first ``/scan`` to fill the ``./Video_Library/virtual/`` folder (See Tasks triggering section).
+3. Access the content: ``./Video_Library/virtual/`` in the folder you run the docker command.
 4. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
-    - You can also point your plex Libraries to the **./Video_Library/virtual/movies/** and **./Video_Library/virtual/shows/** folders.
+    - You can also point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
     - TODO: functionnality to disable jellyfin.
 5. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
 6. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
 7. Beware to have a paid RD account:
-    - configure **/backup** cron (See Tasks triggering section)
+    - configure ``/backup`` cron (See Tasks triggering section)
     - (if you forgot a payment you can find your torrents backup in jellygrail/data/backup/ ) TODO: service to restore the dump.
-8. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in **Video_Library/virtual** folder, as it will also delete corresponding files in the underlying file-systems. Just delete the .bindfs_jelly.db file in **jellygrail/** folder, RESTART THE DOCKER CONTAINER and trigger a new **/scan**
+8. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
 9. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
 
-> **./fallbackdata/** folder contains files added by any process that tries to write a file in _virtual_ folder and its subfolders.
+> ``./fallbackdata/`` folder contains files added by any process that tries to write a file in _virtual_ folder and its subfolders.
 > 
-> **./Video_Library/virtual_dv/** is a dynamically filtered folder containing only Dolby Vision MP4/MKV files.
+> ``./Video_Library/virtual_dv/`` is a dynamically filtered folder containing only Dolby Vision MP4/MKV files.
 > 
-> **./Video_Library/virtual_bdmv/** is a dynamically filtered folder containing only DVDs and Blu-rays data.
+> ``./Video_Library/virtual_bdmv/`` is a dynamically filtered folder containing only DVDs and Blu-rays data.
 
 
 ## ✅ Sanity checks / Troubleshooting (Draft section)
@@ -216,7 +216,7 @@ sudo docker ps
 
 ### ✅ Logs
 
-logs are in **jellygrail/log/**.
+logs are in ``./jellygrail/log/``.
 you can do:
 
 ````
@@ -240,33 +240,33 @@ curl http://localhost:6502/test
 Open http://your_system_ip:8096 to launch Jellyfin web interface.
 
 ## Good to know / Known issues
+- Check **First and daily usage" section above
 - only last 2500 real-debrid torrents are backuped.
 - **Some current limitations related to multi-threading in BindFS makes it impossible to enable it without issues. So, multi-access to same or different files through BindFS is not efficient (for instance: watching a movie while a scanning service is running has bad performance).**
-- ⚠️ If you restart your system, the docker container was maybe restarted but the rshared folder **./Video_Library/** was not prepared so you have to run **./RESTART.SH** to fix it.
+- ⚠️ If you restart your system, the docker container was maybe restarted but the rshared folder ``./Video_Library/`` was not prepared so you have to run ``./RESTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
-- You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in **./mounts/** folder provided but:
+- You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but:
     - Follow this convention:
       - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
       - and name the file "rclone.conf".
     - underlying files deletion is following rclone RD fork system : Among multiple files folders, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion is uncomplete in this case.
-- ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in **./Video_Library/virtual/** folder, as it will also delete corresponding files in the underlying file-systems. Just delete the .bindfs_jelly.db file in **./jellygrail/** folder, RESTART THE DOCKER CONTAINER and trigger a new **/scan**
 - A daily docker restart is still needed so far.
 - RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
-- Some interesting Kodi add-ons/repos are available in the **./Video_Library/actual/kodi/software/** folder and accessible through WebDAV http protocol in kodi.
+- Some interesting Kodi add-ons/repos are available in the ``./Video_Library/actual/kodi/software/`` folder and accessible through WebDAV http protocol in kodi.
 - 3 Jellyfin plugins are pre-installed:
-  - **SubBuzz:**  not enabled on library scan but can be used on induvidual items. You can enable it on library scan if you want but beware it will cause additional download requests to Real-Debrid.
-  - **Merge Versions:** Movies not merged by initial scan can be merged thanks to this Jellyfin plugin. Shows episodes are not set to be merged because in this case it causes troubles (like whole season merged into one media item).
-  - **Kodi Sync Queue:** to improve the experience with Jellyfin kodi add-on 
-- **rclone_jelly is an experimental fork of https://github.com/itsToggle/rclone_RD to change the normal behavior of rclone's vfs_cache and thus it's not a "cache" anymore: it stores RAR/ISO file structure data to improve access reliability especially when using Real-Debrid service.
+  - ``SubBuzz:``  not enabled on library scan but can be used on induvidual items. You can enable it on library scan if you want but beware it will cause additional download requests to Real-Debrid.
+  - ``Merge Versions:`` Movies not merged by initial scan can be merged thanks to this Jellyfin plugin. Shows episodes are not set to be merged because in this case it causes troubles (like whole season merged into one media item).
+  - ``Kodi Sync Queue:`` to improve the experience with Jellyfin kodi add-on 
+- rclone_jelly is an experimental fork of https://github.com/itsToggle/rclone_RD to change the normal behavior of rclone's vfs_cache and thus it's not a "cache" anymore: it stores RAR/ISO file structure data to improve access reliability especially when using Real-Debrid service.
   - This cache will have a size equal to 0.5%~ of your real-debrid storage size, using it on an SSD is better (but not mandatory).
 - bindfs_jelly is a fork of https://github.com/mpartel/bindfs that brings virtual folders and virtual renaming.
   - Its sqlite DB is initialized through inluded Python service that scans mounted local and remote folders (upon first start the virtual folder is empty).
 - ⚠️ You can manage your assets *only* through the virtual folder (rename, delete, move) otherwise if you do it directly on the underlying filesystems, linkage will be lost between virtual tree and actual trees.
   - Don't forget to trigger a Library scan in Jellyfin (you can also trigger /scan service, it won't mess up your renamed/moved files in the virtual folder)
 - You can use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and disable downloading files to host since you don't need to have these files stored locally anymore. Thus you also have to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
-- data written in virtual folder (by you or any process) are actually written in **./fallbackdata/** folder.
+- data written in virtual folder (by you or any process) are actually written in ``./fallbackdata/`` folder.
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (TODO: fix that in bindfs_jelly if possible).
-- The **./PREPARE.SH** script throws mounting errors but they're not.
+- The ``./PREPARE.SH`` script throws mounting errors but they're not.
 
 ## Kodi setup recommended
 
