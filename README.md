@@ -64,12 +64,16 @@ sudo docker build -t philamp/jellygrail .
 
 > You can find your Real-Debrid API key here : https://real-debrid.com/apitoken.
 
+Be sure you're back in the root folder where _PREPARE.SH_ is located:
 ````
 cd ..
+````
+Run the bash script:
+````
 sudo ./PREPARE.SH
 ````
 
-This will create settings files and prepare "rshared" mounted folder ``./Video_Library/`` (so it's content reflects what's happening inside the docker container)
+This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects what's happening inside the docker container)
 > This script throws unmounting errors but don't worry
 
 ### 🐳 4/ Docker command
