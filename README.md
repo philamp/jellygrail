@@ -270,7 +270,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 ## Kodi setup (recommended)
 
 ### Devices
-- Nvidia Shield: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Omega or Nexus release (arm64-v8a)) 
+- Nvidia Shield: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (arm64-v8a)) 
 - Chromecast with Google TV: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (armeabi-v7a)
 (to be completed...)
 
