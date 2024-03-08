@@ -145,19 +145,19 @@ philamp/jellygrail:latest
 
 ### 📡 6/ Tasks triggering 
 
-> On http://your_system_ip:6502 an http service is provided on you can open these below paths and/or configure them in you crontab (TODO: provide more help on how to use crontab) :
+On ``http://your_system_ip:6502`` an http service is provided on you can open these below paths and/or configure them in you crontab (TODO: provide more help on how to use crontab) :
 
-#### 📡 Path: /scan (⚠️mandatory)
+#### 📡 Path: ``/scan`` (⚠️mandatory)
 
 should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder.
 You can call this service from rdtclient (upon finished real-debrid download), but you can also have it scheduled frequently in a crontab.
 Beware it also calls Jellyfin library refresh automatically.
 
-#### 📡 Path: /backup 
+#### 📡 Path: ``/backup`` 
 
 should be triggered frequently to backup your RD torrents (dump file stored in ``./jellygrail/data/backup``).
 
-#### 📡 Path: /remotescan
+#### 📡 Path: ``/remotescan``
 
 to trigger the pull of new hashes from another JellyGrail instance (if configured in ``./jellygrail/config/settings.env``)
 
@@ -167,7 +167,7 @@ to trigger the pull of new hashes from another JellyGrail instance (if configure
 
 Basically you won't use this trigger unless you want to synchronize your RD torrents with another instance of this app (aka friend remote instance).
 
-#### 📡 Path: /rd_progress
+#### 📡 Path: ``/rd_progress``
 
 When your RD torrents are updated only through ``/remotescan``, this is a service to check if there are changes worth calling ``/scan`` subsequently.
 
