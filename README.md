@@ -64,7 +64,7 @@ sudo docker build -t philamp/jellygrail .
 
 > You can find your Real-Debrid API key here : https://real-debrid.com/apitoken.
 
-Be sure you're back in the root folder where _PREPARE.SH_ is located:
+Make sure you're back in the root folder where _PREPARE.SH_ is located:
 ````
 cd ..
 ````
