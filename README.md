@@ -176,7 +176,7 @@ Basically you won't use this trigger unless you want to synchronize your RD torr
 When your RD torrents are updated only through ``/remotescan``, this is a service to check if there are changes worth calling ``/scan`` subsequently.
 
 
-### 7/ ➰ Daily restart
+### ➰ 7/  Daily restart
 
 As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to ``./RESTART.SH``.
 
@@ -186,7 +186,7 @@ It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessi
 ## 🚀 First and daily Usage
 
 1. Verify that you have some torrents in your RD account _(JellyGrail does not provide any torrent indexer search or RD downloader)_.
-2. Trigger a first ``/scan`` to fill the ``./Video_Library/virtual/`` folder (See Tasks triggering section).
+2. Trigger a first ``/scan`` to fill the ``./Video_Library/virtual/`` folder (See 📡 Tasks triggering section above).
 3. Access the content in ``./Video_Library/virtual/`` (in the folder you ran the docker command).
 4. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
     - You can also point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
@@ -194,7 +194,7 @@ It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessi
 5. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
 6. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
 7. Beware to have a paid RD account:
-    - configure ``/backup`` cron (See 📡 Tasks triggering section above)
+    - configure ``/backup`` cron (See 📡 Tasks triggering section above).
     - (if you forgot a payment you can find your torrents backup in jellygrail/data/backup/ ) TODO: service to restore the dump.
 8. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
 9. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
@@ -270,10 +270,12 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 
 ## Kodi setup (recommended)
 
-Nvidia Shield: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Omega or Nexus release (arm64-v8a)) 
-Chromecast with Google TV: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Omega or Nexus release (armeabi-v7a)
+### Devices
+- Nvidia Shield: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Omega or Nexus release (arm64-v8a)) 
+- Chromecast with Google TV: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (armeabi-v7a)
 (to be completed...)
 
+### Add-ons
 - Jellyfin add-on ``*``
   - with 'add-on' paths, not 'native' paths, otherwise you loose the functionnality to choose the video variant upon play.
 
