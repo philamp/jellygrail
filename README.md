@@ -268,12 +268,19 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (TODO: fix that in bindfs_jelly if possible).
 - The ``./PREPARE.SH`` script throws mounting errors but they're not.
 
-## Kodi setup recommended
+## Kodi setup (recommended)
 
-- Jellyfin add-on (with 'add-on' paths, not 'native' paths, otherwise you loose the functionnality to choose the video variant upon play)
-- Artic Horizon 2 skin
+- Jellyfin add-on ``*``
+  - with 'add-on' paths, not 'native' paths, otherwise you loose the functionnality to choose the video variant upon play.
+
+- Artic Horizon 2 skin ``*``
+  - Allow third party default dependencies in add-on settings before instlaling the skin.
+
+- a4k subtitles add-on ``*``
+- Up Next (optionnal)
 - Keymap editor add-on (optionnal)
-- a4k subtitles add-on
+
+> ``*`` Kodi repo included (with "install from zip") in HTTP WebDAV server provided on port 8085 in ``./Video_Library/actual/kodi/software/``
 
 
 
