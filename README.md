@@ -197,7 +197,7 @@ It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessi
 8. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
 9. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
 
-> ``./fallbackdata/`` folder contains files added by any process that tries to write a file in _virtual_ folder and its subfolders.
+> ``./fallbackdata/`` folder contains files added by you or any process that tries to write a file in _virtual_ folder and its subfolders.
 > 
 > ``./Video_Library/virtual_dv/`` is a dynamically filtered folder containing only Dolby Vision MP4/MKV files.
 > 
@@ -240,7 +240,7 @@ curl http://localhost:6502/test
 Open http://your_system_ip:8096 to launch Jellyfin web interface.
 
 ## Good to know / Known issues
-- Check **First and daily usage" section above
+- Check **🚀 First and daily Usage** section above
 - only last 2500 real-debrid torrents are backuped.
 - **Some current limitations related to multi-threading in BindFS makes it impossible to enable it without issues. So, multi-access to same or different files through BindFS is not efficient (for instance: watching a movie while a scanning service is running has bad performance).**
 - ⚠️ If you restart your system, the docker container was maybe restarted but the rshared folder ``./Video_Library/`` was not prepared so you have to run ``./RESTART.SH`` to fix it.
@@ -262,9 +262,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 - bindfs_jelly is a fork of https://github.com/mpartel/bindfs that brings virtual folders and virtual renaming.
   - Its sqlite DB is initialized through inluded Python service that scans mounted local and remote folders (upon first start the virtual folder is empty).
 - ⚠️ You can manage your assets *only* through the virtual folder (rename, delete, move) otherwise if you do it directly on the underlying filesystems, linkage will be lost between virtual tree and actual trees.
-  - Don't forget to trigger a Library scan in Jellyfin (you can also trigger /scan service, it won't mess up your renamed/moved files in the virtual folder)
 - You can use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and disable downloading files to host since you don't need to have these files stored locally anymore. Thus you also have to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
-- data written in virtual folder (by you or any process) are actually written in ``./fallbackdata/`` folder.
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (TODO: fix that in bindfs_jelly if possible).
 - The ``./PREPARE.SH`` script throws mounting errors but they're not.
 
