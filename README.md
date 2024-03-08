@@ -149,7 +149,7 @@ An http service is provided on http://your_system_ip:6502 you can open these pat
 
 #### 📡 Path: /scan (⚠️mandatory)
 
-http://localhost:6502/scan should be triggered to scan your folders in order to fill the ``Video_Library/virtual/`` folder.
+http://localhost:6502/scan should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder.
 You can call this service from rdtclient (upon finished real-debrid download), but you can also have it scheduled frequently in a crontab.
 Beware it also calls Jellyfin library refresh automatically.
 
