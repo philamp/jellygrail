@@ -1077,6 +1077,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(bytes("This server is running and its last own RD torrents are:   \n"+dumped_data, "utf8"))
         elif url_path == "/backup":
+            rdump()
             if(os.path.exists(rdump_file)):
                 os.makedirs(rdump_backup_folder, exist_ok=True)
                 # copy with date in filename
