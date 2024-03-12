@@ -1116,13 +1116,14 @@ class RequestHandler(BaseHTTPRequestHandler):
                 data = json.load(file)
             
             # Filter the data
-            filtered_data = [entry for entry in data if datetime.fromisoformat(entry["added"].rstrip('Z')) > input_date]
+            # filtered_data = [entry for entry in data if datetime.fromisoformat(entry["added"].rstrip('Z')) > input_date]
+            
             
             # Send response
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps(filtered_data).encode())
+            self.wfile.write(json.dumps(data).encode())
         except FileNotFoundError:
             self.send_error(404, f"Could not find file {rdump_file}")
         except json.JSONDecodeError:
