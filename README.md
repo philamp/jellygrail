@@ -89,9 +89,10 @@ Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4
 #### 🐳 4.1/ Docker run base
 
 Example with common transcoding device access mounted and running in host mode (TODO: provide ports forwarding version)
+The first time you launch this command, you can run with "run -it" instead of "run -d" if you want, so that you can see the output, once first tasks are finished it stops and restarts in deamonized mode.
 
 ````
-sudo docker run -it --privileged --security-opt apparmor=unconfined \
+sudo docker run -d --privileged --security-opt apparmor=unconfined \
 --cap-add MKNOD \
 --cap-add SYS_ADMIN \
 --device /dev/fuse \
@@ -144,8 +145,6 @@ philamp/jellygrail:latest
 3. Verify that your working directory is the folder containing _PREPARE.SH_ file (= root folder of this repo).
 4. Paste your docker command in your bash prompt.
 6. Hit enter !
-
-...It should run in bash interactive mode (-it) and once first tasks are finished it stops and restarts in deamonized mode
 
 ### 📡 6/ Tasks triggering 
 
