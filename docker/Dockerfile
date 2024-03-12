@@ -162,6 +162,7 @@ RUN cd /usr/local/bin && \
     
 # copy the rest
 COPY root/ /
+RUN chmod u+x /init
 
 # expose nginx
 EXPOSE 8085
