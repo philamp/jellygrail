@@ -145,7 +145,7 @@ philamp/jellygrail:latest
 4. Paste your docker command in your bash prompt.
 6. Hit enter !
 
-...It should run in bash interactive mode (-it) but when first tasks are finished it stops and restarts in deamonized mode
+...It should run in bash interactive mode (-it) and once first tasks are finished it stops and restarts in deamonized mode
 
 ### 📡 6/ Tasks triggering 
 
