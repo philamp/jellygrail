@@ -189,15 +189,16 @@ It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessi
 2. Trigger a first ``/scan`` to fill the ``./Video_Library/virtual/`` folder (See 📡 Tasks triggering section above).
 3. Access the content in ``./Video_Library/virtual/`` (in the folder you ran the docker command).
 4. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
+    - Initialize the user and language and don't do anoything else (don't add librairies)
     - You can also point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
     - TODO: functionnality to disable jellyfin.
-5. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
-6. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
-7. Beware to have a paid RD account:
+6. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
+7. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
+8. Beware to have a paid RD account:
     - configure ``/backup`` cron (See 📡 Tasks triggering section above).
     - (if you forgot a payment you can find your torrents backup in jellygrail/data/backup/ ) TODO: service to restore the dump.
-8. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
-9. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
+9. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
+10. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
 
 > ``./fallbackdata/`` folder contains files added by you or any process that tries to write a file in _virtual_ folder and its subfolders.
 > 
@@ -247,6 +248,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 - **Some current limitations related to multi-threading in BindFS makes it impossible to enable it without issues. So, multi-access to same or different files through BindFS is not efficient (for instance: watching a movie while a scanning service is running has bad performance).**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./RESTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
+- TODO: add librairies after the first scan
 - You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but:
     - Follow this convention:
       - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
