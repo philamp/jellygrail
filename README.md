@@ -89,7 +89,7 @@ Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4
 #### 🐳 4.1/ Docker run base
 
 Example with common transcoding device access mounted and running in host mode (TODO: provide ports forwarding version)
-> The first time you launch this command, you can run with "run -it" instead of "run -d" if you want, so that you can see the output, once first tasks are finished it stops and restarts in deamonized mode.
+> The first time you launch this command, you can run with "run -it" instead of "run -d" if you want, so that you can see the output, once first tasks are finished it stops and restarts in deamonized mode anyway.
 
 ````
 sudo docker run -d --privileged --security-opt apparmor=unconfined \
