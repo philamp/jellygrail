@@ -70,6 +70,7 @@ cd ..
 ````
 Run the bash script:
 ````
+sudo chmod u+x PREPARE.SH
 sudo ./PREPARE.SH
 ````
 
