@@ -772,7 +772,6 @@ def rd_progress():
             threading.Thread(target=rd_progress).start()
 
 
-
 def remoteScan():
 
     global rscan_is_running, rscan_queued_execution
@@ -783,8 +782,7 @@ def remoteScan():
     # take data from remote RD account
     # if no local data, take it (we have to compare later on)
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
-        if not os.path.exists(rdump_file):
-            rdump()
+        rdump()
         daterequested = read_date_from_file()
         remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{daterequested}"
         try:
@@ -811,8 +809,8 @@ def remoteScan():
 
                 for item in push_to_rd_hashes:
                     try:
-                        logger.debug(f"> ajout du magnet: {item.get('hash')}")
-                        returned = RD.torrents.add_magnet(item.get('hash')).json()
+                        logger.debug(f"> ajout du magnet: {item}")
+                        returned = RD.torrents.add_magnet(item).json()
                         RD.torrents.select_files(returned.get('id'), 'all')
                     except Exception as e:
                         logger.error(f"An Error has occured on pushing hashes to RD : {e}")
