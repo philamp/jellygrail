@@ -77,8 +77,6 @@ sudo ./PREPARE.SH
 This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container)
 > Learn more about "rshared" here : https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759
 
-> This script throws unmounting errors but don't worry
-
 ### 🐳 4/ Docker command
 
 Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4.3 below:
@@ -244,15 +242,18 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 ## Good to know / Known issues
 - Check **🚀 First and daily Usage** section above
 - only last 2500 real-debrid torrents are backuped.
+- m2ts files not inside a BDMV structure are ignored.
 - **Some current limitations related to multi-threading in BindFS makes it impossible to enable it without issues. So, multi-access to same or different files through BindFS is not efficient (for instance: watching a movie while a scanning service is running has bad performance).**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./RESTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
 - TODO: add librairies after the first scan
-- You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but:
+- Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but:
     - Follow this convention:
       - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
       - and name the file "rclone.conf".
-    - underlying files deletion follows rclone RD fork system : Inside folders containing multiple video files, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion are sometimes uncomplete in this case.
+- Underlying files deletion
+  - REMOTE : follows rclone RD fork system : Inside folders containing multiple video files, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion are sometimes uncomplete in this case.
+  - LOCAL : Underlying files are deleted but not folders (TODO:fix)
 - A daily docker restart is still needed so far.
 - RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
 - 3 Jellyfin plugins are pre-installed:
@@ -266,7 +267,6 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 - ⚠️ You can manage your assets *only* through the virtual folder (rename, delete, move) otherwise if you do it directly on the underlying filesystems, linkage will be lost between virtual tree and actual trees.
 - You can use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and disable downloading files to host since you don't need to have these files stored locally anymore. Thus you also have to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (TODO: fix that in bindfs_jelly if possible).
-- The ``./PREPARE.SH`` script throws mounting errors but they're not.
 
 ## Kodi setup (recommended)
 
