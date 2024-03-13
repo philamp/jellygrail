@@ -251,7 +251,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
     - Follow this convention:
       - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
       - and name the file "rclone.conf".
-- Underlying files deletion
+- Underlying files deletion:
   - REMOTE : follows rclone RD fork system : Inside folders containing multiple video files, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion are sometimes uncomplete in this case.
   - LOCAL : Underlying files are deleted but not folders (TODO:fix)
 - A daily docker restart is still needed so far.
