@@ -61,7 +61,7 @@ logger.propagate = False
 
 # Create file handler which logs even debug messages
 fh = logging.FileHandler('/jellygrail/log/jelly_update.log')
-fh.setLevel(logging.WARNING)  # Set the level for the file handler
+fh.setLevel(logging.DEBUG)  # Set the level for the file handler
 
 # Create console handler with a higher log level
 ch = logging.StreamHandler()
@@ -115,7 +115,7 @@ present_virtual_folders_shows = []
 SUB_EXTS = ('.srt', '.sub', '.idx', '.ssa', '.ass', '.sup', '.usf')
 
 # video exts
-VIDEO_EXTENSIONS = ('.mkv', '.avi', '.mp4', '.mov', '.m2ts', '.ts', '.m4v', '.wmv', '.iso', '.vob', '.mpg')
+VIDEO_EXTENSIONS = ('.mkv', '.avi', '.mp4', '.mov', '.m4v', '.wmv', '.iso', '.vob', '.mpg')
 
 # merge those 2 elements
 ALLOWED_EXTENSIONS = SUB_EXTS + VIDEO_EXTENSIONS
@@ -416,7 +416,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     season_present = False
     one_movie_present = False
     nbvideos = 0
+    nbvideos_e = 0
     stopthere = False
+    atleastoneextra = False
 
     # M_DUP duplicate workaround for one-movie releases / RESET idxdup at release level
     idxdupmovset = 1
@@ -428,7 +430,11 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     dive_s_ = {}
 
     # Multi Dim Array for E DIVE
-    dive_e_ = {'rootfilenames': [], 'rootfoldernames': [], 'mediatype' : None, 'premetas': ''}
+    # dive_e_ = {'rootfilenames': [], 'rootfoldernames': [], 'mediatype' : None, 'premetas': ''}
+
+    # Multi Dim Array for E DIVE V2
+    # 'rootfoldernames' {'eroot': '', 'efilename': '', 'efilesize': 0}
+    dive_e_ = {'rootfiles': [], 'rootfoldernames': [], 'mediatype' : None, 'premetas': ''}
 
     # make the present_virtual_folders_* global so that we can write in them on the fly (list of release folders)
     global present_virtual_folders
@@ -438,65 +444,71 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     # also: DIVE E write + cache-heater (similar check is done elsewhere, on release folder basis)
     for root, folders, files in os.walk(os.path.join(endpoint, releasefolder)):
         for filename in files:
-            if not "(sample)" in filename.lower() and not "sample.mkv" in filename.lower() and not '@eaDir' in root and not "DS_Store" in filename.lower():
+            if not "(sample)" in filename.lower() and not "sample.mkv" in filename.lower() and not '@eaDir' in root and not "DS_Store" in filename.lower() and not ('BDMV' not in os.path.normpath(root).split(os.sep) and filename.lower().endswith(('.m2ts', '.ts'))):
                 
                 # B - cache item fetching 
                 # folder insert will use rar_item (could be none or the parent rar file) 
                 # file insert will use rd_cache_item (could be a direct file or the parent rar file)
 
                 # S case with itegrated similar show/season/episode fetch (at file loop level):
-                if re.search(r'[Ss]\d{2}\.?[Ee]\d{2}|\b\d{2}x\d{2}\b', filename) and filename.lower().endswith(ALLOWED_EXTENSIONS):
-                    season_present = True
-                    # it's an episode file or sub
-                    filename_base = get_wo_ext(filename)
-                    match = re.search(r'(.+?)\s*((?:s\d{2}\.?e\d{2})|(?:\b\d{2}x\d{2}\b))\s*(.*?)', filename_base, re.IGNORECASE)
-                    if match:
-                        show, season_episode, episode_title = match.groups()
-                        if 'x' in season_episode:  # it's the 02x03 format
-                            season, episode_num = map(str, season_episode.split('x'))
-                        else:  # it's the S02E03 format
-                            season_episode_match = re.search(r's(\d+)\.?e(\d+)', season_episode, re.IGNORECASE)
-                            season, episode_num = season_episode_match.groups()
+                if re.search(r'[Ss]\d{2}\.?[Ee]\d{2}|\b\d{2}x\d{2}\b', filename):
+                    if filename.lower().endswith(ALLOWED_EXTENSIONS):
+                        season_present = True
+                        # it's an episode file or sub
+                        filename_base = get_wo_ext(filename)
+                        match = re.search(r'(.+?)\s*((?:s\d{2}\.?e\d{2})|(?:\b\d{2}x\d{2}\b)|(?:s\d{2}\.\d{2}))\s*(.*?)', filename_base, re.IGNORECASE)
+                        if match:
+                            show, season_episode, episode_title = match.groups()
+                            if 'x' in season_episode:  # it's the 02x03 format
+                                season, episode_num = map(str, season_episode.split('x'))
+                            elif 'e' not in season_episode: # it's the S02.03 format
+                                season_episode_match = re.search(r's(\d+)\.(\d+)', season_episode, re.IGNORECASE)
+                                season, episode_num = season_episode_match.groups()
+                            else:  # it's the S02E03 format
+                                season_episode_match = re.search(r's(\d+)\.?e(\d+)', season_episode, re.IGNORECASE)
+                                season, episode_num = season_episode_match.groups()
 
-                        # clean catpured data
-                        show = clean_string(show)
+                            # clean catpured data
+                            show = clean_string(show)
 
-                        # find existing show folder with thefuzz
-                        result = find_most_similar(show, present_virtual_folders_shows)
+                            # find existing show folder with thefuzz
+                            result = find_most_similar(show, present_virtual_folders_shows)
 
-                        will_idx_check = False
-                        if result is not None:
-                            most_similar_string, similarity_score = result
+                            will_idx_check = False
+                            if result is not None:
+                                most_similar_string, similarity_score = result
 
-                            if similarity_score > 94:
-                                show = most_similar_string
-                                logger.debug(f"      # similarshow check on : {show}")
-                                logger.debug(f"      # similarshow found is : {most_similar_string} with score {similarity_score}")
+                                if similarity_score > 94:
+                                    show = most_similar_string
+                                    logger.debug(f"      # similarshow check on : {show}")
+                                    logger.debug(f"      # similarshow found is : {most_similar_string} with score {similarity_score}")
 
-                                # S_DUP
-                                will_idx_check = True
+                                    # S_DUP
+                                    will_idx_check = True
 
+                                else:
+                                    present_virtual_folders_shows.append(show)
                             else:
                                 present_virtual_folders_shows.append(show)
-                        else:
-                            present_virtual_folders_shows.append(show)
-                        
-                        logger.debug(f"      ## definitive sim show folder : {show}")
+                            
+                            logger.debug(f"      ## definitive sim show folder : {show}")
 
-                        # dive S WRITE
+                            # dive S WRITE
 
-                        # ensuring structure
-                        dive_s_.setdefault(show, {}).setdefault(season, {}).setdefault(episode_num, {'rootfilenames': [], 'mediatype_s' : None, 'premetas': ''})
+                            # ensuring structure
+                            dive_s_.setdefault(show, {}).setdefault(season, {}).setdefault(episode_num, {'rootfilenames': [], 'mediatype_s' : None, 'premetas': ''})
 
-                        dive_s_[show][season][episode_num]['rootfilenames'].append(os.path.join(root, filename))
+                            dive_s_[show][season][episode_num]['rootfilenames'].append(os.path.join(root, filename))
 
 
 
                 # E case:
                 else:
 
-                    # add to another array for E cases
-                    dive_e_['rootfilenames'].append(os.path.join(root, filename))
+
+                    # add to another array for E cases (v2 structure)
+                    dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename))})
+                    
 
                     # EF case
                     if 'BDMV' in os.path.normpath(root).split(os.sep) or 'VIDEO_TS' in os.path.normpath(root).split(os.sep):
@@ -565,26 +577,45 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                 if not '@eaDir' in os.path.join(root, folder):
                     dive_e_['rootfoldernames'].append(os.path.join(root, folder))
 
+    # extras management with 0.3 rule
+    
+    if not season_present and nbvideos > 1:
+        # desc sorting (including other all types all files)
+
+        dive_e_['rootfiles'] = sorted(dive_e_['rootfiles'], key=lambda x: x['efilesize'], reverse=True)
+
+        # max filesize
+        maxfs = dive_e_['rootfiles'][0]['efilesize'] * 0.3
+
+        # rewrite eroot if efilesize < maxfs only if video file
+        for key, item in enumerate(dive_e_['rootfiles']):
+            if item['efilename'].endswith(VIDEO_EXTENSIONS):
+                if item['efilesize'] < maxfs :
+                    dive_e_['rootfiles'][key]['as_if_vroot'] = os.path.join(endpoint, releasefolder, 'extras')
+                    atleastoneextra = True
+                else:
+                    nbvideos_e += 1
+    
+
+    # multiple_movie_or_disc_present is common and triggered in these 3 scenarios : >1 movie files or BDMV present or ISO
+
     # After DIVE write
     # Logging some hints + setting multiple_movie_or_disc_present also when video_files > 1
     if nbvideos < 1:
-        logger.warning(f" - FAILURE_nbfiles: no video files on {os.path.join(endpoint, releasefolder)}")
+        logger.warning(f" - No valid files in release: {os.path.join(endpoint, releasefolder)} (or .m2ts not inside a BDMV/DVD structure). Its possible that RD downloading is not completed yet")
         stopthere = True
-    elif nbvideos > 1:
-        if (not bdmv_present and not season_present):
-            # multiple_movie_or_disc_present for BDMV is already set above
-            multiple_movie_or_disc_present = True
-            logger.info("    -- Multiple videos release --")
-
-    if bdmv_present:
-        logger.info("    -- BDMV or DVD Release --")
-    elif not season_present and not multiple_movie_or_disc_present:
-        logger.info("    -- One video release --")
-    else:
+    elif(nbvideos_e > 1):
+        multiple_movie_or_disc_present = True
+        logger.info("    -- Multiple videos release with or without extras --")
+    elif bdmv_present:
+        logger.info("    -- BDMV or DVD Release with or without extras --")
+    elif season_present:
         logger.info("    -- TV show release --")
+    else:
+        logger.info("    -- One video release with our without extras (last possibility) --")
 
-    # ---- DIVE S READ + insert + S_DUP idxcheck -----
-    if season_present:
+    # ---- DIVE S READ + insert + S_DUP idxcheck, unless stopthere is true-----
+    if season_present and not stopthere:
 
         # S_DUP / reset idxdup at dive_s_ loop level 
         idxdup = 1
@@ -663,7 +694,11 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
             logger.debug(f"      ## definitive sim movie folder : {title_year}")
 
         # ----- DIVE E READ + M_DUP check idx + insert
-        for rootfilename in dive_e_['rootfilenames']:
+        for item in dive_e_['rootfiles']:
+            
+            rootfilename = os.path.join(item['eroot'], item['efilename'])
+            asifrootfilename = os.path.join(item['as_if_vroot'], item['efilename'])
+
             # B cache item fetching
             rd_cache_item = rootfilename if rar_item == None else rar_item
 
@@ -673,7 +708,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
             # EF case
             if multiple_movie_or_disc_present:
 
-                insert_data("/movies/"+releasefolder+"/"+os.path.relpath(rootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
+                insert_data("/movies/"+releasefolder+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
 
             # Esingle case
             elif rootfilename.lower().endswith(ALLOWED_EXTENSIONS):
@@ -689,9 +724,14 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                 # M_DUP
 
                 if not rootfilename.lower().endswith(VIDEO_EXTENSIONS):
-                    insert_data("/movies/"+title_year+"/"+title_year+metas+subtitle_extension(os.path.basename(rootfilename)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
+                    insert_data("/movies/"+title_year+"/"+title_year+metas+subtitle_extension(os.path.basename(asifrootfilename)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
                 else:
-                    insert_data("/movies/"+title_year+"/"+title_year+metas+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
+                    if item['as_if_vroot'].endswith('extras'):
+                        logger.warning(f" ->found {item['eroot']}")
+                        insert_data("/movies/"+title_year+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
+                    else:
+                        insert_data("/movies/"+title_year+"/"+title_year+metas+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
+
                     one_movie_present = True
 
         for rootfoldername in dive_e_['rootfoldernames']:
@@ -703,9 +743,14 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
         # EF 
         if multiple_movie_or_disc_present:
             insert_data("/movies/"+releasefolder, None, None, None, dive_e_['mediatype'])
+            if atleastoneextra:
+                insert_data("/movies/"+releasefolder+"/extras", None, None, None, dive_e_['mediatype'])
+
         # Esingle folder
         if one_movie_present:
             insert_data("/movies/"+title_year, None, None, None, dive_e_['mediatype'])
+            if atleastoneextra:
+                insert_data("/movies/"+title_year+"/extras", None, None, None, dive_e_['mediatype'])
         # S folders are done in first filename loop
 
 def read_date_from_file():
@@ -843,7 +888,7 @@ def scan():
     # fetch dual mountpoints
 
     for f in os.scandir(mounts_root): 
-        if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")):
+        if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
             logger.info(f"> FOUND MOUNTPOINT: {f.name}")
             type = "local" if f.name.startswith("local_") else "remote"
             for d in os.scandir(f.path):

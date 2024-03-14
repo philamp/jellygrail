@@ -72,10 +72,10 @@ echo "--------------------------------------------------------------------------
 mkdir -p ./jellygrail/jellyfin/config
 mkdir -p ./jellygrail/jellyfin/cache
 mkdir -p ./fallbackdata
-fusermount -uz ./Video_Library
-fusermount -uz ./Video_Library
-umount ./Video_Library
-umount ./Video_Library
+fusermount -uz ./Video_Library 2> /dev/null
+fusermount -uz ./Video_Library 2> /dev/null
+umount ./Video_Library 2> /dev/null
+umount ./Video_Library 2> /dev/null
 mkdir -p ./Video_Library
 mount -o bind ./Video_Library ./Video_Library
 mount --make-shared ./Video_Library
