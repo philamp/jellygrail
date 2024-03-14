@@ -596,11 +596,10 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                 else:
                     nbvideos_e += 1
     
-
-    # multiple_movie_or_disc_present is common and triggered in these 3 scenarios : >1 movie files or BDMV present or ISO
-
-    # After DIVE write
+    # DIVE write END
+                    
     # Logging some hints + setting multiple_movie_or_disc_present also when video_files > 1
+    # multiple_movie_or_disc_present is common and triggered in these 3 scenarios : >1 movie files or BDMV present or ISO
     if nbvideos < 1:
         logger.warning(f" - No valid files in release: {os.path.join(endpoint, releasefolder)} (or .m2ts not inside a BDMV/DVD structure). Its possible that RD downloading is not completed yet")
         stopthere = True
@@ -629,6 +628,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         rd_cache_item = rootfilename if rar_item == None else rar_item
 
                         # metas compute
+                        # S_DUP
                         metas = episodeattribs['premetas']
                         if (will_idx_check):
                         # LS the sim folder with no ext files (because we loop check at filename level, we want to list video only and not subs)
@@ -638,7 +638,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                                     ls_virtual_folder_a.append(get_wo_ext(os.path.basename(itemv[0])))
 
                             # We deduplicate anyway to have videofilename.* count as one entry
-                            # S_DUP
+                            
                             if(f"{show} S{season}E{episode_num}" not in idxdupshowset_a):
                                 for existing_file in ls_virtual_folder_a:
                                     if f"{show} S{season}E{episode_num}"+metas+str(idxdup) == existing_file:
@@ -647,6 +647,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             else:
                                 idxdup = idxdupshowset_a[f"{show} S{season}E{episode_num}"]
                         metas = metas + str(idxdup)
+                        # S_DUP
 
                         # filename ext compute
                         filename_ext = get_ext(os.path.basename(rootfilename))
@@ -684,7 +685,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry
                     ls_virtual_folder_a = list(set(ls_virtual_folder_a))
 
-                    # Mdup:
+                    # M_DUP:
                     will_idx_check = True
 
                 else:
