@@ -23,7 +23,7 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ]; then
     echo "At least one of configuration files does not exist. $CONF_PATH and $SETTINGS_PATH will be created"
     read -p "Please enter your Real-Debrid API key (leave empty to ignore): " api_key
     read -p "Please enter the remote location (ex: http://10.6.0.1:6502 ; leave empty to ignore): " remote_loc
-    read -p "Please enter the date from which you want to synchronize remote torrents, (default: 2024-02-02 ; leave empty to keep default): " default_date
+    read -p "Please enter the increment from which you want to synchronize remote torrents, (default: 200 ; leave empty to keep default): " default_incr
 
 
     # Check if the user input is empty
@@ -49,8 +49,8 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ]; then
             if [ ! -z "$remote_loc" ]; then
                 sed -i "s/PASTE-REMOTE-ADDR-HERE/$remote_loc/" "$SETTINGS_PATH"
             fi
-            if [ ! -z "$default_date" ]; then
-                sed -i "s/2024-02-02/$default_date/" "$SETTINGS_PATH"
+            if [ ! -z "$default_incr" ]; then
+                sed -i "s/200/$default_incr/" "$SETTINGS_PATH"
             fi
     
         else

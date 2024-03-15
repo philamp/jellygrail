@@ -11,6 +11,9 @@ import json
 import shlex
 import threading
 
+# import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
+from script_runner import ScriptRunner
+
 # for Jellyfin API
 # from typing import List, Dict
 import requests
@@ -29,25 +32,20 @@ import random
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
 
-#rd api
-from rdapi import RD
-RD = RD()
+#rd api services wrapper
+import jg_services
+# from rdapi import RD
+# RD = RD()
+
+# no need for DATA anymore TODELETE
 from datetime import datetime
 
-# rd local dump location
-rdump_file = '/jellygrail/data/rd_dump.json'
-# rd local dump cron-backups folder
-rdump_backup_folder = '/jellygrail/data/backup'
 # rd last date of import file
 rdate_file = '/jellygrail/data/rd_date.txt'
 
-# rd_progress init
-rd_progress_last_added_torrent_date = None
-rd_progress_last_downloaded_count = 0
 
-# rd remote location
-REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
-DEFAULT_DATE = os.getenv('DEFAULT_DATE')
+
+
 
 # http threader
 # Set up logging
@@ -78,21 +76,10 @@ ch.setFormatter(formatterch)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
-# Variables to track scan script execution and queuing
+# Variables to track scan script execution and queuing TODELETE :
 is_running = False
 queued_execution = False
 
-#... and for rddump
-rdump_is_running = False
-rdump_queued_execution = False
-
-# ... for rscan
-rscan_is_running = False
-rscan_queued_execution = False
-
-# for rd_progress
-rd_progress_is_running = False
-rd_progress_queued_execution = False
 
 # Global sqlite connection object
 conn = None
@@ -754,123 +741,6 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                 insert_data("/movies/"+title_year+"/extras", None, None, None, dive_e_['mediatype'])
         # S folders are done in first filename loop
 
-def read_date_from_file():
-    try:
-        with open(rdate_file, 'r') as file:
-            date = file.read().strip()
-            return date
-    except FileNotFoundError:
-        return DEFAULT_DATE
-
-def save_date_to_file(date):
-    try:
-        with open(rdate_file, 'w') as file:
-            file.write(date)
-    except IOError as e:
-        logger.critical(f"Error saving date to file: {e}")
-
-def rd_progress():
-    # this will trigger /scan if any downloading finished on own RD account
-    # so the order is : /remotescan, /rd_progress /scan
-    # ----
-    # what defining a newly downloaded file to trigger the bindfs scan ?
-    # -> if first torrent date has changed or increased 'then-now' delta in number of downloaded statuses 
-    # -> (in other words: it wont scan when list does not change or downloaded statuses has not increased )
-    global rd_progress_last_added_torrent_date
-    global rd_progress_last_downloaded_count
-
-    global rd_progress_is_running, rd_progress_queued_execution
-
-    rd_progress_is_running = True
-    rd_progress_queued_execution = False
-
-    try:
-        # get torrents
-        data = RD.torrents.get(limit=2500, page=1).json() # todo: it's only the 2500 last items
-
-    except Exception as e:
-        logger.error(f"An error occurred on getting RD data in rd_progress method: {e}")
-
-    else:
-        if len(data) > 0:
-            
-            # get the cur values
-            cur_rd_progress_last_added_torrent_date = data[0].get('added')
-            cur_rd_progress_last_downloaded_count = len([item for item in data if item.get('status') == 'downloaded'])
-
-            if cur_rd_progress_last_added_torrent_date != rd_progress_last_added_torrent_date or cur_rd_progress_last_downloaded_count > rd_progress_last_downloaded_count:
-                threading.Thread(target=run_script).start()
-                logger.info("> I detected new torrents having 'downloaded' status, so I started /scan method")
-            else:
-                logger.info("> I did not detect any new torrents with 'downloaded' status")
-
-
-            # store for later on check
-            rd_progress_last_added_torrent_date = cur_rd_progress_last_added_torrent_date
-            rd_progress_last_downloaded_count = cur_rd_progress_last_downloaded_count
-
-        else:
-            return
-        
-    finally:
-        rd_progress_is_running = False
-        if rscan_queued_execution:
-            threading.Thread(target=rd_progress).start()
-
-
-def remoteScan():
-
-    global rscan_is_running, rscan_queued_execution
-
-    rscan_is_running = True
-    rscan_queued_execution = False
-
-    # take data from remote RD account
-    # if no local data, take it (we have to compare later on)
-    if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
-        rdump()
-        daterequested = read_date_from_file()
-        remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{daterequested}"
-        try:
-            response = requests.get(remote_loc)
-            response.raise_for_status()
-            server_data = response.json()
-        except requests.RequestException as e:
-            logger.critical(f"Error fetching data from server: {e}")
-        else:
-            if server_data is not None:
-                if len(server_data) > 0:
-                    if last_added_date := server_data[0].get('added'):
-                        save_date_to_file(last_added_date)
-                server_data_hashes = [item.get('hash') for item in server_data]
-            try:
-                with open(rdump_file, 'r') as file:
-                    local_data = json.load(file)
-            except IOError as e:
-                logger.critical(f"Error opening local data file: {e}")
-                return
-            else:
-                local_data_hashes = [iteml.get('hash') for iteml in local_data]
-                push_to_rd_hashes = [item for item in server_data_hashes if item not in local_data_hashes]
-
-                for item in push_to_rd_hashes:
-                    try:
-                        logger.debug(f"> ajout du magnet: {item}")
-                        returned = RD.torrents.add_magnet(item).json()
-                        RD.torrents.select_files(returned.get('id'), 'all')
-                    except Exception as e:
-                        logger.error(f"An Error has occured on pushing hashes to RD : {e}")
-
-                # scan is triggered with rd_progress
-        finally:
-            rscan_is_running = False
-            if rscan_queued_execution:
-                threading.Thread(target=remoteScan).start()
-            
-
-    else:
-        logger.warning("---- No REMOTE_RDUMP_BASE_LOCATION specified, ignoring ----")
-
 
 def scan():
 
@@ -1027,155 +897,101 @@ def scan():
     # server : rd dump updated for later date segmentation and response to client 
     # client : rd dump comparison with own RD dump (client) 
     # both: for later archive
-    logger.info("> DUMPING RD DATA LOCALLY ...")
-    rdump()
-    logger.info("> DUMPING RD DATA DONE")
+    #logger.info("> DUMPING RD DATA LOCALLY ...")
+    #rdump() TODO
+    #logger.info("> DUMPING RD DATA DONE")
 
-def rdump():
-    global rdump_is_running, rdump_queued_execution
-
-    rdump_is_running = True
-    rdump_queued_execution = False
-
-    try:
-        # create horodated json file of my torrents
-        data = RD.torrents.get(limit=2500, page=1).json() # todo: it's only the 2500 last items
-        # Store the data in a file
-        with open(rdump_file, 'w') as f:
-            json.dump(data, f)
-    except Exception as e:
-        logger.critical(f"An error occurred on rdump: {e}")
-    finally:
-        rdump_is_running = False
-        if rdump_queued_execution:
-            threading.Thread(target=rdump).start()
-
-
-def run_script():
-    global is_running, queued_execution
-
-    is_running = True
-    queued_execution = False
-
-    try:
-        # Replace this with the actual function call from your script
-        scan()
-    except Exception as e:
-        logger.critical(f"An error occurred on scan: {e}")
-    finally:
-        is_running = False
-        if queued_execution:
-            threading.Thread(target=run_script).start()
 
 class RequestHandler(BaseHTTPRequestHandler):
+
+    def standard_headers(self, type='text/html'):
+        self.send_response(200)
+        self.send_header('Content-type', type)
+        self.end_headers()
+
     def do_GET(self):
-        global queued_execution
+
+        # TODELETE :
         global rdump_queued_execution
         global rscan_queued_execution
-        global rd_progress_queued_execution
+
+        # parse the path
         url_path = urllib.parse.urlparse(self.path).path
+
         if url_path == '/scan':
-            if is_running:
-                queued_execution = True
-                message = "Scan execution queued.\n"
+            self.http_scan_instance = ScriptRunner.get(scan)
+            self.http_scan_instance.run()
+            if self.http_scan_instance.queued_execution:
+                message = "### scan() queued for later ! (Forces a library scan)\n"
             else:
-                threading.Thread(target=run_script).start()
-                message = "Scan triggered!\n"
-
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
+                message = "### scan() directly executed ! (Forces a library scan)\n"
+            self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
-
 
         elif url_path == '/rd_progress':
-            if rd_progress_is_running:
-                rd_progress_queued_execution = True
-                message = "rd progress execution queued.\n"
+            self.http_rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
+            self.http_rdprog_instance.run()
+            if self.http_rdprog_instance.queued_execution:
+                message = "### rd_progress() queued for later ! (Checks Real-Debrid status)\n"
             else:
-                threading.Thread(target=rd_progress).start()
-                message = "rd progress triggered!\n"
-
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
+                message = "### rd_progress() directly executed ! (Checks Real-Debrid status)\n"
+            self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
+            if(self.http_rdprog_instance.get_output() == 'PLEASE_SCAN'):
+                logger.info("PLEASE SCAN TRIGGERED")
+                #self.http_scan_instance = ScriptRunner.get(scan)
+                #self.http_scan_instance.run()
+
 
 
         elif url_path == '/remotescan':
-            if rscan_is_running:
-                rscan_queued_execution = True
-                message = "Remote Scan execution queued.\n"
+            self.http_remoteScan_instance = ScriptRunner.get(jg_services.remoteScan)
+            self.http_remoteScan_instance.run()
+            if self.http_remoteScan_instance.queued_execution:
+                message = "### remoteScan() queued for later ! (Checks for remote's new RD hashes)\n"
             else:
-                threading.Thread(target=remoteScan).start()
-                message = "Remote Scan triggered!\n"
-
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
+                message = "### remoteScan() directly executed ! (Checks for remote's new RD hashes)\n"
+            self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
-        elif url_path == '/test':
-            dumped_data = json.dumps(RD.torrents.get(limit=2, page=1).json())
-            self.send_response(200)
-            self.send_header('Content-type', 'text/html')
-            self.end_headers()
-            self.wfile.write(bytes("This server is running and its last own RD torrents are:   \n"+dumped_data, "utf8"))
-        elif url_path == "/backup":
-            rdump()
-            if(os.path.exists(rdump_file)):
-                os.makedirs(rdump_backup_folder, exist_ok=True)
-                # copy with date in filename
-                today = datetime.now()
-                file_backuped = "/rd_dump_"+today.strftime("%Y%m%d")+".json"
-                subprocess.call(['cp', rdump_file, rdump_backup_folder+file_backuped])
-                self.send_response(200)
-                self.send_header('Content-type', 'text/html')
-                self.end_headers()
-                self.wfile.write(bytes("Local Backup Service : RD Backup done\n", "utf8"))
-            else:
-                if rdump_is_running:
-                    rdump_queued_execution = True
-                else:
-                    threading.Thread(target=rdump).start()
-                self.send_error(503, "Local Backup Service not yet available - rd dump file not yet created on server, please retry in few seconds")
-            
-        elif url_path.startswith("/getrdincrement/"):
-            if(os.path.exists(rdump_file)):
-                date_str = url_path[len("/getrdincrement/"):].rstrip('/')
-                try:
-                    input_date = datetime.fromisoformat(date_str.rstrip('Z'))
-                    self.filter_and_send_data(input_date)
-                except ValueError:
-                    self.send_error(400, "Invalid date format")
-            else:
-                if rdump_is_running:
-                    rdump_queued_execution = True
-                else:
-                    threading.Thread(target=rdump).start()
-                self.send_error(503, "Client triggered service, not yet available - rd dump file not yet created on server, please retry in few seconds")
-        else:
-            self.send_error(404, "File not found")
 
-    def filter_and_send_data(self, input_date):
-        try:
-            with open(rdump_file, 'r') as file:
-                data = json.load(file)
-            
-            # Filter the data
-            # filtered_data = [entry for entry in data if datetime.fromisoformat(entry["added"].rstrip('Z')) > input_date]
-            
-            
-            # Send response
-            self.send_response(200)
-            self.send_header('Content-type', 'application/json')
-            self.end_headers()
-            self.wfile.write(json.dumps(data).encode())
-        except FileNotFoundError:
-            self.send_error(404, f"Could not find file {rdump_file}")
-        except json.JSONDecodeError:
-            self.send_error(500, "Error decoding JSON data")
-        except Exception as e:
-            self.send_error(500, str(e))
+
+        elif url_path == '/test':
+            self.http_test_instance = ScriptRunner.get(jg_services.test)
+            self.http_test_instance.run()
+            dumped_data = self.http_test_instance.get_output()
+            self.standard_headers()
+            self.wfile.write(bytes("This server is running and its last own RD torrents are:   \n"+dumped_data, "utf8"))
+
+
+        elif url_path == "/backup":
+            self.http_rdump_backup_instance = ScriptRunner.get(jg_services.rdump_backup)
+            self.http_rdump_backup_instance.run()
+            if self.http_rdump_backup_instance.queued_execution:
+                message = "### rdump_backup() queued for later ! (backup the cur dump and dump)\n"
+            else:
+                message = "### rdump_backup() directly executed ! (backup the cur dump and dump)\n"
+            self.standard_headers()
+            self.wfile.write(bytes(message, "utf8"))    
+
+        elif url_path.startswith("/getrdincrement/"):
+            # TODO: needs rewrite quickly ...
+                # incr = int(url_path[len("/getrdincrement/"):].rstrip('/'))
+            try:
+                incr = int(url_path[len("/getrdincrement/"):].rstrip('/'))
+                # input_date = datetime.fromisoformat(date_str.rstrip('Z'))
+                # self.filter_and_send_data(input_date)
+            except ValueError:
+                self.send_error(400, "Invalid incr format")
+            else:   
+                self.http_getrdincr_instance = ScriptRunner.get(jg_services.getrdincrement)
+                self.http_getrdincr_instance.resetargs(incr)
+                self.http_getrdincr_instance.run()
+                self.standard_headers('application/json')
+                output = self.http_getrdincr_instance.get_output()
+                if output != '':
+                    self.wfile.write(output)
+                else:
+                    self.send_error(503, "Client triggered service, not yet available - rd dump file not yet created on server, please retry in few seconds")
 
 
 def run_server(server_class=HTTPServer, handler_class=RequestHandler, port=6502):
