@@ -38,14 +38,7 @@ import jg_services
 # RD = RD()
 
 # no need for DATA anymore TODELETE
-from datetime import datetime
-
-# rd last date of import file
-rdate_file = '/jellygrail/data/rd_date.txt'
-
-
-
-
+# from datetime import datetime
 
 # http threader
 # Set up logging
@@ -75,10 +68,6 @@ ch.setFormatter(formatterch)
 # Add the handlers to the logger
 logger.addHandler(fh)
 logger.addHandler(ch)
-
-# Variables to track scan script execution and queuing TODELETE :
-is_running = False
-queued_execution = False
 
 
 # Global sqlite connection object
@@ -446,9 +435,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         match = re.search(r'(.+?)\s*((?:s\d{2}\.?e\d{2})|(?:\b\d{2}x\d{2}\b)|(?:s\d{2}\.\d{2}))\s*(.*?)', filename_base, re.IGNORECASE)
                         if match:
                             show, season_episode, episode_title = match.groups()
-                            if 'x' in season_episode:  # it's the 02x03 format
+                            if 'x' in season_episode or 'X' in season_episode:  # it's the 02x03 format
                                 season, episode_num = map(str, season_episode.split('x'))
-                            elif 'e' not in season_episode: # it's the S02.03 format
+                            elif not 'e' in season_episode and not 'E' in season_episode : # it's the S02.03 format
                                 season_episode_match = re.search(r's(\d+)\.(\d+)', season_episode, re.IGNORECASE)
                                 season, episode_num = season_episode_match.groups()
                             else:  # it's the S02E03 format
@@ -498,20 +487,21 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     
 
                     # EF case
-                    if 'BDMV' in os.path.normpath(root).split(os.sep) or 'VIDEO_TS' in os.path.normpath(root).split(os.sep):
+                    if 'BDMV' in os.path.normpath(root).split(os.sep) or 'VIDEO_TS' in os.path.normpath(root).split(os.sep) or filename.lower().endswith('.iso'):
                         multiple_movie_or_disc_present = True
                         bdmv_present = True
                         dive_e_['mediatype'] = '_bdmv'
 
                 # -- END DIVE write E+S (except folders for E) ---
 
-                # cache heating or ffprobe:
+                # cache heating or ffprobe for E or S cases:
                 if(filename.lower().endswith(VIDEO_EXTENSIONS)):
 
                     # nbvideos incr
                     nbvideos += 1
                     
-                    if not filename.lower().endswith('.iso') and ((bdmv_present and rar_item == None and storetype == 'remote') or (not bdmv_present)):
+                    if not filename.lower().endswith('.iso'):
+                        # and storetype == 'remote' missing and rar_item ignored means we run ffprobe on mkv even if they're cache-heated with void-unrar
                         # cache-heater 1 for all files but iso
                         (bitrate, dvprofile) = get_ffprobe(os.path.join(root, filename))
 
@@ -532,11 +522,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                                 
                                 dive_e_['premetas'] = f" -{tpl(bitrate)}{tpl(dvprofile, 'DVp')}"
 
-                    elif filename.lower().endswith('.iso') and storetype == 'remote':
-
-                        multiple_movie_or_disc_present = True
-                        bdmv_present = True
-                        dive_e_['mediatype'] = '_bdmv'
+                    elif filename.lower().endswith('.iso'):
 
                         # cache-heater 0bis for all iso files if storing is remote
                         if storetype == 'remote':
@@ -584,10 +570,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     nbvideos_e += 1
     
     # DIVE write END
-                    
     # Logging some hints + setting multiple_movie_or_disc_present also when video_files > 1
     # multiple_movie_or_disc_present is common and triggered in these 3 scenarios : >1 movie files or BDMV present or ISO
-    if nbvideos < 1:
+    if nbvideos < 1 and not bdmv_present:
         logger.warning(f" - No valid files in release: {os.path.join(endpoint, releasefolder)} (or .m2ts not inside a BDMV/DVD structure). Its possible that RD downloading is not completed yet")
         stopthere = True
     elif(nbvideos_e > 1):
@@ -715,7 +700,6 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     insert_data("/movies/"+title_year+"/"+title_year+metas+subtitle_extension(os.path.basename(asifrootfilename)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
                 else:
                     if item['as_if_vroot'].endswith('extras'):
-                        logger.warning(f" ->found {item['eroot']}")
                         insert_data("/movies/"+title_year+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
                     else:
                         insert_data("/movies/"+title_year+"/"+title_year+metas+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
@@ -911,10 +895,6 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
 
-        # TODELETE :
-        global rdump_queued_execution
-        global rscan_queued_execution
-
         # parse the path
         url_path = urllib.parse.urlparse(self.path).path
 
@@ -939,10 +919,9 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes(message, "utf8"))
             if(self.http_rdprog_instance.get_output() == 'PLEASE_SCAN'):
                 logger.info("PLEASE SCAN TRIGGERED")
+                # TODO enable it 
                 #self.http_scan_instance = ScriptRunner.get(scan)
                 #self.http_scan_instance.run()
-
-
 
         elif url_path == '/remotescan':
             self.http_remoteScan_instance = ScriptRunner.get(jg_services.remoteScan)
@@ -974,14 +953,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes(message, "utf8"))    
 
         elif url_path.startswith("/getrdincrement/"):
-            # TODO: needs rewrite quickly ...
-                # incr = int(url_path[len("/getrdincrement/"):].rstrip('/'))
             try:
                 incr = int(url_path[len("/getrdincrement/"):].rstrip('/'))
-                # input_date = datetime.fromisoformat(date_str.rstrip('Z'))
                 # self.filter_and_send_data(input_date)
             except ValueError:
-                self.send_error(400, "Invalid incr format")
+                self.send_error(400, "Invalid increment format")
             else:   
                 self.http_getrdincr_instance = ScriptRunner.get(jg_services.getrdincrement)
                 self.http_getrdincr_instance.resetargs(incr)

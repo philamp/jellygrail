@@ -5,7 +5,7 @@ from rdapi import RD
 import requests
 import json
 import subprocess
-import datetime
+from datetime import datetime
 from script_runner import ScriptRunner
 RD = RD()
 # plug to same logging instance as main
@@ -61,10 +61,6 @@ def rd_progress():
 # rd_progress NEW: Fill the pile chronologically each time it's called in server and new stuff arrives
     # this will trigger /scan if any downloading finished on own RD account
     # so the order is : /remotescan, /rd_progress -> /scan (+daily forced scan if needed)
-    # ----
-    # what defining a newly downloaded file to trigger the bindfs scan ?
-    # -> if first torrent date has changed or increased 'then-now' delta in number of downloaded statuses 
-    # -> (in other words: it wont scan when list does not change or downloaded statuses has not increased )
 
     if data := rdump_backup(including_backup = False, returning_data= True):
 
@@ -112,7 +108,7 @@ def remoteScan():
 
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
          # -> ok but if remotescan is called a lot ... lot of backups....
-        cur_incr = read_date_from_file()
+        cur_incr = read_incr_from_file()
         remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{cur_incr}"
         try:
             response = requests.get(remote_loc)
@@ -158,7 +154,7 @@ def getrdincrement(incr):
         cur_pile = file_to_array(pile_file)
         return json.dumps({'hashes': cur_pile[incr:], 'lastid': len(cur_pile)}).encode()
     else:
-        #call rd_progress ?
+        # it forces this sever to call rd_progress at least once
         service_rdprog_instance = ScriptRunner.get(rd_progress)
         service_rdprog_instance.run()
         return ""
@@ -186,7 +182,7 @@ def rdump_backup(including_backup = True, returning_data = False):
     except Exception as e:
         logger.critical(f"An error occurred on rdump: {e}")
 
-def read_date_from_file():
+def read_incr_from_file():
     try:
         with open(rdincr_file, 'r') as file:
             date = file.read().strip()

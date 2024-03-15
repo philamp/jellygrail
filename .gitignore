@@ -7,3 +7,4 @@ fallbackdata/*
 mounts/*
 CUSTOM_HOST_MOUNT.SH
 RESTART.SH
+docker/root/usr/local/bin/__pycache__/*
