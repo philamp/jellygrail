@@ -75,8 +75,8 @@ fi
 
 
 
-echo "Proceeding with the script... IF YOU GET SOME UNMOUTING ERRORS BELOW: DONT WORRY ITS FINE"
-echo "-----------------------------------------------------------------------------------------"
+echo "Proceeding with the script (creation of config folders and rshare mounting of Video_Library folder)"
+echo "---------------------------------------------------------------------------------------------------"
 mkdir -p ./jellygrail/jellyfin/config
 mkdir -p ./jellygrail/jellyfin/cache
 mkdir -p ./fallbackdata
