@@ -11,7 +11,7 @@ if [ ! -f "RESTART.SH"  ]; then
     cp -f "RESTART.SH.example" "RESTART.SH"
 fi
 
-if [ $1 = "upgrade" ]; then
+if [ "$1" = "upgrade" ]; then
     read -p "Would you like to stop and remove exiting running docker container ? (yes/no): " upyesno
     if [ $upyesno = "yes" ]; then
         docker stop jellygrail
@@ -20,7 +20,7 @@ if [ $1 = "upgrade" ]; then
 fi 
 
 # Check if the configuration file already exists
-if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ $1 = "upgrade" ]; then
+if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ]; then
 
     # Copy the example configuration file to the new configuration file
     if [ -f "$SETTINGS_EXAMPLE_PATH" ]; then
