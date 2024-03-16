@@ -12,7 +12,7 @@ if [ ! -f "RESTART.SH"  ]; then
 fi
 
 # Check if the configuration file already exists
-if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ]; then
+if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ $1 = "upgrade" ]; then
 
     # Copy the example configuration file to the new configuration file
     if [ -f "$SETTINGS_EXAMPLE_PATH" ]; then
