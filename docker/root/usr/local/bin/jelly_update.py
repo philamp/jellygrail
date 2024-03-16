@@ -920,8 +920,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             if(self.http_rdprog_instance.get_output() == 'PLEASE_SCAN'):
                 logger.info("PLEASE SCAN TRIGGERED")
                 # TODO enable it 
-                #self.http_scan_instance = ScriptRunner.get(scan)
-                #self.http_scan_instance.run()
+                self.http_scan_instance = ScriptRunner.get(scan)
+                self.http_scan_instance.run()
 
         elif url_path == '/remotescan':
             self.http_remoteScan_instance = ScriptRunner.get(jg_services.remoteScan)
