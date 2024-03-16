@@ -28,7 +28,7 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ $1 = "upgrade" ]; t
     fi
         
     # Prompt the user for the API key
-    echo "At least one of configuration files does not exist. $CONF_PATH and $SETTINGS_PATH will be created"
+    echo "Upgrade or creation of config files: $CONF_PATH and $SETTINGS_PATH will be created"
     read -p "Please enter your Real-Debrid API key (leave empty to ignore): " api_key
     read -p "Please enter the remote location (ex: http://10.6.0.1:6502 ; leave empty to ignore): " remote_loc
     read -p "Please enter the increment from which you want to synchronize remote torrents, (default: 200 ; leave empty to keep default): " default_incr
