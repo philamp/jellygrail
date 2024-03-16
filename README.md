@@ -35,7 +35,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 - This does not include any torrent indexer search or RD downloader.
 - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of the underlying file-systems.
 
-## 📥️ Installation
+## 📥️ Installation (or upgrade)
 
 Follow sections 1/ to 7/
 
@@ -65,13 +65,26 @@ sudo docker build -t philamp/jellygrail .
 > You can find your Real-Debrid API key here : https://real-debrid.com/apitoken.
 
 Make sure you're back in the root folder where _PREPARE.SH_ is located:
+
+
 ````
 cd ..
 ````
+
+#### 3.1/ First install
+
 Run the bash script:
 ````
 sudo chmod u+x PREPARE.SH
 sudo ./PREPARE.SH
+````
+
+#### 3.2/ Upgrade
+
+Run the bash script:
+````
+sudo chmod u+x PREPARE.SH
+sudo ./PREPARE.SH upgrade
 ````
 
 This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container)
