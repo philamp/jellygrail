@@ -60,6 +60,8 @@ cd jellygrail/docker
 sudo docker build -t philamp/jellygrail .
 ````
 
+> If you pugrade, replace the git clone command by a git pull command inside the root jellygrail folder
+
 ### ✨ 3/ Configuration wizard
 
 > You can find your Real-Debrid API key here : https://real-debrid.com/apitoken.
