@@ -108,7 +108,7 @@ def remoteScan():
 
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
          # -> ok but if remotescan is called a lot ... lot of backups....
-        cur_incr = read_incr_from_file()
+        cur_incr = int(read_incr_from_file())
         remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{cur_incr}"
         try:
             response = requests.get(remote_loc)
@@ -120,7 +120,7 @@ def remoteScan():
             if server_data is not None:
                 if len(server_data['hashes']) > 0:
                     if last_added_incr := server_data['lastid']:
-                        save_incr_to_file(last_added_incr)
+                        save_incr_to_file(str(last_added_incr))
                 else:
                     logger.debug(f"Data was fetched but no new data")
                     return None
