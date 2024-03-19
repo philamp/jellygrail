@@ -55,7 +55,7 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
             # Replace the placeholder with the user-provided API key
             sed -i "s/PASTE-YOUR-KEY-HERE/$api_key/" "$SETTINGS_PATH"
             if [ ! -z "$remote_loc" ]; then
-                sed -i "s/PASTE-REMOTE-ADDR-HERE/$remote_loc/" "$SETTINGS_PATH"
+                sed -i "s|PASTE-REMOTE-ADDR-HERE|$remote_loc|" "$SETTINGS_PATH"
             fi
             if [ ! -z "$default_incr" ]; then
                 sed -i "s/200/$default_incr/" "$SETTINGS_PATH"

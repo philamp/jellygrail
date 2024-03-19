@@ -96,6 +96,24 @@ def rd_progress():
         return ""
 
 
+# ------------
+    
+def restoreList():
+
+    backupList = []
+    i = 0
+
+    for f in os.scandir(rdump_backup_folder):
+        i += 1
+        if f.is_file():
+            backupList.append(f'>>> {i} : <a href="/restoreitem/{i}" title="{f.name}">{f.name}</a>')
+
+    if len(backupList):
+        return "</br>".join(backupList)
+
+
+
+
 # ----------------------------------
         
 def remoteScan():
@@ -108,19 +126,19 @@ def remoteScan():
 
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
          # -> ok but if remotescan is called a lot ... lot of backups....
-        cur_incr = int(read_incr_from_file())
+        cur_incr = read_incr_from_file()
         remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{cur_incr}"
         try:
             response = requests.get(remote_loc)
             response.raise_for_status()
             server_data = response.json()
-        except requests.RequestException as e:
-            logger.critical(f"Error fetching data from server: {e}")
+        except Exception as e:
+            logger.critical(f"Error fetching data from server or server not ready, please retry: {e}")
         else:
             if server_data is not None:
                 if len(server_data['hashes']) > 0:
                     if last_added_incr := server_data['lastid']:
-                        save_incr_to_file(str(last_added_incr))
+                        save_incr_to_file(last_added_incr)
                 else:
                     logger.debug(f"Data was fetched but no new data")
                     return None
@@ -185,14 +203,21 @@ def rdump_backup(including_backup = True, returning_data = False):
 def read_incr_from_file():
     try:
         with open(rdincr_file, 'r') as file:
-            date = file.read().strip()
-            return date
+            strincr = file.read().strip()
+            incr = int(strincr)  # Attempt to convert an empty string to an integer
     except FileNotFoundError:
+        logger.warning(f"Increment data file not exists yet (taking default then)")
         return DEFAULT_INCR
+    except ValueError as e:
+        logger.critical(f"Error taking increment from data file, corrupted data (taking default): {e}")
+        return DEFAULT_INCR
+    else:
+        return incr
 
-def save_incr_to_file(date):
+
+def save_incr_to_file(incr):
     try:
         with open(rdincr_file, 'w') as file:
-            file.write(date)
+            file.write(str(incr))
     except IOError as e:
-        logger.critical(f"Error saving date to file: {e}")
+        logger.critical(f"Error saving incr to file: {e}")

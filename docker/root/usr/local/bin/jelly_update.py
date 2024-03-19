@@ -427,7 +427,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                 # file insert will use rd_cache_item (could be a direct file or the parent rar file)
 
                 # S case with itegrated similar show/season/episode fetch (at file loop level):
-                if re.search(r'[Ss]\d{2}\.?[Ee]\d{2}|\b\d{2}x\d{2}\b', filename):
+                if re.search(r's\d{2}\.?e\d{2}|\b\d{2}x\d{2}\b|s\d{2}\.\d{2}', filename, re.IGNORECASE):
                     if filename.lower().endswith(ALLOWED_EXTENSIONS):
                         season_present = True
                         # it's an episode file or sub
@@ -918,8 +918,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
             if(self.http_rdprog_instance.get_output() == 'PLEASE_SCAN'):
-                logger.info("PLEASE SCAN TRIGGERED")
-                # TODO enable it 
                 self.http_scan_instance = ScriptRunner.get(scan)
                 self.http_scan_instance.run()
 
@@ -950,7 +948,15 @@ class RequestHandler(BaseHTTPRequestHandler):
             else:
                 message = "### rdump_backup() directly executed ! (backup the cur dump and dump)\n"
             self.standard_headers()
-            self.wfile.write(bytes(message, "utf8"))    
+            self.wfile.write(bytes(message, "utf8"))
+
+        elif url_path == "/restore":
+            self.http_rdump_restorelist_instance = ScriptRunner.get(jg_services.restoreList)
+            self.http_rdump_restorelist_instance.run()
+            self.standard_headers()
+            output = self.http_rdump_restorelist_instance.get_output()
+            self.wfile.write(bytes(output, "utf8"))
+            # choix will go to /restoreitem/i        
 
         elif url_path.startswith("/getrdincrement/"):
             try:
@@ -1123,6 +1129,8 @@ def jfconfig():
             triggerdata = []
             jellyfin(f'ScheduledTasks/4e6637c832ed644d1af3370a2506e80a/Triggers', json=triggerdata, method='post')
             jellyfin(f'ScheduledTasks/2c66a88bca43e565d7f8099f825478f1/Triggers', json=triggerdata, method='post')
+            jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
+            jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # disable merge episodes which is not working well
 
             logger.warning("> IMPORTANT: Jellyfin Additional plugins are installed and unefficient tasks are disabled, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
 
