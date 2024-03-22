@@ -161,8 +161,8 @@ philamp/jellygrail:latest
 
 ### 📡 6/ Tasks triggering 
 
-On ``http://your_system_ip:6502`` an http service is provided on you can open these below paths and/or configure them in you crontab. 
-With recent commits, the only services remaining to call manually are ``/backup`` and ``/remotescan`` (+ ``/scan`` if using only local storage)  
+On ``http://your_system_ip:6502`` an http service is provided on which you can call these paths below. 
+With recent commits, only ``/backup`` and ``/remotescan`` are not called within the python thread, so you have to call them manually or via crontab (+ ``/scan`` if using only local storage, TODO: improve local detection with inotify)  
 
 #### 📡 Path: ``/scan``
 
