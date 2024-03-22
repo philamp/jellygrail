@@ -19,7 +19,7 @@ rdump_backup_folder = '/jellygrail/data/backup'
 rdump_file = '/jellygrail/data/rd_dump.json'
 
 # pile file
-pile_file = '/jellygrail/data/rd_pile.json' 
+pile_file = '/jellygrail/data/rd_pile.json'
 
 # rd last date of import file
 rdincr_file = '/jellygrail/data/rd_incr.txt'
