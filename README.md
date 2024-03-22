@@ -18,7 +18,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - ✨ Every storage is merged into this unique virtual folder (thanks to https://github.com/philamp/bindfs_jelly):
   - It can be shared on your local network through any protocol (There is a WebDAV server included but you can also share it through SMB, DLNA or NFS)
   - Smart deletion of actual assets behind virtual files, including rclone cache files.
-  - TODO: detect extras video files to put then in an /extras subfolder
+  - Detects extras and put them in an /extras subfolder of the movie.
 - Preconfigured Jellyfin included if needed.
 - Included Webdav/HTTP server (nginx) on port 8085.
   - TODO: include an additional share protocol like DLNA.
