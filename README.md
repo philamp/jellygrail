@@ -271,7 +271,6 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 - Underlying files deletion:
   - REMOTE : follows rclone RD fork system : Inside folders containing multiple video files, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion are sometimes uncomplete in this case.
   - LOCAL : Underlying files are deleted but not folders (TODO:fix)
-- A daily docker restart is still needed so far.
 - RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
 - 3 Jellyfin plugins are pre-installed:
   - ``SubBuzz:``  not enabled on library scan but can be used on induvidual items. You can enable it on library scan if you want but beware it will cause additional download requests to Real-Debrid.
