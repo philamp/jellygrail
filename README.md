@@ -163,11 +163,10 @@ philamp/jellygrail:latest
 
 On ``http://your_system_ip:6502`` an http service is provided on you can open these below paths and/or configure them in you crontab (TODO: provide more help on how to use crontab) :
 
-#### 📡 Path: ``/scan`` (⚠️mandatory)
+#### 📡 Path: ``/scan``
 
-should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder.
-You can call this service from rdtclient (upon finished real-debrid download), but you can also have it scheduled frequently in a crontab.
-Beware it also calls Jellyfin library refresh automatically.
+> Not mandatory to be set as cron as rd_progress _potentially_ calls it every 2 minutes.
+should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder and refresh Jellyfin Library.
 
 #### 📡 Path: ``/backup`` 
 
@@ -185,14 +184,15 @@ Basically you won't use this trigger unless you want to synchronize your RD torr
 
 #### 📡 Path: ``/rd_progress``
 
-When your RD torrents are updated only through ``/remotescan``, this is a service to check if there are changes worth calling ``/scan`` subsequently.
-
+> Not mandatory to be set as cron as it is triggered every 2 minutes.
+This is a service to check if there are changes worth calling ``/scan`` subsequently.
 
 ### ➰ 7/  Daily restart
 
-As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to ``./RESTART.SH``.
+> Not mandatory as it restarts by itself at 6.30am every day 🕡
+~~As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to ``./RESTART.SH``.~~
+~~It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessible from the host)~~
 
-It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessible from the host)
 
 ## 🚀 First and daily Usage
 
