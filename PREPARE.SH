@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Path to the rclone configuration file and its example
+
 CONF_PATH="./mounts/remote_realdebrid/rclone.conf"
 CONF_EXAMPLE_PATH="./mounts/remote_realdebrid/rclone.conf.example"
 
@@ -12,7 +13,7 @@ if [ ! -f "RESTART.SH"  ]; then
 fi
 
 if [ "$1" = "upgrade" ]; then
-    read -p "Would you like to stop and remove exiting running docker container ? (yes/no): " upyesno
+    read -p "Would you like to stop and remove the already running JellyGrail container ? (yes/no) (needed for running a new one): " upyesno
     if [ $upyesno = "yes" ]; then
         docker stop jellygrail
         docker rm jellygrail
@@ -30,9 +31,12 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
     # Prompt the user for the API key
     echo "Upgrade or creation of config files: $CONF_PATH and $SETTINGS_PATH will be created"
     read -p "Please enter your Real-Debrid API key (leave empty to ignore): " api_key
-    read -p "Please enter the remote location (ex: http://10.6.0.1:6502 ; leave empty to ignore): " remote_loc
-    read -p "Please enter the increment from which you want to synchronize remote torrents, (default: 200 ; leave empty to keep default): " default_incr
+    read -p "Please enter the remote JellyGrail instance location (ex: http://10.6.0.1:6502 ; leave empty to ignore): " remote_loc
+    read -p $'Please enter the initial increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists. \n(default: 0 ; leave empty to keep default): ' default_incr
 
+    if [ ! -z "$remote_loc" ]; then
+        read -p "From the remote JellyGrail instance, do you want to take the whole content of torrents, including folders ? yes/no (default: yes ; leave empty to keep default): " whole_content
+    fi
 
     # Check if the user input is empty
     if [ ! -z "$api_key" ]; then
@@ -58,9 +62,12 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
                 sed -i "s|PASTE-REMOTE-ADDR-HERE|$remote_loc|" "$SETTINGS_PATH"
             fi
             if [ ! -z "$default_incr" ]; then
-                sed -i "s/200/$default_incr/" "$SETTINGS_PATH"
+                sed -i 's/DEFAULT_INCR="0"/DEFAULT_INCR="$default_incr"/' "$SETTINGS_PATH"
             fi
-    
+            if [ ! -z "$whole_content" ]; then
+                sed -i 's/ALL_FILES_INCLUDING_STRUCTURE="yes"/ALL_FILES_INCLUDING_STRUCTURE="$whole_content"/' "$SETTINGS_PATH"
+            fi
+
         else
             echo "The jellygrail example settings file does not exist. Please check the path."
         fi

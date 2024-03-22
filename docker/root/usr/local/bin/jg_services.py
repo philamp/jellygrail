@@ -5,6 +5,7 @@ from rdapi import RD
 import requests
 import json
 import subprocess
+import time
 from datetime import datetime
 from script_runner import ScriptRunner
 RD = RD()
@@ -28,9 +29,16 @@ REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
 DEFAULT_INCR = os.getenv('DEFAULT_INCR')
 
+WHOLE_CONTENT = os.getenv('ALL_FILES_INCLUDING_STRUCTURE') != "no"
+
 def test():
-    dumped_data = json.dumps(RD.torrents.get(limit=2, page=1).json())
-    return dumped_data
+    try:
+        dumped_data = json.dumps(RD.torrents.get(limit=2, page=1).json())
+    except Exception as e:
+        logger.error(f"Error accessing RD: {e}")
+        return "Server running but RD test has failed (DNS or Network failure)"
+    else:
+        return "This server is running and its last own RD torrents are:   \n"+dumped_data
 
 def file_to_array(filename):
     try:
@@ -89,7 +97,7 @@ def rd_progress():
         else:
             # 1st pile write
             array_to_file(pile_file, dled_rd_hashes)
-            return ""
+            return "PLEASE_SCAN"
 
     else:
         logger.critical(f"An error occurred on getting RD data in rd_progress method")
@@ -106,7 +114,7 @@ def restoreList():
     for f in os.scandir(rdump_backup_folder):
         i += 1
         if f.is_file():
-            backupList.append(f'>>> {i} : <a href="/restoreitem/{i}" title="{f.name}">{f.name}</a>')
+            backupList.append(f'-- <a href="/restoreitem/{i}" title="{f.name}">{f.name}</a> | {os.path.getsize(f.path)} kb --')
 
     if len(backupList):
         return "</br>".join(backupList)
@@ -133,7 +141,7 @@ def remoteScan():
             response.raise_for_status()
             server_data = response.json()
         except Exception as e:
-            logger.critical(f"Error fetching data from server or server not ready, please retry: {e}")
+            logger.critical(f"Error fetching data from server or server not ready, please retry later: {e}")
         else:
             if server_data is not None:
                 if len(server_data['hashes']) > 0:
@@ -151,16 +159,28 @@ def remoteScan():
                 push_to_rd_hashes = [item for item in server_data['hashes'] if item not in local_data_hashes]
                 for item in push_to_rd_hashes:
                     try:
-                        logger.debug(f"> ajout du magnet: {item}")
+                        logger.debug(f"  - Ajout du RD hash: {item} ...")
                         returned = RD.torrents.add_magnet(item).json()
-                        RD.torrents.select_files(returned.get('id'), 'all')
+                        
+                        if WHOLE_CONTENT:
+                            # part to really get the whole stuff BEGIN
+                            info_output = RD.torrents.info(returned.get('id')).json()
+                            all_ids = [str(item['id']) for item in info_output.get('files')]
+                            get_string = ",".join(all_ids)
+                            # part to really get the whole stuff END
+                            # RD.torrents.select_files(returned.get('id'), 'all') changed to :
+                            RD.torrents.select_files(returned.get('id'), get_string)
+                        else:
+                            RD.torrents.select_files(returned.get('id'), 'all')
+
                     except Exception as e:
-                        logger.error(f"An Error has occured on pushing hashes to RD : {e}")
+                        logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch) : {e}")
+                        break
             else:
                 logger.critical(f"No local data has been retrieved via rdump_backup() in remoteScan()")
 
     else:
-        logger.warning("---- No REMOTE_RDUMP_BASE_LOCATION specified, ignoring ----")
+        logger.warning("---- No REMOTE_RDUMP_BASE_LOCATION specified, ignoring but remotescan can't work ----")
 
 # ----------------------------------
 # rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
@@ -176,8 +196,6 @@ def getrdincrement(incr):
         service_rdprog_instance = ScriptRunner.get(rd_progress)
         service_rdprog_instance.run()
         return ""
-
-
 
 
 def rdump_backup(including_backup = True, returning_data = False):
@@ -207,10 +225,10 @@ def read_incr_from_file():
             incr = int(strincr)  # Attempt to convert an empty string to an integer
     except FileNotFoundError:
         logger.warning(f"Increment data file not exists yet (taking default then)")
-        return DEFAULT_INCR
+        return int(DEFAULT_INCR)
     except ValueError as e:
         logger.critical(f"Error taking increment from data file, corrupted data (taking default): {e}")
-        return DEFAULT_INCR
+        return int(DEFAULT_INCR)
     else:
         return incr
 

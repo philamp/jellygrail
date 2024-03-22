@@ -40,7 +40,7 @@ class ScriptRunnerSub:
             if self.func:
                 self.manytimes += 1
                 # TODO: pass it to debug when ok
-                logger.info(f"ASYNC CALL: {self.func.__name__} | TIMES CALLED: {self.manytimes}")
+                logger.info(f"ASYNC CALL: {self.func.__name__} | TIMES CALLED (since last restart): {self.manytimes}")
                 result = self.func(*self.args, **self.kwargs)
                 self.output_queue.put(result if result is not None else f"Func: {self.func.__name__} -> does not return any value (issue or actually no need to call get_output!)")
             else:

@@ -10,6 +10,7 @@ import pycountry
 import json
 import shlex
 import threading
+import datetime
 
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
 from script_runner import ScriptRunner
@@ -937,7 +938,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.http_test_instance.run()
             dumped_data = self.http_test_instance.get_output()
             self.standard_headers()
-            self.wfile.write(bytes("This server is running and its last own RD torrents are:   \n"+dumped_data, "utf8"))
+            self.wfile.write(bytes(dumped_data, "utf8"))
 
 
         elif url_path == "/backup":
@@ -976,11 +977,38 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_error(503, "Client triggered service, not yet available - rd dump file not yet created on server, please retry in few seconds")
 
 
+
 def run_server(server_class=HTTPServer, handler_class=RequestHandler, port=6502):
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     logger.info(f"~ Server running on port {port}")
     httpd.serve_forever()
+
+def restart_jellygrail_at(target_hour=6, target_minute=30):
+    global jfapikey
+    while True:
+        # Get the current time
+        now = datetime.datetime.now()
+        next_run = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+        if next_run < now:
+            next_run += datetime.timedelta(days=1)
+        sleep_time = (next_run - now).total_seconds()
+        logger.info(f"Next restart in {sleep_time} seconds.")
+        time.sleep(sleep_time)
+        if jfapikey is not None:
+            logger.info(f"JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
+            jellyfin(f'System/Shutdown', method='post')
+
+def periodic_trigger(seconds=120):
+    per_rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
+    while True:
+        time.sleep(seconds)
+        per_rdprog_instance.run()
+        if(per_rdprog_instance.get_output() == 'PLEASE_SCAN'):
+            # logger.info("periodic trigger is working")
+            per_scan_instance = ScriptRunner.get(scan)
+            per_scan_instance.run()
+
 
 def init_jellyfin_db(path):
     """ Initialize the jf db connection """
@@ -1311,5 +1339,17 @@ if __name__ == "__main__":
     conn.close()
 
     jfconfig()
+    
+    # rd_progress called automatically
+    thread = threading.Thread(target=periodic_trigger)
+    thread.daemon = True  # exists when parent thread exits
+    thread.start()
+
+    # restart_jellygrail_at
+    thread = threading.Thread(target=restart_jellygrail_at)
+    thread.daemon = True  # exists when parent thread exits
+    thread.start()
+    
     run_server()
+
 
