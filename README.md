@@ -166,6 +166,7 @@ On ``http://your_system_ip:6502`` an http service is provided on you can open th
 #### 📡 Path: ``/scan``
 
 > Not mandatory to be set as cron as rd_progress _potentially_ calls it every 2 minutes.
+
 should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder and refresh Jellyfin Library.
 
 #### 📡 Path: ``/backup`` 
@@ -185,6 +186,7 @@ Basically you won't use this trigger unless you want to synchronize your RD torr
 #### 📡 Path: ``/rd_progress``
 
 > Not mandatory to be set as cron as it is triggered every 2 minutes.
+
 This is a service to check if there are changes worth calling ``/scan`` subsequently.
 
 ### ➰ 7/  Daily restart
@@ -197,9 +199,10 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 ## 🚀 First and daily Usage
 
 1. Verify that you have some torrents in your RD account _(JellyGrail does not provide any torrent indexer search or RD downloader)_.
-2. Trigger a first ``/scan`` to fill the ``./Video_Library/virtual/`` folder (See 📡 Tasks triggering section above).
-3. Access the content in ``./Video_Library/virtual/`` (in the folder you ran the docker command).
-4. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
+2. Wait for the ``./Video_Library/virtual/`` folder to be filled (The first library scan is called within 2 minutes if there are torrents in your RD account)
+    - or trigger it with  ``/scan`` (See 📡 Tasks triggering section above).
+4. Access the content in ``./Video_Library/virtual/`` (in the folder you ran the docker command).
+5. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
     - Initialize the user and language and don't do anoything else (don't add librairies)
     - You can also point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
     - TODO: functionnality to disable jellyfin.
