@@ -261,7 +261,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 - Check **🚀 First and daily Usage** section above
 - only last 2500 real-debrid torrents are backuped.
 - m2ts files not inside a BDMV structure are ignored.
-- **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient (for instance: watching a movie while a scanning service is running has bad performance).**
+- **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient and can -in some cases- lead to degraded performance.**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./RESTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
 - Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but:
