@@ -192,7 +192,7 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 
 ### ➰ 7/  Daily restart
 
-> Not mandatory as it restarts by itself at 6.30am every day 🕡
+> JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability 
 ~~As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to ``./RESTART.SH``.~~
 ~~It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessible from the host)~~
 
