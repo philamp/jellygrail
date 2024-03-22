@@ -264,10 +264,11 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 - **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient and can -in some cases- lead to degraded performance.**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./RESTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
-- Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but:
-    - Follow this convention:
-      - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
-      - and name the file "rclone.conf".
+- Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but follow this convention:
+  - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
+  - and name the file "rclone.conf".
+  - the cloud mount source is not configurable (yet)
+  - video files can't be directly located within the root of the mount (/mounts/remote_mycloud_provider/video.mkv will not be scanned it should rather be /mounts/remote_mycloud_provider/movies/Title/Title.mkv)
 - Underlying files deletion:
   - REMOTE : follows rclone RD fork system : Inside folders containing multiple video files, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion are sometimes uncomplete in this case.
   - LOCAL : Underlying files are deleted but not folders (TODO:fix)
