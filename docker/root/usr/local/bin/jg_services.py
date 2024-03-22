@@ -26,9 +26,7 @@ rdincr_file = '/jellygrail/data/rd_incr.txt'
 
 # rd remote location
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
-
 DEFAULT_INCR = os.getenv('DEFAULT_INCR')
-
 WHOLE_CONTENT = os.getenv('ALL_FILES_INCLUDING_STRUCTURE') != "no"
 
 def test():
