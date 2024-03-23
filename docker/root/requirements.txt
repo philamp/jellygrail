@@ -6,3 +6,4 @@ rapidfuzz
 thefuzz
 rd_api_py
 colorlog
+pyinotify

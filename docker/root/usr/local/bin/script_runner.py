@@ -4,6 +4,17 @@ import queue
 # plug to same logging instance as main
 logger = logging.getLogger('jellygrail')
 
+# declare all global instances here
+class ThreadInsts:
+    def __init__(self):
+        self._scan_instance = None
+        self._rdprog_instance = None
+        self._remoteScan_instance = None
+        self._test_instance = None
+        self._rdump_backup_instance = None
+        self._rdump_restorelist_instance = None
+        self._getrdincr_instance = None
+
 class ScriptRunnerSub:
     def __init__(self, func=None, *args, **kwargs):
         # default 
@@ -27,12 +38,12 @@ class ScriptRunnerSub:
         # async bahavior parameters pre-check and set queud execution only if running
         if self.is_running:
             self.queued_execution = True
-
-        self.is_running = True
-        self.queued_execution = False
-        # async is instanciated here
-        self.thread = threading.Thread(target=self._execute)
-        self.thread.start()
+        else:
+            self.is_running = True
+            self.queued_execution = False
+            # async is instanciated here
+            self.thread = threading.Thread(target=self._execute)
+            self.thread.start()
 
     def _execute(self):
         # sync
@@ -50,7 +61,7 @@ class ScriptRunnerSub:
         finally:
             # async bahavior parameters management post-set
             # TODO: pass it to debug when ok
-            logger.info(f"ASYNC CALL: {self.func.__name__} FINISHED")
+            logger.info(f"          : {self.func.__name__} FINISHED")
             self.is_running = False
             if self.queued_execution:
                 self.queued_execution = False # set it to False ASAP right after flag was interrogated

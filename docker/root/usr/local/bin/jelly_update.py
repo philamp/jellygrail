@@ -11,9 +11,12 @@ import json
 import shlex
 import threading
 import datetime
+import pyinotify
 
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
-from script_runner import ScriptRunner
+from script_runner import ScriptRunner, ThreadInsts
+# thread instances
+thrdinsts = ThreadInsts()
 
 # for Jellyfin API
 # from typing import List, Dict
@@ -70,6 +73,11 @@ ch.setFormatter(formatterch)
 logger.addHandler(fh)
 logger.addHandler(ch)
 
+
+
+
+# endpoints array
+dual_endpoints = []
 
 # Global sqlite connection object
 conn = None
@@ -738,22 +746,7 @@ def scan():
 
     idxdupmovset = 1
 
-    dual_endpoints = []
-
-    # walking in mounts and subwalk only in remote_* and local_* folders
-    # fetch dual mountpoints
-
-    for f in os.scandir(mounts_root): 
-        if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
-            logger.info(f"> FOUND MOUNTPOINT: {f.name}")
-            type = "local" if f.name.startswith("local_") else "remote"
-            for d in os.scandir(f.path):
-                if d.is_dir():
-                    dual_endpoints.append(( mounts_root+"/"+f.name+"/"+d.name,mounts_root+"/rar2fs_"+f.name+"/"+d.name, type))
-
-        
     present_folders = [item[0] for item in fetch_present_release_folders()]
-
 
     global present_virtual_folders
     global present_virtual_folders_shows
@@ -896,13 +889,15 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
 
+        global thrdinsts
+
         # parse the path
         url_path = urllib.parse.urlparse(self.path).path
 
         if url_path == '/scan':
-            self.http_scan_instance = ScriptRunner.get(scan)
-            self.http_scan_instance.run()
-            if self.http_scan_instance.queued_execution:
+            thrdinsts._scan_instance = ScriptRunner.get(scan)
+            thrdinsts._scan_instance.run()
+            if thrdinsts._scan_instance.queued_execution:
                 message = "### scan() queued for later ! (Forces a library scan)\n"
             else:
                 message = "### scan() directly executed ! (Forces a library scan)\n"
@@ -910,22 +905,22 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes(message, "utf8"))
 
         elif url_path == '/rd_progress':
-            self.http_rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
-            self.http_rdprog_instance.run()
-            if self.http_rdprog_instance.queued_execution:
+            thrdinsts._rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
+            thrdinsts._rdprog_instance.run()
+            if thrdinsts._rdprog_instance.queued_execution:
                 message = "### rd_progress() queued for later ! (Checks Real-Debrid status)\n"
             else:
                 message = "### rd_progress() directly executed ! (Checks Real-Debrid status)\n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
-            if(self.http_rdprog_instance.get_output() == 'PLEASE_SCAN'):
-                self.http_scan_instance = ScriptRunner.get(scan)
-                self.http_scan_instance.run()
+            if(thrdinsts._rdprog_instance.get_output() == 'PLEASE_SCAN'):
+                thrdinsts._scan_instance = ScriptRunner.get(scan)
+                thrdinsts._scan_instance.run()
 
         elif url_path == '/remotescan':
-            self.http_remoteScan_instance = ScriptRunner.get(jg_services.remoteScan)
-            self.http_remoteScan_instance.run()
-            if self.http_remoteScan_instance.queued_execution:
+            thrdinsts._remoteScan_instance = ScriptRunner.get(jg_services.remoteScan)
+            thrdinsts._remoteScan_instance.run()
+            if thrdinsts._remoteScan_instance.queued_execution:
                 message = "### remoteScan() queued for later ! (Checks for remote's new RD hashes)\n"
             else:
                 message = "### remoteScan() directly executed ! (Checks for remote's new RD hashes)\n"
@@ -934,17 +929,17 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
         elif url_path == '/test':
-            self.http_test_instance = ScriptRunner.get(jg_services.test)
-            self.http_test_instance.run()
-            dumped_data = self.http_test_instance.get_output()
+            thrdinsts._test_instance = ScriptRunner.get(jg_services.test)
+            thrdinsts._test_instance.run()
+            dumped_data = thrdinsts._test_instance.get_output()
             self.standard_headers()
             self.wfile.write(bytes(dumped_data, "utf8"))
 
 
         elif url_path == "/backup":
-            self.http_rdump_backup_instance = ScriptRunner.get(jg_services.rdump_backup)
-            self.http_rdump_backup_instance.run()
-            if self.http_rdump_backup_instance.queued_execution:
+            thrdinsts._rdump_backup_instance = ScriptRunner.get(jg_services.rdump_backup)
+            thrdinsts._rdump_backup_instance.run()
+            if thrdinsts._rdump_backup_instance.queued_execution:
                 message = "### rdump_backup() queued for later ! (backup the cur dump and dump)\n"
             else:
                 message = "### rdump_backup() directly executed ! (backup the cur dump and dump)\n"
@@ -952,10 +947,10 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes(message, "utf8"))
 
         elif url_path == "/restore":
-            self.http_rdump_restorelist_instance = ScriptRunner.get(jg_services.restoreList)
-            self.http_rdump_restorelist_instance.run()
+            thrdinsts._rdump_restorelist_instance = ScriptRunner.get(jg_services.restoreList)
+            thrdinsts._rdump_restorelist_instance.run()
             self.standard_headers()
-            output = self.http_rdump_restorelist_instance.get_output()
+            output = thrdinsts._rdump_restorelist_instance.get_output()
             self.wfile.write(bytes(output, "utf8"))
             # choix will go to /restoreitem/i        
 
@@ -966,11 +961,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             except ValueError:
                 self.send_error(400, "Invalid increment format")
             else:   
-                self.http_getrdincr_instance = ScriptRunner.get(jg_services.getrdincrement)
-                self.http_getrdincr_instance.resetargs(incr)
-                self.http_getrdincr_instance.run()
+                thrdinsts._getrdincr_instance = ScriptRunner.get(jg_services.getrdincrement)
+                thrdinsts._getrdincr_instance.resetargs(incr)
+                thrdinsts._getrdincr_instance.run()
                 self.standard_headers('application/json')
-                output = self.http_getrdincr_instance.get_output()
+                output = thrdinsts._getrdincr_instance.get_output()
                 if output != '':
                     self.wfile.write(output)
                 else:
@@ -1000,14 +995,15 @@ def restart_jellygrail_at(target_hour=6, target_minute=30):
             jellyfin(f'System/Shutdown', method='post')
 
 def periodic_trigger(seconds=120):
-    per_rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
+    global thrdinsts
+    thrdinsts._rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
     while True:
         time.sleep(seconds)
-        per_rdprog_instance.run()
-        if(per_rdprog_instance.get_output() == 'PLEASE_SCAN'):
+        thrdinsts._rdprog_instance.run()
+        if(thrdinsts._rdprog_instance.get_output() == 'PLEASE_SCAN'):
             # logger.info("periodic trigger is working")
-            per_scan_instance = ScriptRunner.get(scan)
-            per_scan_instance.run()
+            thrdinsts._scan_instance = ScriptRunner.get(scan)
+            thrdinsts._scan_instance.run()
 
 
 def init_jellyfin_db(path):
@@ -1324,7 +1320,41 @@ def jfconfig():
             
     # ---- end config
 
+class EventHandler(pyinotify.ProcessEvent):
+    def process_IN_CREATE(self, event):
+        self.inotify_run()
+    def process_IN_DELETE(self, event):
+        self.inotify_run()
+    def process_IN_MODIFY(self, event):
+        self.inotify_run()
+    def process_IN_MOVED_FROM(self, event):
+        self.inotify_run()
+    def process_IN_MOVED_TO(self, event):
+        self.inotify_run()
+    def inotify_run(self):
+        global thrdinsts
+        thrdinsts._scan_instance = ScriptRunner.get(scan)
+        thrdinsts._scan_instance.run()
 
+
+def inotify_deamon():
+    # ----- inotify 
+
+    # Set up watch manager
+    wm = pyinotify.WatchManager()
+
+    for item2watch in to_watch:
+        wm.add_watch(item2watch, pyinotify.ALL_EVENTS, rec=True, auto_add=True)
+        logger.info(f"Starting activity monitor on local mountpoint: {item2watch}")
+
+    # Event handler
+    event_handler = EventHandler()
+
+    # Notifier
+    notifier = pyinotify.Notifier(wm, event_handler)
+
+    notifier.loop()
+    # ----- inotify END
 
 if __name__ == "__main__":
 
@@ -1339,17 +1369,38 @@ if __name__ == "__main__":
     conn.close()
 
     jfconfig()
+
+    # walking in mounts and subwalk only in remote_* and local_* folders
+    # fetch dual mountpoints
+
+    for f in os.scandir(mounts_root): 
+        if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
+            logger.info(f"> FOUND MOUNTPOINT: {f.name}")
+            type = "local" if f.name.startswith("local_") else "remote"
+            for d in os.scandir(f.path):
+                if d.is_dir() and d.name != '@eaDir':
+                    dual_endpoints.append(( mounts_root+"/"+f.name+"/"+d.name,mounts_root+"/rar2fs_"+f.name+"/"+d.name, type))
     
+    to_watch = [point for (point, _, point_type) in dual_endpoints if point_type == 'local']    
+    
+    # threads A B C
+
     # rd_progress called automatically
-    thread = threading.Thread(target=periodic_trigger)
-    thread.daemon = True  # exists when parent thread exits
-    thread.start()
+    thread_a = threading.Thread(target=periodic_trigger)
+    thread_a.daemon = True  # exists when parent thread exits
+    thread_a.start()
 
     # restart_jellygrail_at
-    thread = threading.Thread(target=restart_jellygrail_at)
-    thread.daemon = True  # exists when parent thread exits
-    thread.start()
-    
+    thread_b = threading.Thread(target=restart_jellygrail_at)
+    thread_b.daemon = True  # exists when parent thread exits
+    thread_b.start()
+
+    # inotify deamon
+    thread_c = threading.Thread(target=inotify_deamon)
+    thread_c.daemon = True  # exists when parent thread exits
+    thread_c.start()
+
+    #thread D, server
     run_server()
 
 
