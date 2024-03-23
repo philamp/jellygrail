@@ -1342,7 +1342,7 @@ def inotify_deamon():
 
     for item2watch in to_watch:
         wm.add_watch(item2watch, pyinotify.ALL_EVENTS, rec=True, auto_add=True)
-        logger.info(f"Starting activity monitor on local mountpoint: {item2watch}")
+        logger.info(f"~ Activity monitored on : {item2watch}")
 
     # Event handler
     event_handler = EventHandler()
