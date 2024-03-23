@@ -162,12 +162,12 @@ philamp/jellygrail:latest
 ### 📡 6/ Tasks triggering 
 
 On ``http://your_system_ip:6502`` an http service is provided on which you can call these paths below. 
-With recent commits, only ``/backup`` and ``/remotescan`` are not called within the python thread, so you have to call them manually or via crontab (+ ``/scan`` if using only local storage, TODO: improve local detection with inotify)  
+With recent commits, only ``/backup`` and ``/remotescan`` should be called manually or via crontab.
 
 #### 📡 Path: ``/scan``
 
 > Not mandatory to be set as cron as rd_progress _potentially_ calls it every 2 minutes.
-
+> 
 should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder and refresh Jellyfin Library.
 
 #### 📡 Path: ``/backup`` 
