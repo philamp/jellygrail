@@ -14,9 +14,7 @@ import datetime
 import pyinotify
 
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
-from script_runner import ScriptRunner, ThreadInsts
-# thread instances
-thrdinsts = ThreadInsts()
+from script_runner import ScriptRunner
 
 # for Jellyfin API
 # from typing import List, Dict
@@ -895,9 +893,9 @@ class RequestHandler(BaseHTTPRequestHandler):
         url_path = urllib.parse.urlparse(self.path).path
 
         if url_path == '/scan':
-            thrdinsts._scan_instance = ScriptRunner.get(scan)
-            thrdinsts._scan_instance.run()
-            if thrdinsts._scan_instance.queued_execution:
+            _scan_instance = ScriptRunner.get(scan)
+            _scan_instance.run()
+            if _scan_instance.queued_execution:
                 message = "### scan() queued for later ! (Forces a library scan)\n"
             else:
                 message = "### scan() directly executed ! (Forces a library scan)\n"
@@ -905,22 +903,22 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes(message, "utf8"))
 
         elif url_path == '/rd_progress':
-            thrdinsts._rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
-            thrdinsts._rdprog_instance.run()
-            if thrdinsts._rdprog_instance.queued_execution:
+            _rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
+            _rdprog_instance.run()
+            if _rdprog_instance.queued_execution:
                 message = "### rd_progress() queued for later ! (Checks Real-Debrid status)\n"
             else:
                 message = "### rd_progress() directly executed ! (Checks Real-Debrid status)\n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
-            if(thrdinsts._rdprog_instance.get_output() == 'PLEASE_SCAN'):
-                thrdinsts._scan_instance = ScriptRunner.get(scan)
-                thrdinsts._scan_instance.run()
+            if(_rdprog_instance.get_output() == 'PLEASE_SCAN'):
+                _scan_instance = ScriptRunner.get(scan)
+                _scan_instance.run()
 
         elif url_path == '/remotescan':
-            thrdinsts._remoteScan_instance = ScriptRunner.get(jg_services.remoteScan)
-            thrdinsts._remoteScan_instance.run()
-            if thrdinsts._remoteScan_instance.queued_execution:
+            _remoteScan_instance = ScriptRunner.get(jg_services.remoteScan)
+            _remoteScan_instance.run()
+            if _remoteScan_instance.queued_execution:
                 message = "### remoteScan() queued for later ! (Checks for remote's new RD hashes)\n"
             else:
                 message = "### remoteScan() directly executed ! (Checks for remote's new RD hashes)\n"
@@ -929,17 +927,17 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
         elif url_path == '/test':
-            thrdinsts._test_instance = ScriptRunner.get(jg_services.test)
-            thrdinsts._test_instance.run()
-            dumped_data = thrdinsts._test_instance.get_output()
+            _test_instance = ScriptRunner.get(jg_services.test)
+            _test_instance.run()
+            dumped_data = _test_instance.get_output()
             self.standard_headers()
             self.wfile.write(bytes(dumped_data, "utf8"))
 
 
         elif url_path == "/backup":
-            thrdinsts._rdump_backup_instance = ScriptRunner.get(jg_services.rdump_backup)
-            thrdinsts._rdump_backup_instance.run()
-            if thrdinsts._rdump_backup_instance.queued_execution:
+            _rdump_backup_instance = ScriptRunner.get(jg_services.rdump_backup)
+            _rdump_backup_instance.run()
+            if _rdump_backup_instance.queued_execution:
                 message = "### rdump_backup() queued for later ! (backup the cur dump and dump)\n"
             else:
                 message = "### rdump_backup() directly executed ! (backup the cur dump and dump)\n"
@@ -947,10 +945,10 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.wfile.write(bytes(message, "utf8"))
 
         elif url_path == "/restore":
-            thrdinsts._rdump_restorelist_instance = ScriptRunner.get(jg_services.restoreList)
-            thrdinsts._rdump_restorelist_instance.run()
+            _rdump_restorelist_instance = ScriptRunner.get(jg_services.restoreList)
+            _rdump_restorelist_instance.run()
             self.standard_headers()
-            output = thrdinsts._rdump_restorelist_instance.get_output()
+            output = _rdump_restorelist_instance.get_output()
             self.wfile.write(bytes(output, "utf8"))
             # choix will go to /restoreitem/i        
 
@@ -961,11 +959,11 @@ class RequestHandler(BaseHTTPRequestHandler):
             except ValueError:
                 self.send_error(400, "Invalid increment format")
             else:   
-                thrdinsts._getrdincr_instance = ScriptRunner.get(jg_services.getrdincrement)
-                thrdinsts._getrdincr_instance.resetargs(incr)
-                thrdinsts._getrdincr_instance.run()
+                _getrdincr_instance = ScriptRunner.get(jg_services.getrdincrement)
+                _getrdincr_instance.resetargs(incr)
+                _getrdincr_instance.run()
                 self.standard_headers('application/json')
-                output = thrdinsts._getrdincr_instance.get_output()
+                output = _getrdincr_instance.get_output()
                 if output != '':
                     self.wfile.write(output)
                 else:
@@ -996,14 +994,14 @@ def restart_jellygrail_at(target_hour=6, target_minute=30):
 
 def periodic_trigger(seconds=120):
     global thrdinsts
-    thrdinsts._rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
+    _rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
     while True:
         time.sleep(seconds)
-        thrdinsts._rdprog_instance.run()
-        if(thrdinsts._rdprog_instance.get_output() == 'PLEASE_SCAN'):
+        _rdprog_instance.run()
+        if(_rdprog_instance.get_output() == 'PLEASE_SCAN'):
             # logger.info("periodic trigger is working")
-            thrdinsts._scan_instance = ScriptRunner.get(scan)
-            thrdinsts._scan_instance.run()
+            _scan_instance = ScriptRunner.get(scan)
+            _scan_instance.run()
 
 
 def init_jellyfin_db(path):
@@ -1332,9 +1330,8 @@ class EventHandler(pyinotify.ProcessEvent):
     def process_IN_MOVED_TO(self, event):
         self.inotify_run()
     def inotify_run(self):
-        global thrdinsts
-        thrdinsts._scan_instance = ScriptRunner.get(scan)
-        thrdinsts._scan_instance.run()
+        _scan_instance = ScriptRunner.get(scan)
+        _scan_instance.run()
 
 
 def inotify_deamon():

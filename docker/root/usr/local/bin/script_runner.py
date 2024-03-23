@@ -5,7 +5,8 @@ import queue
 logger = logging.getLogger('jellygrail')
 
 # declare all global instances here
-class ThreadInsts:
+
+'''class ThreadInsts:
     def __init__(self):
         self._scan_instance = None
         self._rdprog_instance = None
@@ -13,7 +14,7 @@ class ThreadInsts:
         self._test_instance = None
         self._rdump_backup_instance = None
         self._rdump_restorelist_instance = None
-        self._getrdincr_instance = None
+        self._getrdincr_instance = None'''
 
 class ScriptRunnerSub:
     def __init__(self, func=None, *args, **kwargs):
