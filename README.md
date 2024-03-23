@@ -12,16 +12,16 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - Automatic backup of last 2500 Real-Debrid torrents (TODO: service to restore them if lost).
   - RD torrent-hashes sync from another instance of JellyGrail (but no secured proxy or VPN is provided here, so be careful).
 - ✨ Auto-organized TV shows and movies in a virtual folder:
+  - ✨ Every storage is merged into this unique virtual folder (thanks to https://github.com/philamp/bindfs_jelly):
+  - ✨ New items detection for Real-Debrid and local files (thanks to rd_api_py and pyinotify) 
   - Subtitle files renamed following standards.
   - Same movie variants merged into same folder when possible
   - You can manage this virtual folder as if it were a real one (rename and move files the way you want)
-  - ✨ Every storage is merged into this unique virtual folder (thanks to https://github.com/philamp/bindfs_jelly):
   - It can be shared on your local network through any protocol (There is a WebDAV server included but you can also share it through SMB, DLNA or NFS)
   - Smart deletion of actual assets behind virtual files, including rclone cache files.
-  - ✨ Detects extras and put them in an /extras subfolder of the movie so it won't mess up your Jellyfin Library
+  - ✨ Detects extras and put them in the movie's "extras" subfolder.
 - Preconfigured Jellyfin included if needed.
 - Included Webdav/HTTP server (nginx) on port 8085.
-  - TODO: include an additional share protocol like DLNA.
 
 ## ⚠️ Warnings 
 
@@ -162,12 +162,12 @@ philamp/jellygrail:latest
 ### 📡 6/ Tasks triggering 
 
 On ``http://your_system_ip:6502`` an http service is provided on which you can call these paths below. 
-With recent commits, only ``/backup`` and ``/remotescan`` are not called within the python thread, so you have to call them manually or via crontab (+ ``/scan`` if using only local storage, TODO: improve local detection with inotify)  
+With recent commits, only ``/backup`` and ``/remotescan`` should be called manually or via crontab.
 
 #### 📡 Path: ``/scan``
 
 > Not mandatory to be set as cron as rd_progress _potentially_ calls it every 2 minutes.
-
+> 
 should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder and refresh Jellyfin Library.
 
 #### 📡 Path: ``/backup`` 
