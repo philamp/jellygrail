@@ -65,7 +65,7 @@ class ScriptRunnerSub:
             self.is_running = False
             if self.queued_execution:
                 self.queued_execution = False # set it to False ASAP right after flag was interrogated
-                self.run_it()
+                self.run()
 
     def get_output(self):
         # Wait for the function to complete and get its output
