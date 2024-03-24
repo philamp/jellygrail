@@ -147,31 +147,34 @@ def restoreitem(filename, token):
             else:
                 if(local_data := rdump_backup(including_backup = True, returning_data = True)):
                     local_data_hashes = [iteml.get('hash') for iteml in local_data]
-                    push_to_rd_hashes = [item.get('hash') for item in backup_data if item not in local_data_hashes]
-                    for item in push_to_rd_hashes:
-                        try:
-                            logger.debug(f"  - Adding RD Hash from restored backup: {item} ...")
+                    push_to_rd_hashes = [item.get('hash') for item in backup_data if item.get('hash') not in local_data_hashes]
 
-                            ''' TOTEST WITHOUT ADDING (COMMENT TODELETE)
+                    if len(push_to_rd_hashes) > 0:
 
-                            returned = RD.torrents.add_magnet(item).json()
-                            if WHOLE_CONTENT:
-                                # part to really get the whole stuff BEGIN
-                                info_output = RD.torrents.info(returned.get('id')).json()
-                                all_ids = [str(item['id']) for item in info_output.get('files')]
-                                get_string = ",".join(all_ids)
-                                # part to really get the whole stuff END
-                                # RD.torrents.select_files(returned.get('id'), 'all') changed to :
-                                RD.torrents.select_files(returned.get('id'), get_string)
+                        for item in push_to_rd_hashes:
+                            try:
+                                logger.debug(f"  - Adding RD Hash from restored backup: {item} ...")
+
+                                # RD calls below !! caution !!
+                                returned = RD.torrents.add_magnet(item).json()
+                                if WHOLE_CONTENT:
+                                    # part to really get the whole stuff BEGIN
+                                    info_output = RD.torrents.info(returned.get('id')).json()
+                                    all_ids = [str(item['id']) for item in info_output.get('files')]
+                                    get_string = ",".join(all_ids)
+                                    # part to really get the whole stuff END
+                                    # RD.torrents.select_files(returned.get('id'), 'all') changed to :
+                                    RD.torrents.select_files(returned.get('id'), get_string)
+                                else:
+                                    RD.torrents.select_files(returned.get('id'), 'all')
+
+                            except Exception as e:
+                                logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch) : {e}")
+                                return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch)"
                             else:
-                                RD.torrents.select_files(returned.get('id'), 'all')
-                            '''
-
-                        except Exception as e:
-                            logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch) : {e}")
-                            return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch)"
-                        else:
-                            return "Backup restored with success, please verify on your RD account"
+                                return "Backup restored with success, please verify on your RD account"
+                    else:
+                        return "This backup file has no additionnal hash compared to your RD account"       
                 else:
                     logger.critical(f"No local data has been retrieved via rdump_backup() in restoreitem()")
                     return "Wrong local rdump data fetch"
