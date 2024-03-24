@@ -9,7 +9,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - No need to download and extract Real-Debrid torrents having RARs, it's just streamed and extracted on-the-fly.
     - ✨ With an optimized cache to mitigate real-debrid issues with ISO and RAR files (thanks to https://github.com/philamp/rclone_jelly, is a fork of rclone_RD).
 - Real-Debrid magnet hashes management:
-  - Automatic backup of last 2500 Real-Debrid torrents (TODO: service to restore them if lost).
+  - Automatic backup of last 2500 Real-Debrid torrents + a service to restore them if RD account emptied.
   - RD torrent-hashes sync from another instance of JellyGrail (but no secured proxy or VPN is provided here, so be careful).
 - ✨ Auto-organized TV shows and movies in a virtual folder:
   - ✨ Every storage is merged into this unique virtual folder (thanks to https://github.com/philamp/bindfs_jelly):
