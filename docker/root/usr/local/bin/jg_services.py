@@ -223,6 +223,7 @@ def remoteScan():
                 push_to_rd_hashes = [item for item in server_data['hashes'] if item not in local_data_hashes]
                 for item in push_to_rd_hashes:
                     try:
+                        # RD calls below !! caution !!
                         logger.debug(f"  - Adding RD Hash from remote: {item} ...")
                         returned = RD.torrents.add_magnet(item).json()
                         
