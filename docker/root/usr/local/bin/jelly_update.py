@@ -950,7 +950,24 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.standard_headers()
             output = _rdump_restorelist_instance.get_output()
             self.wfile.write(bytes(output, "utf8"))
-            # choix will go to /restoreitem/i        
+            # choice will go to /restoreitem?filename=&token=
+
+        elif url_path == "/restoreitem":
+            allparams = urllib.parse.urlparse(self.path).query
+            params_dict = urllib.parse.parse_qs(allparams)
+            if params_dict.get('filename') and params_dict.get('token'):
+                fn = params_dict.get('filename')[0]
+                tk = params_dict.get('token')[0]
+                _restoritm_instance = ScriptRunner.get(jg_services.restoreitem)
+                _restoritm_instance.resetargs(fn, tk)
+                _restoritm_instance.run()
+                self.standard_headers('application/json')
+                output = _restoritm_instance.get_output()
+                if not output.startswith("Wrong"):
+                    self.wfile.write(bytes(output, "utf8"))
+                else:
+                    self.send_error(403, output)
+
 
         elif url_path.startswith("/getrdincrement/"):
             try:
@@ -1393,9 +1410,10 @@ if __name__ == "__main__":
     thread_b.start()
 
     # inotify deamon
-    thread_c = threading.Thread(target=inotify_deamon)
-    thread_c.daemon = True  # exists when parent thread exits
-    thread_c.start()
+    if len(to_watch) > 0:
+        thread_c = threading.Thread(target=inotify_deamon)
+        thread_c.daemon = True  # exists when parent thread exits
+        thread_c.start()
 
     #thread D, server
     run_server()

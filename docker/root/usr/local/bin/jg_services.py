@@ -5,7 +5,7 @@ from rdapi import RD
 import requests
 import json
 import subprocess
-import time
+import random
 from datetime import datetime
 from script_runner import ScriptRunner
 RD = RD()
@@ -23,6 +23,9 @@ pile_file = '/jellygrail/data/rd_pile.json'
 
 # rd last date of import file
 rdincr_file = '/jellygrail/data/rd_incr.txt'
+
+# one shot token
+oneshot_token = None
 
 # rd remote location
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
@@ -106,17 +109,77 @@ def rd_progress():
     
 def restoreList():
 
+    global oneshot_token
     backupList = []
     i = 0
+
+    # set a one time use token
+    oneshot_token = ''.join(random.choice('0123456789abcdef') for _ in range(32))
 
     for f in os.scandir(rdump_backup_folder):
         i += 1
         if f.is_file():
-            backupList.append(f'-- <a href="/restoreitem/{i}" title="{f.name}">{f.name}</a> | {os.path.getsize(f.path)} kb --')
+            backupList.append(f'-- <a href="/restoreitem?filename={f.name}&token={oneshot_token}" title="{f.name}">{f.name}</a> | {os.path.getsize(f.path)} kb --')
 
     if len(backupList):
         return "</br>".join(backupList)
 
+# -----------
+    
+def restoreitem(filename, token):
+
+    global oneshot_token
+
+    logger.debug(f"provided token is : {token}, wanted token is: {oneshot_token}")
+
+    if token == oneshot_token:
+        oneshot_token = None
+        # .... proceed
+        if os.path.exists(os.path.join(rdump_backup_folder, filename)):
+            # ...proceed
+            try:
+                with open(os.path.join(rdump_backup_folder, filename), 'r') as f:
+                    backup_data = json.load(f)
+                    
+            except FileNotFoundError:
+                return None
+            
+            else:
+                if(local_data := rdump_backup(including_backup = True, returning_data = True)):
+                    local_data_hashes = [iteml.get('hash') for iteml in local_data]
+                    push_to_rd_hashes = [item.get('hash') for item in backup_data if item not in local_data_hashes]
+                    for item in push_to_rd_hashes:
+                        try:
+                            logger.debug(f"  - Adding RD Hash from restored backup: {item} ...")
+
+                            ''' TOTEST WITHOUT ADDING (COMMENT TODELETE)
+
+                            returned = RD.torrents.add_magnet(item).json()
+                            if WHOLE_CONTENT:
+                                # part to really get the whole stuff BEGIN
+                                info_output = RD.torrents.info(returned.get('id')).json()
+                                all_ids = [str(item['id']) for item in info_output.get('files')]
+                                get_string = ",".join(all_ids)
+                                # part to really get the whole stuff END
+                                # RD.torrents.select_files(returned.get('id'), 'all') changed to :
+                                RD.torrents.select_files(returned.get('id'), get_string)
+                            else:
+                                RD.torrents.select_files(returned.get('id'), 'all')
+                            '''
+
+                        except Exception as e:
+                            logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch) : {e}")
+                            return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch)"
+                        else:
+                            return "Backup restored with success, please verify on your RD account"
+                else:
+                    logger.critical(f"No local data has been retrieved via rdump_backup() in restoreitem()")
+                    return "Wrong local rdump data fetch"
+
+        else:
+            return "Wrong backup filename"
+    else:
+        return "Wrong Token"
 
 
 
@@ -157,7 +220,7 @@ def remoteScan():
                 push_to_rd_hashes = [item for item in server_data['hashes'] if item not in local_data_hashes]
                 for item in push_to_rd_hashes:
                     try:
-                        logger.debug(f"  - Ajout du RD hash: {item} ...")
+                        logger.debug(f"  - Adding RD Hash from remote: {item} ...")
                         returned = RD.torrents.add_magnet(item).json()
                         
                         if WHOLE_CONTENT:
@@ -215,6 +278,7 @@ def rdump_backup(including_backup = True, returning_data = False):
             return data
     except Exception as e:
         logger.critical(f"An error occurred on rdump: {e}")
+        return None
 
 def read_incr_from_file():
     try:
