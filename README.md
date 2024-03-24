@@ -168,11 +168,15 @@ With recent commits, only ``/backup`` and ``/remotescan`` should be called manua
 
 > Not mandatory to be set as cron as rd_progress _potentially_ calls it every 2 minutes.
 > 
-should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder and refresh Jellyfin Library.
+Should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder and refresh Jellyfin Library.
 
 #### 📡 Path: ``/backup`` 
 
-should be triggered frequently to backup your RD torrents (dump file stored in ``./jellygrail/data/backup``).
+Should be triggered frequently to backup your RD torrents (dump file stored in ``./jellygrail/data/backup``).
+
+#### 📡 Path: ``/restore``
+
+Simple web page to choose the backup file to restore from
 
 #### 📡 Path: ``/remotescan``
 
@@ -211,7 +215,7 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 7. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
 8. Beware to have a paid RD account:
     - configure ``/backup`` cron (See 📡 Tasks triggering section above).
-    - (if you forgot a payment you can find your torrents backup in jellygrail/data/backup/ ) TODO: service to restore the dump.
+    - if you forgot a payment or deleted torrents by mistake, you can find your RD hashes backup in ./jellygrail/data/backup/ and use the /restore service (See 📡 Tasks triggering section above).
 9. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
 10. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
 
