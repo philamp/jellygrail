@@ -1,16 +1,12 @@
-import logging
-import os
 #rd api
-from rdapi import RD
+from base import *
 import requests
-import json
-import subprocess
-import random
+from rdapi import RD
 from datetime import datetime
 from script_runner import ScriptRunner
 RD = RD()
 # plug to same logging instance as main
-logger = logging.getLogger('jellygrail')
+#logger = logging.getLogger('jellygrail')
 
 # rd local dump cron-backups folder
 rdump_backup_folder = '/jellygrail/data/backup'
@@ -73,33 +69,37 @@ def rd_progress():
 
     if data := rdump_backup(including_backup = False, returning_data= True):
 
-        # open the pile in raw mode 
-        # parse it like array
-        # update array with new hashes if hasehs comes from a completed RD item
-        # if does not exists : append everything
-        dled_rd_hashes = [data_item.get('hash') for data_item in data if data_item.get('status') == 'downloaded']
+        if "Error" not in data:
 
-        if (os.path.exists(pile_file)):
-            cur_pile = file_to_array(pile_file)
-            if len(dled_rd_hashes) > 0:
-                delta_elements = [item for item in dled_rd_hashes if item not in cur_pile]
-                array_to_file(pile_file, delta_elements)
+            # open the pile in raw mode 
+            # parse it like array
+            # update array with new hashes if hasehs comes from a completed RD item
+            # if does not exists : append everything
+            dled_rd_hashes = [data_item.get('hash') for data_item in data if data_item.get('status') == 'downloaded']
 
-                if len(delta_elements) > 0:
-                    logger.info("RD_PROGRESS > I detected new torrents having 'downloaded' status, so I started /scan method")
-                    return "PLEASE_SCAN"
+            if (os.path.exists(pile_file)):
+                cur_pile = file_to_array(pile_file)
+                if len(dled_rd_hashes) > 0:
+                    delta_elements = [item for item in dled_rd_hashes if item not in cur_pile]
+                    array_to_file(pile_file, delta_elements)
+
+                    if len(delta_elements) > 0:
+                        logger.debug("RD_PROGRESS > I detected new torrents having 'downloaded' status, so I started /scan method")
+                        return "PLEASE_SCAN"
+                    else:
+                        logger.debug("RD_PROGRESS > I did not detect any new torrents with 'downloaded' status")
+                        return ""
                 else:
-                    logger.debug("RD_PROGRESS > I did not detect any new torrents with 'downloaded' status")
+                    logger.debug("RD_PROGRESS > No item with downloading status from local RD")
                     return ""
+                
             else:
-                logger.debug("RD_PROGRESS > No item with downloading status from local RD")
-                return ""
-            
+                # 1st pile write
+                array_to_file(pile_file, dled_rd_hashes)
+                return "PLEASE_SCAN"
         else:
-            # 1st pile write
-            array_to_file(pile_file, dled_rd_hashes)
-            return "PLEASE_SCAN"
-
+            logger.critical(f"An error occurred on getting RD data in rd_progress method")
+            return ""
     else:
         logger.critical(f"An error occurred on getting RD data in rd_progress method")
         return ""
@@ -146,35 +146,40 @@ def restoreitem(filename, token):
             
             else:
                 if(local_data := rdump_backup(including_backup = True, returning_data = True)):
-                    local_data_hashes = [iteml.get('hash') for iteml in local_data]
-                    push_to_rd_hashes = [item.get('hash') for item in backup_data if item.get('hash') not in local_data_hashes]
 
-                    if len(push_to_rd_hashes) > 0:
+                    if "Error" not in local_data:
+                        local_data_hashes = [iteml.get('hash') for iteml in local_data]
+                        push_to_rd_hashes = [item.get('hash') for item in backup_data if item.get('hash') not in local_data_hashes]
 
-                        for item in push_to_rd_hashes:
-                            try:
-                                logger.debug(f"  - Adding RD Hash from restored backup: {item} ...")
+                        if len(push_to_rd_hashes) > 0:
 
-                                # RD calls below !! caution !!
-                                returned = RD.torrents.add_magnet(item).json()
-                                if WHOLE_CONTENT:
-                                    # part to really get the whole stuff BEGIN
-                                    info_output = RD.torrents.info(returned.get('id')).json()
-                                    all_ids = [str(item['id']) for item in info_output.get('files')]
-                                    get_string = ",".join(all_ids)
-                                    # part to really get the whole stuff END
-                                    # RD.torrents.select_files(returned.get('id'), 'all') changed to :
-                                    RD.torrents.select_files(returned.get('id'), get_string)
+                            for item in push_to_rd_hashes:
+                                try:
+                                    logger.debug(f"  - Adding RD Hash from restored backup: {item} ...")
+
+                                    # RD calls below !! caution !!
+                                    returned = RD.torrents.add_magnet(item).json()
+                                    if WHOLE_CONTENT:
+                                        # part to really get the whole stuff BEGIN
+                                        info_output = RD.torrents.info(returned.get('id')).json()
+                                        all_ids = [str(item['id']) for item in info_output.get('files')]
+                                        get_string = ",".join(all_ids)
+                                        # part to really get the whole stuff END
+                                        # RD.torrents.select_files(returned.get('id'), 'all') changed to :
+                                        RD.torrents.select_files(returned.get('id'), get_string)
+                                    else:
+                                        RD.torrents.select_files(returned.get('id'), 'all')
+
+                                except Exception as e:
+                                    logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch) : {e}")
+                                    return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch)"
                                 else:
-                                    RD.torrents.select_files(returned.get('id'), 'all')
-
-                            except Exception as e:
-                                logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch) : {e}")
-                                return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch)"
-                            else:
-                                return "Backup restored with success, please verify on your RD account"
+                                    return "Backup restored with success, please verify on your RD account"
+                        else:
+                            return "This backup file has no additionnal hash compared to your RD account"
                     else:
-                        return "This backup file has no additionnal hash compared to your RD account"       
+                        logger.critical(f"No local data has been retrieved via rdump_backup() in restoreitem()")
+                        return "Wrong local rdump data fetch"           
                 else:
                     logger.critical(f"No local data has been retrieved via rdump_backup() in restoreitem()")
                     return "Wrong local rdump data fetch"
@@ -219,28 +224,31 @@ def remoteScan():
                 return None
             
             if(local_data := rdump_backup(including_backup = False, returning_data = True)):
-                local_data_hashes = [iteml.get('hash') for iteml in local_data]
-                push_to_rd_hashes = [item for item in server_data['hashes'] if item not in local_data_hashes]
-                for item in push_to_rd_hashes:
-                    try:
-                        # RD calls below !! caution !!
-                        logger.debug(f"  - Adding RD Hash from remote: {item} ...")
-                        returned = RD.torrents.add_magnet(item).json()
-                        
-                        if WHOLE_CONTENT:
-                            # part to really get the whole stuff BEGIN
-                            info_output = RD.torrents.info(returned.get('id')).json()
-                            all_ids = [str(item['id']) for item in info_output.get('files')]
-                            get_string = ",".join(all_ids)
-                            # part to really get the whole stuff END
-                            # RD.torrents.select_files(returned.get('id'), 'all') changed to :
-                            RD.torrents.select_files(returned.get('id'), get_string)
-                        else:
-                            RD.torrents.select_files(returned.get('id'), 'all')
+                if "Error" not in local_data:
+                    local_data_hashes = [iteml.get('hash') for iteml in local_data]
+                    push_to_rd_hashes = [item for item in server_data['hashes'] if item not in local_data_hashes]
+                    for item in push_to_rd_hashes:
+                        try:
+                            # RD calls below !! caution !!
+                            logger.debug(f"  - Adding RD Hash from remote: {item} ...")
+                            returned = RD.torrents.add_magnet(item).json()
+                            
+                            if WHOLE_CONTENT:
+                                # part to really get the whole stuff BEGIN
+                                info_output = RD.torrents.info(returned.get('id')).json()
+                                all_ids = [str(item['id']) for item in info_output.get('files')]
+                                get_string = ",".join(all_ids)
+                                # part to really get the whole stuff END
+                                # RD.torrents.select_files(returned.get('id'), 'all') changed to :
+                                RD.torrents.select_files(returned.get('id'), get_string)
+                            else:
+                                RD.torrents.select_files(returned.get('id'), 'all')
 
-                    except Exception as e:
-                        logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch) : {e}")
-                        break
+                        except Exception as e:
+                            logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch) : {e}")
+                            break
+                else:
+                    logger.critical(f"No local data has been retrieved via rdump_backup() in remoteScan()")
             else:
                 logger.critical(f"No local data has been retrieved via rdump_backup() in remoteScan()")
 
@@ -260,6 +268,10 @@ def getrdincrement(incr):
         # it forces this sever to call rd_progress at least once
         service_rdprog_instance = ScriptRunner.get(rd_progress)
         service_rdprog_instance.run()
+        if(service_rdprog_instance.get_output() != 'phony'):
+            # logger.info("periodic trigger is working")
+            # we are forced to consume output from this funciton to avoid disjoined calls to output queue
+            logger.warning(f"rd_progress called in getrdincrement (should happen only once)")
         return ""
 
 
@@ -282,7 +294,8 @@ def rdump_backup(including_backup = True, returning_data = False):
             return data
     except Exception as e:
         logger.critical(f"An error occurred on rdump: {e}")
-        return None
+        return "Error"
+    return None
 
 def read_incr_from_file():
     try:

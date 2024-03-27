@@ -6,16 +6,6 @@ logger = logging.getLogger('jellygrail')
 
 # declare all global instances here
 
-'''class ThreadInsts:
-    def __init__(self):
-        self._scan_instance = None
-        self._rdprog_instance = None
-        self._remoteScan_instance = None
-        self._test_instance = None
-        self._rdump_backup_instance = None
-        self._rdump_restorelist_instance = None
-        self._getrdincr_instance = None'''
-
 class ScriptRunnerSub:
     def __init__(self, func=None, *args, **kwargs):
         # default 
@@ -54,7 +44,8 @@ class ScriptRunnerSub:
                 # TODO: pass it to debug when ok
                 logger.info(f"ASYNC CALL: {self.func.__name__} | TIMES CALLED (since last restart): {self.manytimes}")
                 result = self.func(*self.args, **self.kwargs)
-                self.output_queue.put(result if result is not None else f"Func: {self.func.__name__} -> does not return any value (issue or actually no need to call get_output!)")
+                if result is not None:
+                    self.output_queue.put(result)
             else:
                 raise ValueError("No function has been set to run in the async ScriptRunner.")
         except Exception as e:
