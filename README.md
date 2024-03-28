@@ -31,13 +31,13 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 Nice Library              | ✅           | ✅             | 🟠                          | 🟠            | ✅ 
 Play on request           | ❌           | ❌             | ❌                          | ✅            | 🟠within few minutes  
 Variants grouping         | ✅           | ❌             | ❌                          | ✅            | 🟠with movies only
-Wide device compatibility | 🟠           | ❌             | ✅                          | ❌            | ✅Through file sharing
+Wide device compatibility | 🟠           | 🟠             | ✅                          | ❌            | ✅Through file sharing
 On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅
 Very HQ Files             | ✅           | ✅             | ✅                          | ❌            | ✅ 
 ...including BDMV/DVD ISO | ❌           | 🟠             | ✅w/ kodi                   | ❌            | ✅Through WebDAV w/ kodi 
 Nice File-System fallback | ❌           | ❌             | ✅                          | ❌            | ✅
 Subtitle management  | ✅excellent with Bazarr           | ✅excellent with Bazarr               | ✅w/ kodi + add-on or Bazarr         | 🟠            | ✅with jellyfin add-on or kodi add-on
-
+Mobile transcoding        | ✅           | ✅             | ❌                          | N/A            | ✅Including DoVi profile 5 
 
 ## ⚠️ Warnings 
 
