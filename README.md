@@ -22,6 +22,15 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
 - Preconfigured Jellyfin included if needed.
 
+## Why ? (draft)
+
+.              | Plex          | Basic Jellyfin |  File-System | Streaming app | JellyGrail
+-------------- | ------------- | -------------- | -------------| --------------| ----------
+Nice Library   | ✅           | ✅             | ❌          | ❌            | ✅ 
+HQ Files       | ✅           | ✅             | ✅          | ❌            | ✅ 
+Instant Play   | ❌           | ❌             | ✅          | ✅            | ✅  
+..TBC
+
 ## ⚠️ Warnings 
 
 > ⚠ This is experimental stuff.
