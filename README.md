@@ -31,7 +31,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 - I'm not responsible of any illegal use.
 - Use at your own risks.
 - This does not include any torrent indexer search or RD downloader.
-- ⚠️ File Deletion in the virtual folder actually deletes corresponding files of the underlying file-systems.
+- ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
 
 ## 📥️ Installation (or upgrade)
 
@@ -40,17 +40,15 @@ Follow sections 1/ to 7/
 ### ✋ 1/ Prerequisites
 
 - Linux system 🐧.
-- FUSE installed on host.
-- Tested on x86 system, should build on ARM and should run on a Raspberry 4, not tested yet.
+- Tested on x86 system, should build on ARM and should run on a Raspberry 4, but not tested yet.
 - Docker 🐳.
-- Git client to clone this repo (TODO: provide a prebuilt image)
-- Crontab to trigger included http services.
+- Git client to clone this repo (TODO: provide a prebuilt image).
 - Having a Real-Debrid account is better.
 
 
 ### 🚧 2/ Build
 
-Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_ and this folder is represented by a dot "." in this page.
+Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_ and this folder is represented by a dot ``.`` in this page.
 
 ````
 git clone https://github.com/philamp/jellygrail.git
@@ -58,22 +56,15 @@ cd jellygrail/docker
 sudo docker build -t philamp/jellygrail .
 ````
 
-> If you upgrade, replace the git clone command by a git pull command inside the root jellygrail folder
+> If you upgrade, replace the ``git clone ...`` command by a ``git pull`` command inside the ``.`` folder
 
 ### ✨ 3/ Configuration wizard
 
-> You can find your Real-Debrid API key here : https://real-debrid.com/apitoken.
-
-Make sure you're back in the root folder where _PREPARE.SH_ is located:
-
-
-````
-cd ..
-````
+> Grab your Real-Debrid API key : https://real-debrid.com/apitoken.
 
 #### 3.1/ First install
 
-Run the bash script:
+Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
 ````
 sudo chmod u+x PREPARE.SH
 sudo ./PREPARE.SH
@@ -81,21 +72,19 @@ sudo ./PREPARE.SH
 
 #### 3.2/ Upgrade
 
-Run the bash script:
+Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
 ````
 sudo chmod u+x PREPARE.SH
 sudo ./PREPARE.SH upgrade
 ````
 
-This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container)
+This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container and is available to the host system, not only inside the container)
 > Learn more about "rshared" here : https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759
 
 ### 🐳 4/ Docker command
 
 Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4.3 below:
-> don't forget the "\\" before a new line
->
-> ignore blank lines and "..."
+> don't forget the "\\" before a new line and ignore "..." lines
 
 #### 🐳 4.1/ Docker run base
 
@@ -114,7 +103,6 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 -v ${PWD}/Video_Library:/Video_Library:rshared \
 -v ${PWD}/mounts/remote_realdebrid:/mounts/remote_realdebrid \
 -v ${PWD}/fallbackdata:/mounts/fallback \
-
 ...
 ````
 
@@ -126,41 +114,35 @@ Example with 2 local folders
 
 ````
 ...
-
 -v /volume1/video:/mounts/local_drive1 \
 -v /volumeUSB1/usbshare/video:/mounts/local_drive2 \
-
 ...
 ````
 
-> ⚠ Your local folders must be mounted inside ``/mounts`` and they must contain at least a _movies_ folder or a _shows_ folder (it follows the same naming convention as when mounting with rclone RD fork)
+> ⚠ Your local folders must be mounted inside ``/mounts`` __with _local\__ prefix__ and they must contain at least a _movies/_ folder or a _shows/_ folder (it follows the same naming convention as rclone_rd )
 > 
-> ⚠ local storage _movies/_ folders also supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : _video/shows/scrubs/video.mkv_)
+> ⚠ local-storage _movies/_ folders also supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : _video/shows/scrubs/video.mkv_)
 
 #### 🐳 4.3/ Final part
 
 ````
 ...
-
 --restart unless-stopped \
 --name jellygrail \
 philamp/jellygrail:latest
 ````
 
-
-
 ### 🚀 5/ Run
 
 1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
 2. Verify that ``./mounts/remote_realdebrid/rclone.conf`` is populated with proper values.
-3. Verify that your working directory is the folder containing _PREPARE.SH_ file (= root folder of this repo).
-4. Paste your docker command in your bash prompt.
-6. Hit enter !
+3. Verify that your working directory is ``.`` (the folder containing _PREPARE.SH_ file).
+4. Paste your docker command in your bash prompt and hit enter !
 
 ### 📡 6/ Tasks triggering 
 
-On ``http://your_system_ip:6502`` an http service is provided on which you can call these paths below. 
-With recent commits, only ``/backup`` and ``/remotescan`` should be called manually or via crontab.
+On ``http://your_system_ip:6502`` an http server is provided to respond to these path calls below. 
+> With recent commits, only ``/backup`` and ``/remotescan`` should be called manually or via crontab.
 
 #### 📡 Path: ``/scan``
 
