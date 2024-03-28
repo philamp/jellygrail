@@ -32,8 +32,7 @@ Variants grouping         | ✅           | ❌             | ❌               
 On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅
 Very HQ Files             | ✅           | ✅             | ✅                          | ❌            | ✅ 
 ...including BDMV/DVD ISO | ❌           | 🟠             | ✅w/ kodi                   | ❌            | ✅Through WebDAV w/ kodi 
-Wide device compatibility | 🟠           | 🟠             | ✅                          | ❌            | ✅Through file sharing and Jellyfin client apps
-...including nice File-System fallback | ❌           | ❌             | N/A                         | ❌            | ✅
+Nice File-System fallback | ❌           | ❌             | N/A                         | ❌            | ✅Very wide compatibility with older devices
 Subtitle management       | ✅excellent with Bazarr | ✅excellent with Bazarr  | ✅w/ kodi + add-on or Bazarr  | 🟠            | ✅with jellyfin add-on or kodi add-on
 Mobile transcoding        | ✅           | ✅             | ❌                          | N/A            | ✅Including DoVi profile 5 
 Remote&local storages merging  | ✅w/ Rclone           | ✅w/ Rclone   | ❌                          | N/A            | ✅Out of the box
