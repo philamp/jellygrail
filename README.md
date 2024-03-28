@@ -26,26 +26,18 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 
 
 
-.                         | Plex          | Basic Jellyfin |  File-System share with kodi | Streaming app | JellyGrail with Kodi
+.                         | Plex          | Basic Jellyfin |  File-System share           | Streaming app | JellyGrail
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
-Nice Library              | ✅           | ✅             | 🟠                          | ❌            | ✅ 
-HQ Files                  | ✅           | ✅             | ✅                          | ❌            | ✅ 
-Instant Play              | ❌           | ❌             | ❌                          | ✅            | ✅*  
-Variants grouping         | ✅           | ❌             | ❌                          | ✅            | ✅**
-Wide device compatibility | 🟠           | ❌             | ✅                          | ❌            | ✅***
-On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅ 
-BDMV/DVD ISO Handling     | ❌           | 🟠             | ✅                          | ❌            | ✅*** 
-Nice File-System fallback | ❌           | ❌             | ✅                          | ❌            | ✅***
+Nice Library              | ✅           | ✅             | 🟠                          | 🟠            | ✅ 
+Play on request           | ❌           | ❌             | ❌                          | ✅            | 🟠within few minutes  
+Variants grouping         | ✅           | ❌             | ❌                          | ✅            | 🟠with movies only
+Wide device compatibility | 🟠           | ❌             | ✅                          | ❌            | ✅Through file sharing
+On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅
+Very HQ Files             | ✅           | ✅             | ✅                          | ❌            | ✅ 
+...including BDMV/DVD ISO | ❌           | 🟠             | ✅w/ kodi                   | ❌            | ✅Through WebDAV w/ kodi 
+Nice File-System fallback | ❌           | ❌             | ✅                          | ❌            | ✅
+Subtitle management  | ✅excellent with Bazarr           | ✅excellent with Bazarr               | ✅w/ kodi + add-on or Bazarr         | 🟠            | ✅with jellyfin add-on or kodi add-on
 
-
-
-\* within few minutes
-
-\** works with movies only
-
-\*** through WebDAV, SMB, NFS or DLNA share
-
-🟠 = More or less
 
 ## ⚠️ Warnings 
 
