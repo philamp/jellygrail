@@ -26,20 +26,25 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 
 
 
-.                         | Plex          | Basic Jellyfin |  File-System share | Streaming app | JellyGrail
-------------------------- | ------------- | -------------- | ------------------ | --------------| ----------
-Nice Library              | ✅           | ✅             | ❌                | ❌            | ✅ 
-HQ Files                  | ✅           | ✅             | ✅                | ❌            | ✅ 
-Instant Play              | ❌           | ❌             | ❌                | ✅            | ✅*  
-Variants grouping         | ✅           | ❌             | ❌                | ✅            | ✅**
-Wide device compatibility | ✅           | ❌             | ✅                | ❌            | ✅***
-On-the-fly RAR extract.   | ❌           | ❌             | ❌                | ✅            | ✅* 
+.                         | Plex          | Basic Jellyfin |  File-System share with kodi | Streaming app | JellyGrail with Kodi
+------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
+Nice Library              | ✅           | ✅             | ❌                          | ❌            | ✅ 
+HQ Files                  | ✅           | ✅             | ✅                          | ❌            | ✅ 
+Instant Play              | ❌           | ❌             | ❌                          | ✅            | ✅*  
+Variants grouping         | ✅           | ❌             | ❌                          | ✅            | ✅**
+Wide device compatibility | ✅~          | ❌             | ✅                          | ❌            | ✅***
+On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅ 
+BDMV/DVD ISO Handling     | ❌           | ✅~            | ✅                          | ❌            | ✅*** 
+Nice File-System fallback | ❌           | ❌             | ✅                          | ❌            | ✅*** 
+
 
 \* within few minutes
 
 \** works with movies only
 
-\*** through SMB, NFS or DLNA share
+\*** through WebDAV, SMB, NFS or DLNA share
+
+~ More or less
 
 ## ⚠️ Warnings 
 
