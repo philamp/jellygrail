@@ -28,14 +28,15 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 
 .                         | Plex          | Basic Jellyfin |  File-System share with kodi | Streaming app | JellyGrail with Kodi
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
-Nice Library              | ✅           | ✅             | ❌                          | ❌            | ✅ 
+Nice Library              | ✅           | ✅             | 🟠                          | ❌            | ✅ 
 HQ Files                  | ✅           | ✅             | ✅                          | ❌            | ✅ 
 Instant Play              | ❌           | ❌             | ❌                          | ✅            | ✅*  
 Variants grouping         | ✅           | ❌             | ❌                          | ✅            | ✅**
-Wide device compatibility | ✅~          | ❌             | ✅                          | ❌            | ✅***
+Wide device compatibility | 🟠           | ❌             | ✅                          | ❌            | ✅***
 On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅ 
-BDMV/DVD ISO Handling     | ❌           | ✅~            | ✅                          | ❌            | ✅*** 
-Nice File-System fallback | ❌           | ❌             | ✅                          | ❌            | ✅*** 
+BDMV/DVD ISO Handling     | ❌           | 🟠             | ✅                          | ❌            | ✅*** 
+Nice File-System fallback | ❌           | ❌             | ✅                          | ❌            | ✅***
+
 
 
 \* within few minutes
@@ -44,7 +45,7 @@ Nice File-System fallback | ❌           | ❌             | ✅               
 
 \*** through WebDAV, SMB, NFS or DLNA share
 
-~ More or less
+🟠 = More or less
 
 ## ⚠️ Warnings 
 
