@@ -24,12 +24,22 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 
 ## Why ? (draft)
 
-.              | Plex          | Basic Jellyfin |  File-System | Streaming app | JellyGrail
--------------- | ------------- | -------------- | -------------| --------------| ----------
-Nice Library   | ✅           | ✅             | ❌          | ❌            | ✅ 
-HQ Files       | ✅           | ✅             | ✅          | ❌            | ✅ 
-Instant Play   | ❌           | ❌             | ✅          | ✅            | ✅  
-..TBC
+
+
+.                         | Plex          | Basic Jellyfin |  File-System share | Streaming app | JellyGrail
+------------------------- | ------------- | -------------- | ------------------ | --------------| ----------
+Nice Library              | ✅           | ✅             | ❌                | ❌            | ✅ 
+HQ Files                  | ✅           | ✅             | ✅                | ❌            | ✅ 
+Instant Play              | ❌           | ❌             | ❌                | ✅            | ✅*  
+Variants grouping         | ✅           | ❌             | ❌                | ✅            | ✅**
+Wide device compatibility | ✅           | ❌             | ✅                | ❌            | ✅***
+On-the-fly RAR extract.   | ❌           | ❌             | ❌                | ✅            | ✅* 
+
+\* within few minutes
+
+\** works with movies only
+
+\*** through SMB, NFS or DLNA share
 
 ## ⚠️ Warnings 
 
