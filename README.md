@@ -1,27 +1,26 @@
 <img src="jellygrail_logo.png">
 
 # What is JellyGrail ?
-JellyGrail is an **experimental** modified Jellyfin docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can manage as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
+JellyGrail is an **experimental** modified Jellyfin docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
 
-- You can stream your Real-Debrid video files directly (thanks to https://github.com/itsToggle/rclone_RD)
-- RAR archives extracted on the fly (thanks to rar2fs):
+- Access remote and Real-Debrid files as if they were local (https://github.com/itsToggle/rclone_RD).
+- RAR archives extracted on the fly (https://github.com/hasse69/rar2fs):
   - No need to extract your local RAR downloads. 
-  - No need to download and extract Real-Debrid torrents having RARs, it's just streamed and extracted on-the-fly.
-    - ✨ With an optimized cache to mitigate real-debrid issues with ISO and RAR files (thanks to https://github.com/philamp/rclone_jelly, is a fork of rclone_RD).
+  - No need to download and extract Real-Debrid torrents with RARs, it's just streamed and extracted on-the-fly.
+    - ✨ With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly).
 - Real-Debrid magnet hashes management:
-  - Automatic backup of last 2500 Real-Debrid torrents + a service to restore them if RD account emptied.
-  - RD torrent-hashes sync from another instance of JellyGrail (but no secured proxy or VPN is provided here, so be careful).
+  - Automatic backup of last 2500 Real-Debrid torrents + a service to restore them if RD account emptied by mistake.
+  - RD torrent-hashes sync from another instance of JellyGrail (although no secured proxy or VPN is provided in this container).
 - ✨ Auto-organized TV shows and movies in a virtual folder:
-  - ✨ Every storage is merged into this unique virtual folder (thanks to https://github.com/philamp/bindfs_jelly):
-  - ✨ New items detection for Real-Debrid and local files (thanks to rd_api_py and pyinotify) 
-  - Subtitle files renamed following standards.
-  - Same movie variants merged into same folder when possible
-  - You can manage this virtual folder as if it were a real one (rename and move files the way you want)
-  - It can be shared on your local network through any protocol (There is a WebDAV server included but you can also share it through SMB, DLNA or NFS)
-  - Smart deletion of actual assets behind virtual files, including rclone cache files.
+  - ✨ Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly):
+  - ✨ New items detection for Real-Debrid and local files (with rd_api_py and pyinotify). 
+  - Subtitle files renaming following standards as most as possible.
   - ✨ Detects extras and put them in the movie's "extras" subfolder.
+  - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
+  - You can manage this virtual folder as if it were a real one (rename and move files the way you want).
+  - It can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085).
+  - Smart deletion of actual assets behind virtual files (including rclone cache files).
 - Preconfigured Jellyfin included if needed.
-- Included Webdav/HTTP server (nginx) on port 8085.
 
 ## ⚠️ Warnings 
 
@@ -31,7 +30,6 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 - Do not open ports 8085 and 6502 to the internet.
 - I'm not responsible of any illegal use.
 - Use at your own risks.
-- I'm not a professional developer.
 - This does not include any torrent indexer search or RD downloader.
 - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of the underlying file-systems.
 
@@ -263,6 +261,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 
 ## Good to know / Known issues
 - Check **🚀 First and daily Usage** section above
+- Metadata language configuration is set to FR (TODO: fix to let the user decide)
 - only last 2500 real-debrid torrents are backuped.
 - m2ts files not inside a BDMV structure are ignored.
 - **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient and can -in some cases- lead to degraded performance.**
