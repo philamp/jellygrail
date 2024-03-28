@@ -26,7 +26,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 
 .                         | Plex          | Basic Jellyfin |  File-System share           | Streaming app | JellyGrail
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
-Nice Library              | ✅           | ✅             | 🟠                          | 🟠            | ✅ 
+Nice Library              | ✅           | ✅             | 🟠w/ kodi                   | 🟠            | ✅ 
 Play on request           | ❌           | ❌             | ❌                          | ✅            | 🟠within few minutes  
 Variants grouping         | ✅           | ❌             | ❌                          | ✅            | 🟠with movies only
 Wide device compatibility | 🟠           | 🟠             | ✅                          | ❌            | ✅Through file sharing
