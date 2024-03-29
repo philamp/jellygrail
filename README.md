@@ -1,27 +1,44 @@
 <img src="jellygrail_logo.png">
 
 # What is JellyGrail ?
-JellyGrail is an **experimental** modified Jellyfin docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can manage as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
+JellyGrail is an **experimental** modified Jellyfin docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
 
-- You can stream your Real-Debrid video files directly (thanks to https://github.com/itsToggle/rclone_RD)
-- RAR archives extracted on the fly (thanks to rar2fs):
+- Access remote and Real-Debrid files as if they were local (https://github.com/itsToggle/rclone_RD).
+- RAR archives extracted on the fly (https://github.com/hasse69/rar2fs):
   - No need to extract your local RAR downloads. 
-  - No need to download and extract Real-Debrid torrents having RARs, it's just streamed and extracted on-the-fly.
-    - ✨ With an optimized cache to mitigate real-debrid issues with ISO and RAR files (thanks to https://github.com/philamp/rclone_jelly, is a fork of rclone_RD).
+  - No need to download and extract Real-Debrid torrents with RARs, it's just streamed and extracted on-the-fly.
+    - ✨ With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly).
 - Real-Debrid magnet hashes management:
-  - Automatic backup of last 2500 Real-Debrid torrents + a service to restore them if RD account emptied.
-  - RD torrent-hashes sync from another instance of JellyGrail (but no secured proxy or VPN is provided here, so be careful).
+  - Automatic backup of last 2500 Real-Debrid torrents + a service to restore them if RD account emptied by mistake.
+  - RD torrent-hashes sync from another instance of JellyGrail (although no secured proxy or VPN is provided in this container).
 - ✨ Auto-organized TV shows and movies in a virtual folder:
-  - ✨ Every storage is merged into this unique virtual folder (thanks to https://github.com/philamp/bindfs_jelly):
-  - ✨ New items detection for Real-Debrid and local files (thanks to rd_api_py and pyinotify) 
-  - Subtitle files renamed following standards.
-  - Same movie variants merged into same folder when possible
-  - You can manage this virtual folder as if it were a real one (rename and move files the way you want)
-  - It can be shared on your local network through any protocol (There is a WebDAV server included but you can also share it through SMB, DLNA or NFS)
-  - Smart deletion of actual assets behind virtual files, including rclone cache files.
+  - ✨ Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly):
+  - ✨ New items detection for Real-Debrid and local files (with rd_api_py and pyinotify). 
+  - Subtitle files renaming following standards as most as possible.
   - ✨ Detects extras and put them in the movie's "extras" subfolder.
+  - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
+  - You can manage this virtual folder as if it were a real one (rename and move files the way you want).
+  - It can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085).
+  - Smart deletion of actual assets behind virtual files (including rclone cache files).
 - Preconfigured Jellyfin included if needed.
-- Included Webdav/HTTP server (nginx) on port 8085.
+
+## Why ?
+
+.                         | Plex          | Basic Jellyfin |  File-System share           | Streamio      | JellyGrail
+------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
+User friendly media library | ✅           | ✅             | 🟠w/ kodi                   | 🟠            | ✅ 
+Play on request           | ❌           | ❌             | ❌                          | ✅            | 🟠within few minutes  
+Variants grouping         | ✅           | ❌             | ❌                          | ✅            | 🟠with movies only
+On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅
+File-System share fallback | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✅
+...BDMV/DVD ISO Support | ❌           | 🟠DVD only             | ✅w/ kodi                   | ❌            | ✅Through WebDAV w/ kodi 
+Subtitle management       | ✅excellent with Bazarr | ✅excellent with Bazarr  | ✅w/ kodi + add-on or Bazarr  | 🟠            | ✅with jellyfin add-on or kodi add-on
+Mobile streaming transcoding        | ✅           | ✅Including DoVi profile 5*              | ❌                          | N/A            | ✅Including DoVi profile 5* 
+Remote&local storages merging  | ✅w/ Rclone           | ✅w/ Rclone   | ❌                          | N/A            | ✅Out of the box
+OpenSource                | ❌           | ✅             | ✅                          | ❌            | ✅
+
+🟠 = "more or less"
+>  \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
 
 ## ⚠️ Warnings 
 
@@ -31,9 +48,8 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 - Do not open ports 8085 and 6502 to the internet.
 - I'm not responsible of any illegal use.
 - Use at your own risks.
-- I'm not a professional developer.
 - This does not include any torrent indexer search or RD downloader.
-- ⚠️ File Deletion in the virtual folder actually deletes corresponding files of the underlying file-systems.
+- ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
 
 ## 📥️ Installation (or upgrade)
 
@@ -42,17 +58,15 @@ Follow sections 1/ to 7/
 ### ✋ 1/ Prerequisites
 
 - Linux system 🐧.
-- FUSE installed on host.
-- Tested on x86 system, should build on ARM and should run on a Raspberry 4, not tested yet.
+- Tested on x86 system, should build on ARM and should run on a Raspberry 4, but not tested yet.
 - Docker 🐳.
-- Git client to clone this repo (TODO: provide a prebuilt image)
-- Crontab to trigger included http services.
+- Git client to clone this repo (TODO: provide a prebuilt image).
 - Having a Real-Debrid account is better.
 
 
 ### 🚧 2/ Build
 
-Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_ and this folder is represented by a dot "." in this page.
+Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_ and this folder is represented by a dot ``.`` in this page.
 
 ````
 git clone https://github.com/philamp/jellygrail.git
@@ -60,22 +74,15 @@ cd jellygrail/docker
 sudo docker build -t philamp/jellygrail .
 ````
 
-> If you upgrade, replace the git clone command by a git pull command inside the root jellygrail folder
+> If you upgrade, replace the ``git clone ...`` command by a ``git pull`` command inside the ``.`` folder
 
 ### ✨ 3/ Configuration wizard
 
-> You can find your Real-Debrid API key here : https://real-debrid.com/apitoken.
-
-Make sure you're back in the root folder where _PREPARE.SH_ is located:
-
-
-````
-cd ..
-````
+> Grab your Real-Debrid API key : https://real-debrid.com/apitoken.
 
 #### 3.1/ First install
 
-Run the bash script:
+Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
 ````
 sudo chmod u+x PREPARE.SH
 sudo ./PREPARE.SH
@@ -83,21 +90,19 @@ sudo ./PREPARE.SH
 
 #### 3.2/ Upgrade
 
-Run the bash script:
+Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
 ````
 sudo chmod u+x PREPARE.SH
 sudo ./PREPARE.SH upgrade
 ````
 
-This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container)
+This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container and is available to the host system, not only inside the container)
 > Learn more about "rshared" here : https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759
 
 ### 🐳 4/ Docker command
 
 Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4.3 below:
-> don't forget the "\\" before a new line
->
-> ignore blank lines and "..."
+> don't forget the "\\" before a new line and ignore "..." lines
 
 #### 🐳 4.1/ Docker run base
 
@@ -116,7 +121,6 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 -v ${PWD}/Video_Library:/Video_Library:rshared \
 -v ${PWD}/mounts/remote_realdebrid:/mounts/remote_realdebrid \
 -v ${PWD}/fallbackdata:/mounts/fallback \
-
 ...
 ````
 
@@ -128,41 +132,35 @@ Example with 2 local folders
 
 ````
 ...
-
 -v /volume1/video:/mounts/local_drive1 \
 -v /volumeUSB1/usbshare/video:/mounts/local_drive2 \
-
 ...
 ````
 
-> ⚠ Your local folders must be mounted inside ``/mounts`` and they must contain at least a _movies_ folder or a _shows_ folder (it follows the same naming convention as when mounting with rclone RD fork)
+> ⚠ Your local folders must be mounted inside ``/mounts`` __with _local\__ prefix__ and they must contain at least a _movies/_ folder or a _shows/_ folder (it follows the same naming convention as rclone_rd )
 > 
-> ⚠ local storage _movies/_ folders also supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : _video/shows/scrubs/video.mkv_)
+> ⚠ local-storage _movies/_ folders also supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : _video/shows/scrubs/video.mkv_)
 
 #### 🐳 4.3/ Final part
 
 ````
 ...
-
 --restart unless-stopped \
 --name jellygrail \
 philamp/jellygrail:latest
 ````
 
-
-
 ### 🚀 5/ Run
 
 1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
 2. Verify that ``./mounts/remote_realdebrid/rclone.conf`` is populated with proper values.
-3. Verify that your working directory is the folder containing _PREPARE.SH_ file (= root folder of this repo).
-4. Paste your docker command in your bash prompt.
-6. Hit enter !
+3. Verify that your working directory is ``.`` (the folder containing _PREPARE.SH_ file).
+4. Paste your docker command in your bash prompt and hit enter !
 
 ### 📡 6/ Tasks triggering 
 
-On ``http://your_system_ip:6502`` an http service is provided on which you can call these paths below. 
-With recent commits, only ``/backup`` and ``/remotescan`` should be called manually or via crontab.
+On ``http://your_system_ip:6502`` an http server is provided to respond to these path calls below. 
+> With recent commits, only ``/backup`` and ``/remotescan`` should be called manually or via crontab.
 
 #### 📡 Path: ``/scan``
 
@@ -263,6 +261,7 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 
 ## Good to know / Known issues
 - Check **🚀 First and daily Usage** section above
+- Metadata language configuration is set to FR (TODO: fix to let the user decide)
 - only last 2500 real-debrid torrents are backuped.
 - m2ts files not inside a BDMV structure are ignored.
 - **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient and can -in some cases- lead to degraded performance.**
