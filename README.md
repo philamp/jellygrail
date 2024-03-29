@@ -31,13 +31,14 @@ Play on request           | ❌           | ❌             | ❌               
 Variants grouping         | ✅           | ❌             | ❌                          | ✅            | 🟠with movies only
 On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅
 ...including BDMV/DVD ISO | ❌           | 🟠             | ✅w/ kodi                   | ❌            | ✅Through WebDAV w/ kodi 
-File-System browsing | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✅Very wide compatibility with older devices
+File-System browsing fallback | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✅
 Subtitle management       | ✅excellent with Bazarr | ✅excellent with Bazarr  | ✅w/ kodi + add-on or Bazarr  | 🟠            | ✅with jellyfin add-on or kodi add-on
-Mobile transcoding        | ✅           | ✅             | ❌                          | N/A            | ✅Including DoVi profile 5 
+Mobile streaming transcoding        | ✅           | ✅Including DoVi profile 5*              | ❌                          | N/A            | ✅Including DoVi profile 5* 
 Remote&local storages merging  | ✅w/ Rclone           | ✅w/ Rclone   | ❌                          | N/A            | ✅Out of the box
 OpenSource                | ❌           | ✅             | ✅                          | ❌            | ✅
 
 🟠 = "more or less"
+>  \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
 
 ## ⚠️ Warnings 
 
