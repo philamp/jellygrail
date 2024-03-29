@@ -98,8 +98,6 @@ def jfconfig():
             triggerdata = []
             jfapi.jellyfin(f'ScheduledTasks/4e6637c832ed644d1af3370a2506e80a/Triggers', json=triggerdata, method='post')
             jfapi.jellyfin(f'ScheduledTasks/2c66a88bca43e565d7f8099f825478f1/Triggers', json=triggerdata, method='post')
-            jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
-            jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # disable merge episodes which is not working well
 
             logger.warning("> IMPORTANT: Jellyfin Additional plugins are installed and unefficient tasks are disabled, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
 
@@ -258,6 +256,9 @@ def jfconfig():
                 jfapi.jellyfin(f'Library/VirtualFolders', json=tvshowlib, method='post', params=dict(
                     name='Shows', collectionType="tvshows", paths=f"{base_v_root}/shows", refreshLibrary=False
                 ))
+                jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
+                jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # disable merge episodes which is not working well
+
 
 
             logger.warning("> don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
