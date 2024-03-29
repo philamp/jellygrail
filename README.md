@@ -30,8 +30,8 @@ User friendly media library | ✅           | ✅             | 🟠w/ kodi     
 Play on request           | ❌           | ❌             | ❌                          | ✅            | 🟠within few minutes  
 Variants grouping         | ✅           | ❌             | ❌                          | ✅            | 🟠with movies only
 On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅
+File-System share fallback | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✅
 ...including BDMV/DVD ISO | ❌           | 🟠             | ✅w/ kodi                   | ❌            | ✅Through WebDAV w/ kodi 
-File-System browsing fallback | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✅
 Subtitle management       | ✅excellent with Bazarr | ✅excellent with Bazarr  | ✅w/ kodi + add-on or Bazarr  | 🟠            | ✅with jellyfin add-on or kodi add-on
 Mobile streaming transcoding        | ✅           | ✅Including DoVi profile 5*              | ❌                          | N/A            | ✅Including DoVi profile 5* 
 Remote&local storages merging  | ✅w/ Rclone           | ✅w/ Rclone   | ❌                          | N/A            | ✅Out of the box
