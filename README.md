@@ -26,16 +26,16 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 
 Functionnalities/Solutions       | Plex w/ rclone_rd   | Jellyfin w/ rclone_rd + Kodi  |  File-System share + Kodi | Streamio      | JellyGrail + Kodi
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
-User friendly media library | ✅           | ✅             | 🟠                       | 🟠            | ✅ 
-Play on request           | 🟠           | 🟠             | ❌                          | ✅            | 🟠within few minutes  
-Variants grouping         | ✅           | ❌             | ❌                          | ✅            | ✅
-On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✅
-File-System share fallback | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✅
-Subtitle management       | ✅ | ✅  | ✅w/ kodi add-on or Bazarr  | 🟠            | ✅with jellyfin add-on or kodi add-on
-Mobile streaming transcoding        | ✅           | ✅Including DoVi profile 5*              | ❌                          | N/A            | ✅Including DoVi profile 5* 
-Remote&local storages merging  | ✅           | ✅   | ❌                          | N/A            | ✅Also in WebDAV share fallback
-Open Source                | ❌           | ✅             | ✅                          | ❌            | ✅
-Plays nearly every formats including BDMV & DVD ISOs  | ❌           | 🟠             | ✅                       | ❌            | ✅WebDAV share fallback 
+User friendly media library | ✔️           | ✔️             | 🟠                       | 🟠            | ✔️ 
+Play on request           | 🟠           | 🟠             | ❌                          | ✔️            | 🟠within few minutes  
+Variants grouping         | ✔️           | ❌             | ❌                          | ✔️            | ✔️
+On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✔️
+File-System share fallback | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✔️
+Subtitle management       | ✔️ | ✔️  | ✔️w/ kodi add-on or Bazarr  | 🟠            | ✔️with jellyfin add-on or kodi add-on
+Mobile streaming transcoding        | ✔️           | ✔️Including DoVi profile 5*              | ❌                          | N/A            | ✔️Including DoVi profile 5* 
+Remote&local storages merging  | ✔️           | ✔️   | ❌                          | N/A            | ✔️Also in WebDAV share fallback
+Open Source                | ❌           | ✔️             | ✔️                          | ❌            | ✔️
+Plays nearly every formats including BDMV & DVD ISOs  | ❌           | 🟠             | ✔️                       | ❌            | ✔️WebDAV share fallback 
 
 🟠 = "more or less"
 >  \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
