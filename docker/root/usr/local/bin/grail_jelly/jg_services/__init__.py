@@ -30,7 +30,21 @@ WHOLE_CONTENT = os.getenv('ALL_FILES_INCLUDING_STRUCTURE') != "no"
 
 def test():
     try:
-        dumped_data = json.dumps(RD.torrents.get(limit=2, page=1).json())
+        
+        inbelements = 4
+        nbelements = inbelements
+        data = []
+        ipage=1
+        while nbelements == inbelements and ipage < 2 :
+            idata = RD.torrents.get(limit=inbelements, page=ipage).json()
+            data += idata
+            ipage += 1
+            nbelements = len(idata)
+
+        dumped_data = json.dumps(data)
+        
+        
+
     except Exception as e:
         logger.error(f"Error accessing RD: {e}")
         return "Server running but RD test has failed (DNS or Network failure)"
@@ -286,7 +300,17 @@ def rdump_backup(including_backup = True, returning_data = False):
 
     try:
         # create horodated json file of my torrents
-        data = RD.torrents.get(limit=2500, page=1).json() # todo: it's only the 2500 last items
+        #data = RD.torrents.get(limit=2500, page=1).json() # todo: it's only the 2500 last items
+        inbelements = 2500
+        nbelements = inbelements
+        data = []
+        ipage=1
+        while nbelements == inbelements:
+            idata = RD.torrents.get(limit=inbelements, page=ipage).json()
+            data += idata
+            ipage += 1
+            nbelements = len(idata)
+
         # Store the data in a file
         with open(rdump_file, 'w') as f:
             json.dump(data, f)
