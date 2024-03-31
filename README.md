@@ -57,7 +57,7 @@ Follow sections 1/ to 7/
 
 ### ✋ 1/ Prerequisites
 
-- Linux system 🐧.
+- Linux system 🐧 with Bash shell.
 - Tested on x86 system, should build on ARM and should run on a Raspberry 4, but not tested yet.
 - Docker 🐳.
 - Git client to clone this repo (TODO: provide a prebuilt image).
@@ -160,12 +160,12 @@ philamp/jellygrail:latest
 ### 📡 6/ Tasks triggering 
 
 On ``http://your_system_ip:6502`` an http server is provided to respond to these path calls below. 
-> With recent commits, only ``/backup`` and ``/remotescan`` should be called manually or via crontab.
+> With recent commits, only ``/backup`` should be called manually or via crontab.
 
 #### 📡 Path: ``/scan``
 
 > Not mandatory to be set as cron as rd_progress _potentially_ calls it every 2 minutes.
-> 
+
 Should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder and refresh Jellyfin Library.
 
 #### 📡 Path: ``/backup`` 
@@ -178,6 +178,8 @@ Simple web page to choose the backup file to restore from
 
 #### 📡 Path: ``/remotescan``
 
+> Not mandatory to be set as cron since it's triggered internally every 7 minutes (if remote endpoint is configured).
+
 to trigger the pull of new hashes from another JellyGrail instance (if configured in ``./jellygrail/config/settings.env``)
 
 > ⚠️ ``/remotescan`` is the local trigger that will call a remote service (which is actually ``/getrdincrement``) on the other JellyGrail instance (but no secured proxy or VPN is provied here, so be careful). 
@@ -188,7 +190,7 @@ Basically you won't use this trigger unless you want to synchronize your RD torr
 
 #### 📡 Path: ``/rd_progress``
 
-> Not mandatory to be set as cron as it is triggered every 2 minutes.
+> Not mandatory to be set as cron since it's triggered internally every 2 minutes.
 
 This is a service to check if there are changes worth calling ``/scan`` subsequently.
 
