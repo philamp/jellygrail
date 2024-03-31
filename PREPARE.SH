@@ -106,6 +106,10 @@ if [ ! -f "RESTART.SH"  ]; then
     cp -f "RESTART.SH.example" "RESTART.SH"
 fi
 
+if [ ! -f "CUSTOM_HOST_MOUNT.SH"  ]; then
+    cp -f "CUSTOM_HOST_MOUNT.SH.example" "CUSTOM_HOST_MOUNT.SH"
+fi
+
 if [ "$1" = "upgrade" ]; then
     read -p "Would you like to stop and remove the already running JellyGrail container ? (yes/no) (needed for running a new one): " upyesno
     if [ $upyesno = "yes" ]; then
