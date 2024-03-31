@@ -129,15 +129,20 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
     # Prompt the user for the API key
     echo "Upgrade or creation of config files: $CONF_PATH and $SETTINGS_PATH will be created"
     read -p "Please enter your Real-Debrid API key (leave empty to ignore): " api_key
+    echo ""
     read -p "Please enter the remote JellyGrail instance location (ex: http://10.6.0.1:6502 ; leave empty to ignore): " remote_loc
-    read -p $'Please enter the initial increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists. \n(default: 0 ; leave empty to keep default): ' default_incr
+    echo ""
 
     if [ ! -z "$remote_loc" ]; then
+        read -p $'Please enter the initial increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists. \n(default: 0 ; leave empty to keep default): ' default_incr
+        echo ""
         read -p "From the remote JellyGrail instance, do you want to take the whole content of torrents, including folders ? yes/no (default: yes ; leave empty to keep default): " whole_content
     fi
 
     prompt_for_c_choice
+    echo ""
     prompt_for_l_choice
+    echo ""
 
     sed -i "s/JF_COUNTRY=\"CH\"/JF_COUNTRY=\"$f_c_input\"/" "$SETTINGS_PATH"
     sed -i "s/JF_LANGUAGE=\"fr\"/JF_LANGUAGE=\"$f_l_input\"/" "$SETTINGS_PATH"
