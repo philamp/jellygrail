@@ -6,6 +6,9 @@ from base import *
 
 base_v_root = "/Video_Library/virtual"
 
+JF_COUNTRY = os.getenv('JF_COUNTRY')
+JF_LANGUAGE = os.getenv('JF_LANGUAGE')
+
 def jfconfig():
     #global jfapikey
 
@@ -117,8 +120,8 @@ def jfconfig():
                 logger.info("> Now we can add Librariries")
                 movielib = {
                     "LibraryOptions": {
-                        "PreferredMetadataLanguage": "fr",
-                        "MetadataCountryCode": "FR",
+                        "PreferredMetadataLanguage": JF_LANGUAGE,
+                        "MetadataCountryCode": JF_COUNTRY,
                         "EnableRealtimeMonitor": False,
                         "EnableChapterImageExtraction": False,
                         "ExtractChapterImagesDuringLibraryScan": False,
@@ -158,8 +161,8 @@ def jfconfig():
 
                 concertlib = {
                     "LibraryOptions": {
-                        "PreferredMetadataLanguage": "fr",
-                        "MetadataCountryCode": "FR",
+                        "PreferredMetadataLanguage": JF_LANGUAGE,
+                        "MetadataCountryCode": JF_COUNTRY,
                         "EnableRealtimeMonitor": False,
                         "EnableChapterImageExtraction": False,
                         "ExtractChapterImagesDuringLibraryScan": False,
