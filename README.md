@@ -57,7 +57,7 @@ Follow sections 1/ to 7/
 
 ### ✋ 1/ Prerequisites
 
-- Linux system 🐧.
+- Linux system 🐧 with Bash shell.
 - Tested on x86 system, should build on ARM and should run on a Raspberry 4, but not tested yet.
 - Docker 🐳.
 - Git client to clone this repo (TODO: provide a prebuilt image).
