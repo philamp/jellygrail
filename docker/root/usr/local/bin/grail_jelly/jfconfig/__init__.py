@@ -1,7 +1,5 @@
-import logging
 import urllib
 import time
-#from jfapi import jellyfin, jfapikey
 import jfapi
 from jfconfig.jfsql import *
 from base import *

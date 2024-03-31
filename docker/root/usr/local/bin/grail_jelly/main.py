@@ -6,6 +6,7 @@ import pyinotify
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from script_runner import ScriptRunner
 import urllib
+import os
 
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
 from script_runner import ScriptRunner
@@ -14,6 +15,8 @@ from script_runner import ScriptRunner
 # dotenv for RD API management
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
+
+REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
 
 # ------ Contact points
@@ -163,7 +166,6 @@ class EventHandler(pyinotify.ProcessEvent):
 # restart_jellygrail_at is in jfapi module
 
 def periodic_trigger(seconds=120):
-    global thrdinsts
     _rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
     while True:
         time.sleep(seconds)
@@ -172,6 +174,12 @@ def periodic_trigger(seconds=120):
             # logger.info("periodic trigger is working")
             _scan_instance = ScriptRunner.get(scan)
             _scan_instance.run()
+
+def periodic_trigger_rs(seconds=350):
+    _rs_instance = ScriptRunner.get(jg_services.remoteScan)
+    while True:
+        time.sleep(seconds)
+        _rs_instance.run()
 
 def inotify_deamon(to_watch):
     # ----- inotify 
@@ -194,6 +202,8 @@ def inotify_deamon(to_watch):
 
 if __name__ == "__main__":
 
+    # ----------------- INITs -----------------------------------------
+
     init_bdd() # before jfconfig so that base folders are for sure created
 
     jfconfig()
@@ -201,25 +211,30 @@ if __name__ == "__main__":
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
 
-    # threads A B C
+    # ------------------- threads A, Ars, B, C, D -----------------------
 
-    # rd_progress called automatically
+    # A: rd_progress called automatically every 2mn
     thread_a = threading.Thread(target=periodic_trigger)
     thread_a.daemon = True  # exists when parent thread exits
     thread_a.start()
 
-    # restart_jellygrail_at
+    # Ars: remoteScan trigger every 7mn
+    if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
+        thread_ars = threading.Thread(target=periodic_trigger_rs)
+        thread_ars.daemon = True  # exists when parent thread exits
+        thread_ars.start()
+
+    # B: restart_jellygrail_at 6.30am
     thread_b = threading.Thread(target=restart_jellygrail_at)
     thread_b.daemon = True  # exists when parent thread exits
     thread_b.start()
 
-    # inotify deamon
+
+    # C: inotify deamon
     if len(to_watch) > 0:
         thread_c = threading.Thread(target=inotify_deamon, args=(to_watch,))
         thread_c.daemon = True  # exists when parent thread exits
         thread_c.start()
 
-    #thread D, server
+    # D: server thread
     run_server()
-
-
