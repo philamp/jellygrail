@@ -9,7 +9,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - No need to download and extract Real-Debrid torrents with RARs, it's just streamed and extracted on-the-fly.
     - ✨ With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly).
 - Real-Debrid magnet hashes management:
-  - Automatic backup of last 2500 Real-Debrid torrents + a service to restore them if RD account emptied by mistake.
+  - Automatic backup of all Real-Debrid torrents hashes + a service to restore them if RD account emptied by mistake.
   - RD torrent-hashes sync from another instance of JellyGrail (although no secured proxy or VPN is provided in this container).
 - ✨ Auto-organized TV shows and movies in a virtual folder:
   - ✨ Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly):
@@ -262,7 +262,6 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 ## Good to know / Known issues
 - Check **🚀 First and daily Usage** section above
 - Metadata language configuration is set to FR (TODO: fix to let the user decide)
-- only last 2500 real-debrid torrents are backuped.
 - m2ts files not inside a BDMV structure are ignored.
 - **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient and can -in some cases- lead to degraded performance.**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./RESTART.SH`` to fix it.
