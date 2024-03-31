@@ -20,7 +20,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - You can manage this virtual folder as if it were a real one (rename and move files the way you want).
   - It can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085).
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
-- Preconfigured Jellyfin included if needed.
+- ✨ Almost fully automatized Jellyfin configuration (except login/password).
 
 ## Why ?
 
@@ -263,7 +263,6 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 
 ## Good to know / Known issues
 - Check **🚀 First and daily Usage** section above
-- Metadata language configuration is set to FR (TODO: fix to let the user decide)
 - m2ts files not inside a BDMV structure are ignored.
 - **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient and can -in some cases- lead to degraded performance.**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./RESTART.SH`` to fix it.
