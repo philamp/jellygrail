@@ -139,8 +139,8 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
     prompt_for_c_choice
     prompt_for_l_choice
 
-    sed -i 's/JF_COUNTRY="CH"/JF_COUNTRY="$f_c_input"/' "$SETTINGS_PATH"
-    sed -i 's/JF_LANGUAGE="fr"/JF_LANGUAGE="$f_l_input"/' "$SETTINGS_PATH"
+    sed -i "s/JF_COUNTRY=\"CH\"/JF_COUNTRY=\"$f_c_input\"/" "$SETTINGS_PATH"
+    sed -i "s/JF_LANGUAGE=\"fr\"/JF_LANGUAGE=\"$f_l_input\"/" "$SETTINGS_PATH"
 
     # Check if the user input is empty
     if [ ! -z "$api_key" ]; then
@@ -166,10 +166,10 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
                 sed -i "s|PASTE-REMOTE-ADDR-HERE|$remote_loc|" "$SETTINGS_PATH"
             fi
             if [ ! -z "$default_incr" ]; then
-                sed -i 's/DEFAULT_INCR="0"/DEFAULT_INCR="$default_incr"/' "$SETTINGS_PATH"
+                sed -i "s/DEFAULT_INCR=\"0\"/DEFAULT_INCR=\"$default_incr\"/" "$SETTINGS_PATH"
             fi
             if [ ! -z "$whole_content" ]; then
-                sed -i 's/ALL_FILES_INCLUDING_STRUCTURE="yes"/ALL_FILES_INCLUDING_STRUCTURE="$whole_content"/' "$SETTINGS_PATH"
+                sed -i "s/ALL_FILES_INCLUDING_STRUCTURE=\"yes\"/ALL_FILES_INCLUDING_STRUCTURE=\"$whole_content\"/" "$SETTINGS_PATH"
             fi
 
         else
