@@ -2,6 +2,7 @@
 from base import *
 from jgscan.jgsql import *
 from jgscan.caching import *
+import requests
 from jfapi import lib_refresh_all, merge_versions
 from jgscan.arena import *
 import PTN
@@ -17,6 +18,11 @@ present_virtual_folders_shows = []
 
 dual_endpoints = []
 mounts_root = "/mounts"
+
+JF_WANTED = os.getenv('JF_WANTED') != "no"
+
+PLEX_REFRESH_A = os.getenv('PLEX_REFRESH_A')
+PLEX_REFRESH_B = os.getenv('PLEX_REFRESH_B')
 
 
 def init_mountpoints():
@@ -522,6 +528,12 @@ def scan():
     # Close the connection
     sqclose()
 
-    # refresh the jellyfin library and merge variants
-    lib_refresh_all()
-    merge_versions()
+    if JF_WANTED:
+        # refresh the jellyfin library and merge variants
+        lib_refresh_all()
+        merge_versions()
+    else:
+        if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
+            requests.get(PLEX_REFRESH_A)
+        if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
+            requests.get(PLEX_REFRESH_B)

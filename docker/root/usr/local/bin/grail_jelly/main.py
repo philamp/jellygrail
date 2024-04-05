@@ -7,6 +7,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from script_runner import ScriptRunner
 import urllib
 import os
+import datetime
 
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
 from script_runner import ScriptRunner
@@ -18,6 +19,9 @@ load_dotenv('/jellygrail/config/settings.env')
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
+# check if api key is set
+RD_API_SET = os.getenv('RD_APITOKEN') != "PASTE-YOUR-KEY-HERE"
+JF_WANTED = os.getenv('JF_WANTED') != "no"
 
 # ------ Contact points
 from jgscan import init_bdd, init_mountpoints, scan
@@ -140,6 +144,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
 def run_server(server_class=HTTPServer, handler_class=RequestHandler, port=6502):
+    global httpd
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
     logger.info(f"~ Server running on port {port}")
@@ -200,34 +205,65 @@ def inotify_deamon(to_watch):
     notifier.loop()
     # ----- inotify END
 
+def restart_jgdocker_at(target_hour=6, target_minute=30):
+    global httpd
+    while True:
+        # Get the current time
+        now = datetime.datetime.now()
+        next_run = now.replace(hour=target_hour, minute=target_minute, second=0, microsecond=0)
+        if next_run < now:
+            next_run += datetime.timedelta(days=1)
+        sleep_time = (next_run - now).total_seconds()
+        logger.info(f"~ Jellyfin next restart in {sleep_time} seconds.")
+        time.sleep(sleep_time)
+        if True:
+            logger.info(f"JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
+            httpd.shutdown()
+
 if __name__ == "__main__":
 
     # ----------------- INITs -----------------------------------------
 
     init_bdd() # before jfconfig so that base folders are for sure created
 
-    jfconfig()
-
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
 
+    # Config JF before starting threads and server threads, trigger a first scan if it's first use
+    if JF_WANTED:
+        jf_config_result = jfconfig()
+        if jf_config_result == "FIRST_RUN":
+            _scan_instance = ScriptRunner.get(scan)
+            _scan_instance.daemon = True 
+            _scan_instance.run()
+        elif jf_config_result == "ZERO-RUN":
+            logger.info(f"JellyGrail will now shutdown for restart in deamon mode, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
+            httpd.shutdown()
+    else:
+        _scan_instance = ScriptRunner.get(scan)
+        _scan_instance.daemon = True 
+        _scan_instance.run()
+
+
     # ------------------- threads A, Ars, B, C, D -----------------------
+    
+    if RD_API_SET:
 
-    # A: rd_progress called automatically every 2mn
-    thread_a = threading.Thread(target=periodic_trigger)
-    thread_a.daemon = True  # exists when parent thread exits
-    thread_a.start()
+        # A: rd_progress called automatically every 2mn
+        thread_a = threading.Thread(target=periodic_trigger)
+        thread_a.daemon = True  # 
+        thread_a.start()
 
-    # Ars: remoteScan trigger every 7mn
-    if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
-        thread_ars = threading.Thread(target=periodic_trigger_rs)
-        thread_ars.daemon = True  # exists when parent thread exits
-        thread_ars.start()
+        # Ars: remoteScan trigger every 7mn
+        if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
+            thread_ars = threading.Thread(target=periodic_trigger_rs)
+            thread_ars.daemon = True  # 
+            thread_ars.start()
+            logger.info("~ Real Debrid API remoteScan will be triggered every 7mn")
+        
+        logger.info("~ Real Debrid API rd_progress will be triggered every 2mn")
 
-    # B: restart_jellygrail_at 6.30am
-    thread_b = threading.Thread(target=restart_jellygrail_at)
-    thread_b.daemon = True  # exists when parent thread exits
-    thread_b.start()
+
 
 
     # C: inotify deamon
@@ -235,6 +271,18 @@ if __name__ == "__main__":
         thread_c = threading.Thread(target=inotify_deamon, args=(to_watch,))
         thread_c.daemon = True  # exists when parent thread exits
         thread_c.start()
+    
+
+    # B: restart_jellygrail_at 6.30am
+    thread_b = threading.Thread(target=restart_jgdocker_at)
+    thread_b.daemon = True  # exists when parent thread exits
+    thread_b.start()
+
 
     # D: server thread
-    run_server()
+    # server_thread = threading.Thread(target=run_server)
+    # server_thread.daemon = False
+    # server_thread.start()
+    run_server()    
+      # Arrêtez le serveur
+    #server_thread.join() 

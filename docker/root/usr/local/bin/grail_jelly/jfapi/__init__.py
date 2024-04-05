@@ -44,6 +44,7 @@ def lib_refresh_all():
         else:
             logger.critical(f"> FAILURE to update library. Status code: {resp.status_code}")
 
+'''
 def restart_jellygrail_at(target_hour=6, target_minute=30):
     while True:
         # Get the current time
@@ -52,8 +53,9 @@ def restart_jellygrail_at(target_hour=6, target_minute=30):
         if next_run < now:
             next_run += datetime.timedelta(days=1)
         sleep_time = (next_run - now).total_seconds()
-        logger.info(f"Next restart in {sleep_time} seconds.")
+        logger.info(f"~ Jellyfin next restart in {sleep_time} seconds.")
         time.sleep(sleep_time)
         if jfapikey is not None:
             logger.info(f"JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
             jellyfin(f'System/Shutdown', method='post')
+'''

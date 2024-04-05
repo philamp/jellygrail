@@ -102,8 +102,9 @@ def jfconfig():
 
             logger.warning("> IMPORTANT: Jellyfin Additional plugins are installed and unefficient tasks are disabled, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
 
+            return "ZERO-RUN"
             # thanks to --restart unless-stopped, drawback: it will restart in a loop if it does not find 3 declared repos (todo: find a more resilient way to test it)
-            jfapi.jellyfin(f'System/Shutdown', method='post')
+            # jfapi.jellyfin(f'System/Shutdown', method='post')
 
 
         else:
@@ -259,10 +260,10 @@ def jfconfig():
                 ))
                 jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
                 jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # disable merge episodes which is not working well
-
-
+                return "FIRST_RUN"
 
             logger.warning("> don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
-                
+            
+    return ""            
             
     # ---- end config

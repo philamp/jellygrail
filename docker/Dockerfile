@@ -176,8 +176,5 @@ EXPOSE 6502
 # overwrite run jellyfin main original process as CMD instead of entrypoint
 ENTRYPOINT ["/init"]
 # CMD ["/bin/bash"]
-CMD ["env", "JELLYFIN_FFmpeg__analyzeduration=4000000", "./jellyfin/jellyfin", \
-    "--datadir", "/jellygrail/jellyfin/config", \
-    "--cachedir", "/jellygrail/jellyfin/cache", \
-    "--ffmpeg", "/usr/lib/jellyfin-ffmpeg/ffmpeg"]
+CMD ["python3", "/usr/local/bin/grail_jelly/main.py"]
 

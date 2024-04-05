@@ -111,7 +111,7 @@ if [ ! -f "CUSTOM_HOST_MOUNT.SH"  ]; then
 fi
 
 if [ "$1" = "upgrade" ]; then
-    read -p "Would you like to stop and remove the already running JellyGrail container ? (yes/no) (needed for running a new one): " upyesno
+    read -p $'\nWould you like to stop and remove the already running JellyGrail container ? (yes/no) (needed for running a new one):\n>' upyesno
     if [ $upyesno = "yes" ]; then
         docker stop jellygrail
         docker rm jellygrail
@@ -127,25 +127,46 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
     fi
         
     # Prompt the user for the API key
-    echo "Upgrade or creation of config files: $CONF_PATH and $SETTINGS_PATH will be created"
-    read -p "Please enter your Real-Debrid API key (leave empty to ignore): " api_key
+    echo "-- Upgrade or creation of config files: $CONF_PATH and $SETTINGS_PATH will be created --"
     echo ""
-    read -p "Please enter the remote JellyGrail instance location (ex: http://10.6.0.1:6502 ; leave empty to ignore): " remote_loc
-    echo ""
+    read -p $'\nPlease enter your Real-Debrid API key (leave empty to ignore):\n> ' api_key
+    read -p $'\nPlease enter the remote JellyGrail instance location (ex: http://10.6.0.1:6502 ; leave empty to ignore):\n> ' remote_loc
 
     if [ ! -z "$remote_loc" ]; then
-        read -p $'Please enter the initial increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists. \n(default: 0 ; leave empty to keep default): ' default_incr
-        echo ""
-        read -p "From the remote JellyGrail instance, do you want to take the whole content of torrents, including folders ? yes/no (default: yes ; leave empty to keep default): " whole_content
+        read -p $'\nPlease enter the initial increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists. \n(default: 0 ; leave empty to keep default):\n> ' default_incr
+        read -p $'\nFrom the remote JellyGrail instance, do you want to take the whole content of torrents, including folders ? yes/no (default: yes ; leave empty to keep default):\n> ' whole_content
     fi
 
-    prompt_for_c_choice
-    echo ""
-    prompt_for_l_choice
-    echo ""
+    read -p $'\nDo you want to use integrated Jellyfin ? \nyes/no (default: yes ; leave empty to keep default)\n> ' jf_wanted
 
-    sed -i "s/JF_COUNTRY=\"CH\"/JF_COUNTRY=\"$f_c_input\"/" "$SETTINGS_PATH"
-    sed -i "s/JF_LANGUAGE=\"fr\"/JF_LANGUAGE=\"$f_l_input\"/" "$SETTINGS_PATH"
+    if [ "$jf_wanted" = "no" ]; then
+
+        sed -i "s/JF_WANTED=\"yes\"/JF_WANTED=\"no\"/" "$SETTINGS_PATH"
+
+        echo "...so we assume Plex might be used, you might need help from this web page to find your Plex Token : https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/"
+        echo "...then list your librairies sections ids (xx) : http://your_nas_ip:32400/library/sections?X-Plex-Token=YOUR_PLEX_TOKEN"
+        echo "...then build your refresh URLs like that (replace xx) : http://your_nas_ip:32400/library/sections/xx/refresh?X-Plex-Token=YOUR_PLEX_TOKEN"
+        read -p "...build all refresh urls and submit them in next prompt, ok ?" dummy
+        read -p $'\n1st Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_a
+        read -p $'\n2nd Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_b
+
+        if [ ! -z "$plex_refresh_a" ]; then
+            sed -i "s/PLEX_REFRESH_A=\"PASTE_A_REFRESH_URL_HERE\"/PLEX_REFRESH_A=\"$plex_refresh_a\"/" "$SETTINGS_PATH"
+        fi
+        if [ ! -z "$plex_refresh_b" ]; then
+            sed -i "s/PLEX_REFRESH_B=\"PASTE_B_REFRESH_URL_HERE\"/PLEX_REFRESH_B=\"$plex_refresh_b\"/" "$SETTINGS_PATH"
+        fi
+
+    else
+        echo ""
+        prompt_for_c_choice
+        echo ""
+        prompt_for_l_choice
+        sed -i "s/JF_COUNTRY=\"CH\"/JF_COUNTRY=\"$f_c_input\"/" "$SETTINGS_PATH"
+        sed -i "s/JF_LANGUAGE=\"fr\"/JF_LANGUAGE=\"$f_l_input\"/" "$SETTINGS_PATH"
+    fi
+
+
 
     # Check if the user input is empty
     if [ ! -z "$api_key" ]; then

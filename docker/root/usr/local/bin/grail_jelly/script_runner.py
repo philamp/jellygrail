@@ -34,6 +34,7 @@ class ScriptRunnerSub:
             self.queued_execution = False
             # async is instanciated here
             self.thread = threading.Thread(target=self._execute)
+            self.thread.daemon = True
             self.thread.start()
 
     def _execute(self):

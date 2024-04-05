@@ -43,7 +43,11 @@ def clean_string(s):
     s = s.replace("-", "")
     s = s.strip()
     s = s.capitalize()
+    s = remove_brackets(s)
     return s
+
+def remove_brackets(text):
+    return re.sub(r'\[.*?\]', '', text)
 
 def subtitle_extension(file_name):
     _attribs = []

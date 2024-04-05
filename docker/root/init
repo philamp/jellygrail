@@ -6,6 +6,9 @@
 # So this script needs to be entirely self-contained until it has
 # at least /command, /usr/bin and /bin in its PATH.
 
+# load dotenv
+. /jellygrail/config/settings.env
+
 # jellygrail custom function:
 create_service() {
   template_path=$1
@@ -107,6 +110,10 @@ for dir_path in /mounts/*; do
   esac
 done
 
+if [ "$JF_WANTED" = "no" ]; then
+  rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
+fi
+
 # this part triggers only if /root/devmode folder is found, it's for devleopment purposes only
 if [ -d "/root/devmode" ]; then
   apt install openssh-server nano libsqlite3-dev sqlite3 cmake -y
@@ -122,6 +129,8 @@ if [ -d "/root/devmode" ]; then
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_remote_realdebrid
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive1
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive2
+  # disrupt normal execution
+  cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/main.py
   mkdir -p /root/dev
   # end dev-context services
   git config --global user.email "phil.gaultier@gmail.com"
