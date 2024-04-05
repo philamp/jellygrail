@@ -25,7 +25,6 @@ JF_WANTED = os.getenv('JF_WANTED') != "no"
 
 # ------ Contact points
 from jgscan import init_bdd, init_mountpoints, scan
-from jfapi import restart_jellygrail_at
 from jfconfig import jfconfig
 
 import jg_services
