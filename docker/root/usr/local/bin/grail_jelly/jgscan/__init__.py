@@ -36,7 +36,7 @@ def init_mountpoints():
             for d in os.scandir(f.path):
                 if d.is_dir() and d.name != '@eaDir':
                     dual_endpoints.append(( mounts_root+"/"+f.name+"/"+d.name,mounts_root+"/rar2fs_"+f.name+"/"+d.name, type))
-    
+    print(dual_endpoints)
     to_watch = [point for (point, _, point_type) in dual_endpoints if point_type == 'local']
 
     return to_watch    
@@ -415,6 +415,7 @@ def scan():
     present_virtual_folders_shows = [os.path.basename(itemv[0]) for itemv in fetch_present_virtual_folders() if itemv[1] == 'shows' ]
 
     # browse each release folder of each first endpoint
+    print(dual_endpoints)
     for (src1, src2, storetype) in dual_endpoints:
         for f in os.scandir(src1):
             if f.path not in present_folders:
