@@ -102,11 +102,11 @@ CONF_EXAMPLE_PATH="./mounts/remote_realdebrid/rclone.conf.example"
 SETTINGS_PATH="./jellygrail/config/settings.env"
 SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
 
-if [ ! -f "RESTART.SH"  ]; then
+if [ ! -f "RESTART.SH"  ] || [ "$1" = "upgrade" ]; then
     cp -f "RESTART.SH.example" "RESTART.SH"
 fi
 
-if [ ! -f "CUSTOM_HOST_MOUNT.SH"  ]; then
+if [ ! -f "CUSTOM_HOST_MOUNT.SH"  ] || [ "$1" = "upgrade" ]; then
     cp -f "CUSTOM_HOST_MOUNT.SH.example" "CUSTOM_HOST_MOUNT.SH"
 fi
 
