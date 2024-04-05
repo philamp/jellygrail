@@ -21,6 +21,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - It can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085).
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
 - ✨ Almost fully automatized Jellyfin configuration (except login/password).
+  - Can be disabled if another or no media center used.
 
 ## Why ?
 
@@ -209,8 +210,7 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 4. Access the content in ``./Video_Library/virtual/`` (in the folder you ran the docker command).
 5. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
     - Initialize the user and language and don't do anoything else (don't add librairies)
-    - You can also point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
-    - TODO: functionnality to disable jellyfin.
+    - You can also disable Jellyfin at config time and point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
 6. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
 7. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
 8. Beware to have a paid RD account:
