@@ -28,7 +28,8 @@ PLEX_REFRESH_B = os.getenv('PLEX_REFRESH_B')
 def init_mountpoints():
 
     global dual_endpoints
-
+    logger.info("wait for rclone to be ready ... ")
+    time.sleep(10)
     for f in os.scandir(mounts_root): 
         if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
             logger.info(f"> FOUND MOUNTPOINT: {f.name}")
@@ -415,7 +416,6 @@ def scan():
     present_virtual_folders_shows = [os.path.basename(itemv[0]) for itemv in fetch_present_virtual_folders() if itemv[1] == 'shows' ]
 
     # browse each release folder of each first endpoint
-    print(dual_endpoints)
     for (src1, src2, storetype) in dual_endpoints:
         for f in os.scandir(src1):
             if f.path not in present_folders:
