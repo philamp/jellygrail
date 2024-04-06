@@ -102,14 +102,6 @@ CONF_EXAMPLE_PATH="./mounts/remote_realdebrid/rclone.conf.example"
 SETTINGS_PATH="./jellygrail/config/settings.env"
 SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
 
-if [ ! -f "RESTART.SH"  ] || [ "$1" = "upgrade" ]; then
-    cp -f "RESTART.SH.example" "RESTART.SH"
-fi
-
-if [ ! -f "CUSTOM_HOST_MOUNT.SH"  ] || [ "$1" = "upgrade" ]; then
-    cp -f "CUSTOM_HOST_MOUNT.SH.example" "CUSTOM_HOST_MOUNT.SH"
-fi
-
 if [ "$1" = "upgrade" ]; then
     read -p $'\nWould you like to stop and remove the already running JellyGrail container ? (yes/no) (needed for running a new one):\n>' upyesno
     if [ $upyesno = "yes" ]; then
@@ -146,7 +138,7 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
         echo "...so we assume Plex might be used, you might need help from this web page to find your Plex Token : https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/"
         echo "...then list your librairies sections ids (xx) : http://your_nas_ip:32400/library/sections?X-Plex-Token=YOUR_PLEX_TOKEN"
         echo "...then build your refresh URLs like that (replace xx) : http://your_nas_ip:32400/library/sections/xx/refresh?X-Plex-Token=YOUR_PLEX_TOKEN"
-        read -p "...build all refresh urls and submit them in next prompt, ok ?" dummy
+        read -p "...build all refresh urls and submit them in next prompt, press enter to continue" dummy
         read -p $'\n1st Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_a
         read -p $'\n2nd Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_b
 
@@ -166,7 +158,10 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
         sed -i "s/JF_LANGUAGE=\"fr\"/JF_LANGUAGE=\"$f_l_input\"/" "$SETTINGS_PATH"
     fi
 
-
+    read -p $'\nIf an additional custom host mount folder is needed type the full desired path here\n(leave empty to ignore)\n> ' add_host_mount
+    if [ ! -z "$add_host_mount" ]; then
+        sed -i "s/ADD_HOST_MOUNT=\"\"/ADD_HOST_MOUNT=\"$add_host_mount\"/" "$SETTINGS_PATH"
+    fi 
 
     # Check if the user input is empty
     if [ ! -z "$api_key" ]; then
@@ -210,20 +205,8 @@ else
     echo "The configuration file already exists."
 fi
 
-echo "Proceeding with the script (creation of config folders and rshare mounting of Video_Library folder)"
-echo "---------------------------------------------------------------------------------------------------"
-mkdir -p ./jellygrail/jellyfin/config
-mkdir -p ./jellygrail/jellyfin/cache
-mkdir -p ./fallbackdata
-fusermount -uz ./Video_Library 2> /dev/null
-fusermount -uz ./Video_Library 2> /dev/null
-umount ./Video_Library 2> /dev/null
-umount ./Video_Library 2> /dev/null
-mkdir -p ./Video_Library
-mount -o bind ./Video_Library ./Video_Library
-mount --make-shared ./Video_Library
-# call to additonal host mount
-# ./CUSTOM_HOST_MOUNT.SH
-
+echo "Proceeding with the script (creation of jf config folders and rshare mounting of Video_Library folder)"
+echo "------------------------------------------------------------------------------------------------------"
+./_MOUNT.SH mount
 echo "SCRIPT COMPLETED"
 echo "----------------"
