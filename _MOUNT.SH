@@ -1,6 +1,6 @@
 #!/bin/bash
-. ./jellygrail/config/settings.env # load settings
 cd "$(dirname "$0")"
+. ./jellygrail/config/settings.env # load settings
 mkdir -p ./jellygrail/jellyfin/config
 mkdir -p ./jellygrail/jellyfin/cache
 mkdir -p ./fallbackdata
