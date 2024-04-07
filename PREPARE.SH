@@ -164,7 +164,7 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
 
     read -p $'\nIf an additional custom host mount folder is needed type the full desired path here\n(leave empty to ignore)\n> ' add_host_mount
     if [ ! -z "$add_host_mount" ]; then
-        sed -i "s/ADD_HOST_MOUNT=\"\"/ADD_HOST_MOUNT=\"$add_host_mount\"/" "$SETTINGS_PATH"
+        sed -i "s|ADD_HOST_MOUNT=\"\"|ADD_HOST_MOUNT=\"$add_host_mount\"|" "$SETTINGS_PATH"
     fi 
 
     # Check if the user input is empty
