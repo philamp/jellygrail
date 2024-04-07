@@ -141,12 +141,16 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
         read -p "...build all refresh urls and submit them in next prompt, press enter to continue" dummy
         read -p $'\n1st Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_a
         read -p $'\n2nd Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_b
+        read -p $'\n3rd Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_c
 
         if [ ! -z "$plex_refresh_a" ]; then
             sed -i "s|PLEX_REFRESH_A=\"PASTE_A_REFRESH_URL_HERE\"|PLEX_REFRESH_A=\"$plex_refresh_a\"|" "$SETTINGS_PATH"
         fi
         if [ ! -z "$plex_refresh_b" ]; then
             sed -i "s|PLEX_REFRESH_B=\"PASTE_B_REFRESH_URL_HERE\"|PLEX_REFRESH_B=\"$plex_refresh_b\"|" "$SETTINGS_PATH"
+        fi
+        if [ ! -z "$plex_refresh_c" ]; then
+            sed -i "s|PLEX_REFRESH_C=\"PASTE_C_REFRESH_URL_HERE\"|PLEX_REFRESH_C=\"$plex_refresh_c\"|" "$SETTINGS_PATH"
         fi
 
     else
