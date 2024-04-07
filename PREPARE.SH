@@ -143,10 +143,10 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
         read -p $'\n2nd Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_b
 
         if [ ! -z "$plex_refresh_a" ]; then
-            sed -i "s/PLEX_REFRESH_A=\"PASTE_A_REFRESH_URL_HERE\"/PLEX_REFRESH_A=\"$plex_refresh_a\"/" "$SETTINGS_PATH"
+            sed -i "s|PLEX_REFRESH_A=\"PASTE_A_REFRESH_URL_HERE\"|PLEX_REFRESH_A=\"$plex_refresh_a\"|" "$SETTINGS_PATH"
         fi
         if [ ! -z "$plex_refresh_b" ]; then
-            sed -i "s/PLEX_REFRESH_B=\"PASTE_B_REFRESH_URL_HERE\"/PLEX_REFRESH_B=\"$plex_refresh_b\"/" "$SETTINGS_PATH"
+            sed -i "s|PLEX_REFRESH_B=\"PASTE_B_REFRESH_URL_HERE\"|PLEX_REFRESH_B=\"$plex_refresh_b\"|" "$SETTINGS_PATH"
         fi
 
     else
