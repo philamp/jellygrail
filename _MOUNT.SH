@@ -8,14 +8,14 @@ fusermount -uz ./Video_Library 2> /dev/null
 fusermount -uz ./Video_Library 2> /dev/null
 umount ./Video_Library 2> /dev/null
 umount ./Video_Library 2> /dev/null
-rmdir ./Video_Library
+rmdir ./Video_Library 2> /dev/null
 
 if [ ! -z "$ADD_HOST_MOUNT" ]; then
-    fusermount -uz $ADD_HOST_MOUNT
-    fusermount -uz $ADD_HOST_MOUNT
-    umount $ADD_HOST_MOUNT
-    umount $ADD_HOST_MOUNT
-    rmdir $ADD_HOST_MOUNT
+    fusermount -uz $ADD_HOST_MOUNT 2> /dev/null
+    fusermount -uz $ADD_HOST_MOUNT 2> /dev/null
+    umount $ADD_HOST_MOUNT 2> /dev/null
+    umount $ADD_HOST_MOUNT 2> /dev/null
+    rmdir $ADD_HOST_MOUNT 2> /dev/null
 fi
 
 if [ "$1" = "mount" ];then
