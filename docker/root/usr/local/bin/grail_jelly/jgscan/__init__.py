@@ -535,6 +535,17 @@ def scan():
         merge_versions()
     else:
         if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
-            requests.get(PLEX_REFRESH_A)
+            try:
+                requests.get(PLEX_REFRESH_A)
+            except Exception as e:
+                logger.error("error with plex refresh")
         if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
-            requests.get(PLEX_REFRESH_B)
+            try:
+                requests.get(PLEX_REFRESH_B)
+            except Exception as e:
+                logger.error("error with plex refresh")
+        if PLEX_REFRESH_C != 'PASTE_C_REFRESH_URL_HERE':
+            try:
+                requests.get(PLEX_REFRESH_C)
+            except Exception as e:
+                logger.error("error with plex refresh")
