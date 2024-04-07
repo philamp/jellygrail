@@ -23,6 +23,7 @@ JF_WANTED = os.getenv('JF_WANTED') != "no"
 
 PLEX_REFRESH_A = os.getenv('PLEX_REFRESH_A')
 PLEX_REFRESH_B = os.getenv('PLEX_REFRESH_B')
+PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
 
 
 def init_mountpoints():
