@@ -73,8 +73,6 @@ sudo docker build -t philamp/jellygrail .
 
 > If you upgrade, replace the ``git clone ...`` command by a ``git pull`` command inside the ``.`` folder
 
-<hr style="border:1px solid blue">
-
 ### ✨ 3/ Configuration wizard
 
 > Grab your Real-Debrid API key : https://real-debrid.com/apitoken.
@@ -97,8 +95,6 @@ sudo ./PREPARE.SH upgrade
 
 This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container and is available to the host system, not only inside the container)
 > Learn more about "rshared" here : https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759
-
-<hr style="border:1px solid blue"/>
 
 ### 🐳 4/ Docker command
 
@@ -151,8 +147,6 @@ Example with 2 local folders
 philamp/jellygrail:latest
 ````
 
-<hr style="border:1px solid blue">
-
 ### 🚀 5/ Run
 
 1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
@@ -199,12 +193,7 @@ Basically you won't use this trigger unless you want to synchronize your RD torr
 
 This is a service to check if there are changes worth calling ``/scan`` subsequently.
 
-<hr style="border:1px solid blue">
 
-### ➰ 7/  Daily restart
-JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability
-> [!TIP]
-> If you restart your NAS frequently, add STOP.SH script to your shutdown tasks and START.SH script to your startup tasks so that shared mount points are still accessible (alternatively, you can use fstab)
 
 
 ## 🚀 First and daily Usage
@@ -222,48 +211,56 @@ JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to
 8. Beware to have a paid RD account:
     - configure ``/backup`` cron (See 📡 Tasks triggering section above).
     - if you forgot a payment or deleted torrents by mistake, you can find your RD hashes backup in ./jellygrail/data/backup/ and use the /restore service (See 📡 Tasks triggering section above).
-9. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
-10. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
+9. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
+10. JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability
+> [!TIP]
+> If you restart your NAS frequently, add STOP.SH script to your shutdown tasks and START.SH script to your startup tasks so that shared mount points are still accessible (alternatively, you can use fstab)
 
+> [!NOTE]
+> 
 > ``./fallbackdata/`` folder contains files added by you or any process that tries to write a file in _virtual_ folder and its subfolders.
 > 
 > ``./Video_Library/virtual_dv/`` is a dynamically filtered folder containing only Dolby Vision MP4/MKV files.
 > 
 > ``./Video_Library/virtual_bdmv/`` is a dynamically filtered folder containing only DVDs and Blu-rays data.
 
+> [!CAUTION]
+> ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
+
 
 ## ✅ Sanity checks / Troubleshooting
 
 You can check it's running with following commands:
 
-### ✅ Is the container running ? 
+### Is the container running ? 
 
 ````
 sudo docker ps
 ````
 
-### ✅ Jellygrail python service Logs
+### Jellygrail python service Logs
 
 ````
 tail -f ./jellygrail/log/jelly_update.log
 ````
 
-### ✅ Live container logs
+### Live container logs
 
 ````
 sudo docker logs --follow jellygrail
 ````
 
-### ✅ Python service 
+### Python service 
 
 ````
 curl http://localhost:6502/test
 ````
 
-### ✅ Jellyfin 
+### Jellyfin 
 
 Open http://your_system_ip:8096 to launch Jellyfin web interface.
-<hr style="border:1px solid blue">
+
+___
 
 ## Good to know / Known issues
 - Check **🚀 First and daily Usage** section above
@@ -288,23 +285,29 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
   - This cache will have a size equal to 0.5%~ of your real-debrid storage size, using it on an SSD is better (but not mandatory).
 - bindfs_jelly is a fork of https://github.com/mpartel/bindfs that brings virtual folders and virtual renaming.
   - Its sqlite DB is initialized through inluded Python service that scans mounted local and remote folders (upon first start the virtual folder is empty).
-- ⚠️ You can manage your assets *only* through the virtual folder (rename, delete, move) otherwise if you do it directly on the underlying filesystems, linkage will be lost between virtual tree and actual trees.
+- ⚠️ You can manage your assets *only* through the virtual folder (rename, delete, move) otherwise if you do it directly on the underlying filesystems, linkage will be lost between virtual tree and actual trees. TODO: autofix when linkage is dead between bindFS and underlying filesystems
 - You can use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and disable downloading files to host since you don't need to have these files stored locally anymore. Thus you also have to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (TODO: fix that in bindfs_jelly if possible).
 
-## Kodi setup (recommended)
+___
+
+## Kodi recommanded setup
 
 ### Devices
 - Nvidia Shield: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (arm64-v8a)) 
 - Chromecast with Google TV: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (armeabi-v7a)
 (to be completed...)
+- CoreElec compatible box
 
 ### Add-ons
 - Jellyfin add-on ``*``
   - with 'add-on' paths, not 'native' paths, otherwise you loose the functionnality to choose the video variant upon play.
 
+- Jellycon add-on
+  - works very well too and works without hacking the Kodi main db. Although last time I checked it only show variants as a merged item when they're merged in filesystem, not when dynamically merged with "merge versions" plugin
+
 - Artic Horizon 2 skin ``*``
-  - Allow third party default dependencies in add-on settings before instlaling the skin.
+  - Allow third party default dependencies in add-on settings before instlaling the skin. (repository.jurialmunkey-3.4.zip)
 
 - a4k subtitles add-on ``*``
 - Up Next (optionnal)
