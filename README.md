@@ -291,7 +291,7 @@ ___
 
 ___
 
-## Kodi recommanded setup
+## Kodi recommended setup
 
 ### Devices
 - Nvidia Shield: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (arm64-v8a)) 
