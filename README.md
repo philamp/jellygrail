@@ -31,8 +31,6 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 > - This does not include any torrent indexer search or RD downloader.
 > - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
 
-## Why ?
-
 Functionnalities/Solutions       | Plex w/ rclone_rd   | Jellyfin w/ rclone_rd + Kodi  |  File-System share + Kodi | Streamio      | JellyGrail + Kodi
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
 User friendly media library | ✔️           | ✔️             | 🟠                       | 🟠            | ✔️ 
