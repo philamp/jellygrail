@@ -22,6 +22,14 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
 - ✨ Almost fully automatized Jellyfin configuration (except login/password).
   - Can be disabled if another or no media center used.
+ 
+> [!CAUTION]
+> - I'm not responsible of any data loss.
+> - Do not open ports 8085 and 6502 to the internet.
+> - I'm not responsible of any illegal use.
+> - Use at your own risks.
+> - This does not include any torrent indexer search or RD downloader.
+> - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
 
 ## Why ?
 
@@ -41,17 +49,6 @@ Plays nearly every formats including BDMV & DVD ISOs  | ❌           | 🟠    
 🟠 = "more or less"
 >  \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
 
-## ⚠️ Warnings 
-
-> ⚠ This is experimental stuff.
-
-- I'm not responsible of any data loss.
-- Do not open ports 8085 and 6502 to the internet.
-- I'm not responsible of any illegal use.
-- Use at your own risks.
-- This does not include any torrent indexer search or RD downloader.
-- ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
-
 ## 📥️ Installation (or upgrade)
 
 Follow sections 1/ to 7/
@@ -64,7 +61,6 @@ Follow sections 1/ to 7/
 - Git client to clone this repo (TODO: provide a prebuilt image).
 - Having a Real-Debrid account is better.
 
-
 ### 🚧 2/ Build
 
 Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_ and this folder is represented by a dot ``.`` in this page.
@@ -76,6 +72,8 @@ sudo docker build -t philamp/jellygrail .
 ````
 
 > If you upgrade, replace the ``git clone ...`` command by a ``git pull`` command inside the ``.`` folder
+
+<hr style="border:1px solid blue">
 
 ### ✨ 3/ Configuration wizard
 
@@ -99,6 +97,8 @@ sudo ./PREPARE.SH upgrade
 
 This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container and is available to the host system, not only inside the container)
 > Learn more about "rshared" here : https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759
+
+<hr style="border:1px solid blue"/>
 
 ### 🐳 4/ Docker command
 
@@ -151,6 +151,8 @@ Example with 2 local folders
 philamp/jellygrail:latest
 ````
 
+<hr style="border:1px solid blue">
+
 ### 🚀 5/ Run
 
 1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
@@ -183,9 +185,11 @@ Simple web page to choose the backup file to restore from
 
 to trigger the pull of new hashes from another JellyGrail instance (if configured in ``./jellygrail/config/settings.env``)
 
-> ⚠️ ``/remotescan`` is the local trigger that will call a remote service (which is actually ``/getrdincrement``) on the other JellyGrail instance (but no secured proxy or VPN is provied here, so be careful). 
->
-> ⚠️ You should absolutely not open the python service to internet (do not open port 6502).
+> [!TIP]
+> ``/remotescan`` is the local trigger that will call a remote service (which is actually ``/getrdincrement``) on the other JellyGrail instance (but no secured proxy or VPN is provied here, so be careful). 
+
+> [!CAUTION]
+> You should absolutely not open the python service to internet (do not open port 6502).
 
 Basically you won't use this trigger unless you want to synchronize your RD torrents with another instance of this app (aka friend remote instance).
 
@@ -195,11 +199,12 @@ Basically you won't use this trigger unless you want to synchronize your RD torr
 
 This is a service to check if there are changes worth calling ``/scan`` subsequently.
 
-### ➰ 7/  Daily restart
+<hr style="border:1px solid blue">
 
-> JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability 
-~~As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to ``./RESTART.SH``.~~
-~~It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessible from the host)~~
+### ➰ 7/  Daily restart
+JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability
+> [!TIP]
+> If you restart your NAS frequently, add STOP.SH script to your shutdown tasks and START.SH script to your startup tasks so that shared mount points are still accessible (alternatively, you can use fstab)
 
 
 ## 🚀 First and daily Usage
@@ -211,6 +216,7 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 5. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
     - Initialize the user and language and don't do anoything else (don't add librairies)
     - You can also disable Jellyfin at config time and point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
+      - If you don't need the filesystem fallback functionnality and use Plex, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
 6. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
 7. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
 8. Beware to have a paid RD account:
@@ -226,7 +232,7 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 > ``./Video_Library/virtual_bdmv/`` is a dynamically filtered folder containing only DVDs and Blu-rays data.
 
 
-## ✅ Sanity checks / Troubleshooting (Draft section)
+## ✅ Sanity checks / Troubleshooting
 
 You can check it's running with following commands:
 
@@ -236,10 +242,7 @@ You can check it's running with following commands:
 sudo docker ps
 ````
 
-### ✅ Logs
-
-logs are in ``./jellygrail/log/``.
-you can do:
+### ✅ Jellygrail python service Logs
 
 ````
 tail -f ./jellygrail/log/jelly_update.log
@@ -260,6 +263,7 @@ curl http://localhost:6502/test
 ### ✅ Jellyfin 
 
 Open http://your_system_ip:8096 to launch Jellyfin web interface.
+<hr style="border:1px solid blue">
 
 ## Good to know / Known issues
 - Check **🚀 First and daily Usage** section above
