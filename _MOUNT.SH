@@ -22,9 +22,10 @@ if [ "$1" = "mount" ];then
     mkdir -p ./Video_Library
     mount -o bind ./Video_Library ./Video_Library
     mount --make-shared ./Video_Library
-fi
-
     if [ ! -z "$ADD_HOST_MOUNT" ]; then
         mkdir -p $ADD_HOST_MOUNT
         mount --bind ./Video_Library $ADD_HOST_MOUNT
     fi
+fi
+
+
