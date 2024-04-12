@@ -22,8 +22,14 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
 - ✨ Almost fully automatized Jellyfin configuration (except login/password).
   - Can be disabled if another or no media center used.
-
-## Why ?
+ 
+> [!CAUTION]
+> - I'm not responsible of any data loss.
+> - Do not open ports 8085 and 6502 to the internet.
+> - I'm not responsible of any illegal use.
+> - Use at your own risks.
+> - This does not include any torrent indexer search or RD downloader.
+> - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
 
 Functionnalities/Solutions       | Plex w/ rclone_rd   | Jellyfin w/ rclone_rd + Kodi  |  File-System share + Kodi | Streamio      | JellyGrail + Kodi
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
@@ -41,17 +47,6 @@ Plays nearly every formats including BDMV & DVD ISOs  | ❌           | 🟠    
 🟠 = "more or less"
 >  \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
 
-## ⚠️ Warnings 
-
-> ⚠ This is experimental stuff.
-
-- I'm not responsible of any data loss.
-- Do not open ports 8085 and 6502 to the internet.
-- I'm not responsible of any illegal use.
-- Use at your own risks.
-- This does not include any torrent indexer search or RD downloader.
-- ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
-
 ## 📥️ Installation (or upgrade)
 
 Follow sections 1/ to 7/
@@ -63,7 +58,6 @@ Follow sections 1/ to 7/
 - Docker 🐳.
 - Git client to clone this repo (TODO: provide a prebuilt image).
 - Having a Real-Debrid account is better.
-
 
 ### 🚧 2/ Build
 
@@ -183,9 +177,11 @@ Simple web page to choose the backup file to restore from
 
 to trigger the pull of new hashes from another JellyGrail instance (if configured in ``./jellygrail/config/settings.env``)
 
-> ⚠️ ``/remotescan`` is the local trigger that will call a remote service (which is actually ``/getrdincrement``) on the other JellyGrail instance (but no secured proxy or VPN is provied here, so be careful). 
->
-> ⚠️ You should absolutely not open the python service to internet (do not open port 6502).
+> [!TIP]
+> ``/remotescan`` is the local trigger that will call a remote service (which is actually ``/getrdincrement``) on the other JellyGrail instance (but no secured proxy or VPN is provied here, so be careful). 
+
+> [!CAUTION]
+> You should absolutely not open the python service to internet (do not open port 6502).
 
 Basically you won't use this trigger unless you want to synchronize your RD torrents with another instance of this app (aka friend remote instance).
 
@@ -195,11 +191,7 @@ Basically you won't use this trigger unless you want to synchronize your RD torr
 
 This is a service to check if there are changes worth calling ``/scan`` subsequently.
 
-### ➰ 7/  Daily restart
 
-> JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability 
-~~As JellyGrail is experimental, a daily restart is recommended: add in your crontab a daily call to ``./RESTART.SH``.~~
-~~It also remakes the rshared mounted folder ``./Video_Library/`` (so it's accessible from the host)~~
 
 
 ## 🚀 First and daily Usage
@@ -211,55 +203,62 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 5. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
     - Initialize the user and language and don't do anoything else (don't add librairies)
     - You can also disable Jellyfin at config time and point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
+      - If you don't need the filesystem fallback functionnality and use Plex, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
 6. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
 7. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
 8. Beware to have a paid RD account:
     - configure ``/backup`` cron (See 📡 Tasks triggering section above).
     - if you forgot a payment or deleted torrents by mistake, you can find your RD hashes backup in ./jellygrail/data/backup/ and use the /restore service (See 📡 Tasks triggering section above).
-9. ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
-10. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
+9. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
+10. JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability
+> [!TIP]
+> If you restart your NAS frequently, add STOP.SH script to your shutdown tasks and START.SH script to your startup tasks so that shared mount points are still accessible (alternatively, you can use fstab)
 
+> [!NOTE]
+> 
 > ``./fallbackdata/`` folder contains files added by you or any process that tries to write a file in _virtual_ folder and its subfolders.
 > 
 > ``./Video_Library/virtual_dv/`` is a dynamically filtered folder containing only Dolby Vision MP4/MKV files.
 > 
 > ``./Video_Library/virtual_bdmv/`` is a dynamically filtered folder containing only DVDs and Blu-rays data.
 
+> [!CAUTION]
+> ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
 
-## ✅ Sanity checks / Troubleshooting (Draft section)
+
+## ✅ Sanity checks / Troubleshooting
 
 You can check it's running with following commands:
 
-### ✅ Is the container running ? 
+### Is the container running ? 
 
 ````
 sudo docker ps
 ````
 
-### ✅ Logs
-
-logs are in ``./jellygrail/log/``.
-you can do:
+### Jellygrail python service Logs
 
 ````
 tail -f ./jellygrail/log/jelly_update.log
 ````
 
-### ✅ Live container logs
+### Live container logs
 
 ````
 sudo docker logs --follow jellygrail
 ````
 
-### ✅ Python service 
+### Python service 
 
 ````
 curl http://localhost:6502/test
 ````
 
-### ✅ Jellyfin 
+### Jellyfin 
 
 Open http://your_system_ip:8096 to launch Jellyfin web interface.
+
+___
 
 ## Good to know / Known issues
 - Check **🚀 First and daily Usage** section above
@@ -284,23 +283,29 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
   - This cache will have a size equal to 0.5%~ of your real-debrid storage size, using it on an SSD is better (but not mandatory).
 - bindfs_jelly is a fork of https://github.com/mpartel/bindfs that brings virtual folders and virtual renaming.
   - Its sqlite DB is initialized through inluded Python service that scans mounted local and remote folders (upon first start the virtual folder is empty).
-- ⚠️ You can manage your assets *only* through the virtual folder (rename, delete, move) otherwise if you do it directly on the underlying filesystems, linkage will be lost between virtual tree and actual trees.
+- ⚠️ You can manage your assets *only* through the virtual folder (rename, delete, move) otherwise if you do it directly on the underlying filesystems, linkage will be lost between virtual tree and actual trees. TODO: autofix when linkage is dead between bindFS and underlying filesystems
 - You can use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and disable downloading files to host since you don't need to have these files stored locally anymore. Thus you also have to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
 - if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (TODO: fix that in bindfs_jelly if possible).
 
-## Kodi setup (recommended)
+___
+
+## Kodi recommended setup
 
 ### Devices
 - Nvidia Shield: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (arm64-v8a)) 
 - Chromecast with Google TV: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (armeabi-v7a)
 (to be completed...)
+- CoreElec compatible box
 
 ### Add-ons
 - Jellyfin add-on ``*``
   - with 'add-on' paths, not 'native' paths, otherwise you loose the functionnality to choose the video variant upon play.
 
+- Jellycon add-on
+  - works very well too and works without hacking the Kodi main db. Although last time I checked it only show variants as a merged item when they're merged in filesystem, not when dynamically merged with "merge versions" plugin
+
 - Artic Horizon 2 skin ``*``
-  - Allow third party default dependencies in add-on settings before instlaling the skin.
+  - Allow third party default dependencies in add-on settings before instlaling the skin. (repository.jurialmunkey-3.4.zip)
 
 - a4k subtitles add-on ``*``
 - Up Next (optionnal)

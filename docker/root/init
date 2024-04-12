@@ -133,7 +133,7 @@ if [ -d "/root/devmode" ]; then
   cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/main.py
   mkdir -p /root/dev
   # end dev-context services
-  git config --global user.email "phil.gaultier@gmail.com"
+  git config --global user.email "xxxxxxxx@gmail.com"
 fi
 # the above part triggers only if /root/devmode folder is found, it's for devleopment purposes only
 
