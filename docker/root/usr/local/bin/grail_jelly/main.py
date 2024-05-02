@@ -139,6 +139,11 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.wfile.write(output)
                 else:
                     self.send_error(503, "Client triggered service, not yet available - rd dump file not yet created on server, please retry in few seconds")
+        else:
+            self.standard_headers()
+            self.send_error(404, "You cannot ask that, that is foolish and rude")
+
+
 
 
 
