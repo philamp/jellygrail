@@ -42,7 +42,8 @@ Subtitle management       | ✔️ | ✔️  | ✔️w/ kodi add-on or Bazarr  |
 Mobile streaming transcoding        | ✔️           | ✔️Including DoVi profile 5*              | ❌                          | N/A            | ✔️Including DoVi profile 5* 
 Remote&local storages merging  | ✔️           | ✔️   | ❌                          | N/A            | ✔️Also in WebDAV share fallback
 Open Source                | ❌           | ✔️             | ✔️                          | ❌            | ✔️
-Plays nearly every formats including BDMV & DVD ISOs  | ❌           | 🟠             | ✔️                       | ❌            | ✔️WebDAV share fallback 
+Plays nearly every formats including BDMV & DVD ISOs  | ❌           | 🟠             | ✔️                       | ❌            | ✔️WebDAV share fallback
+High Quality sources + unlimited storage | ✔️           | ✔️   | ❌                          | ❌            | ✔️
 
 🟠 = "more or less"
 >  \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
