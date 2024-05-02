@@ -279,6 +279,7 @@ def remoteScan():
 
                     except Exception as e:
                         logger.error(f"  - ...An Error has occured on pushing hash to RD (+cancellation of whole batch +manual increment, will be retried next iteration anyway) : {e}")
+                        # this makes so that any RD action that is not complete stops the full batch, however if the failed action is a "select_files" it won't treat it next time so it does not completely fix the issue of select_files on hold # TODO
                         whole_batch_taken = False
                         break
                     else:
@@ -331,7 +332,6 @@ def rdump_backup(including_backup = True, returning_data = False):
 
     try:
         # create horodated json file of my torrents
-        #data = RD.torrents.get(limit=2500, page=1).json() # todo: it's only the 2500 last items
         inbelements = 2500
         nbelements = inbelements
         data = []

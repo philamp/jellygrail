@@ -125,7 +125,7 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
     read -p $'\nPlease enter the remote JellyGrail instance location (ex: http://10.6.0.1:6502 ; leave empty to ignore):\n> ' remote_loc
 
     if [ ! -z "$remote_loc" ]; then
-        read -p $'\nPlease enter the initial increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists. \n(default: 0 ; leave empty to keep default):\n> ' default_incr
+        read -p $'\nPlease enter the default increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists BUT applies if the remote has changed a lot \n(default and recommanded: 0 ; leave empty to keep default):\n> ' default_incr
         read -p $'\nFrom the remote JellyGrail instance, do you want to take the whole content of torrents, including folders ? yes/no (default: yes ; leave empty to keep default):\n> ' whole_content
     fi
 
