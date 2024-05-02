@@ -33,7 +33,6 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 
 Functionnalities/Solutions       | Plex w/ rclone_rd   | Jellyfin w/ rclone_rd + Kodi  |  File-System share + Kodi | Streamio      | JellyGrail + Kodi
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
-User friendly media library | ✔️           | ✔️             | 🟠                       | 🟠            | ✔️ 
 Play on request           | 🟠           | 🟠             | ❌                          | ✔️            | 🟠within few minutes  
 Variants grouping         | ✔️           | ❌             | ❌                          | ✔️            | ✔️
 On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✔️
