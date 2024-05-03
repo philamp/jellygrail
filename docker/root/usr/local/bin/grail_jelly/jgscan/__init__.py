@@ -245,7 +245,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     # Logging some hints + setting multiple_movie_or_disc_present also when video_files > 1
     # multiple_movie_or_disc_present is common and triggered in these 3 scenarios : >1 movie files or BDMV present or ISO
     if nbvideos < 1 and not bdmv_present:
-        logger.warning(f"    - No valid files in release: {os.path.join(endpoint, releasefolder)} (or .m2ts not inside a BDMV/DVD structure). Its possible that RD downloading is not completed yet")
+        logger.warning(f"    - No valid files in release: {os.path.join(endpoint, releasefolder)} ; or .m2ts not inside a BDMV structure ; or RD downloading not completed yet")
         stopthere = True
     elif(nbvideos_e > 1):
         multiple_movie_or_disc_present = True

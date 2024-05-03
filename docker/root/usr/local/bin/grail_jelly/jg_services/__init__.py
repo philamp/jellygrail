@@ -96,7 +96,7 @@ def rd_progress():
 
             # loop in data to get stuff waiting file selection
             for data_item in data:
-                if data_item.get('status') == 'waiting_files_selection':
+                if data_item.get('status') == 'waiting_files_selection' or data_item.get('status') == 'magnet_conversion':
                     logger.warning(f"  - The {data_item.get('filename')} file selection has not been done, now forcing it")
                     try:
                         if WHOLE_CONTENT:
