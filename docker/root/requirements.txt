@@ -6,4 +6,4 @@ rapidfuzz
 thefuzz
 colorlog
 pyinotify
-dotenv
+python-dotenv
