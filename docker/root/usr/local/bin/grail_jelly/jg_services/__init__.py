@@ -93,10 +93,31 @@ def rd_progress():
             # parse it like array
             # update array with new hashes if hasehs comes from a completed RD item
             # if does not exists : append everything
+
+            # loop in data to get stuff waiting file selection
+            for data_item in data:
+                if data_item.get('status') == 'waiting_files_selection':
+                    logger.warning(f"  - The {data_item.get('filename')} file selection has not been done, now forcing it")
+                    try:
+                        if WHOLE_CONTENT:
+                            # part to really get the whole stuff BEGIN
+                            info_output = RD.torrents.info(data_item.get('id')).json()
+                            all_ids = [str(item['id']) for item in info_output.get('files')]
+                            get_string = ",".join(all_ids)
+                            # part to really get the whole stuff END
+                            # RD.torrents.select_files(returned.get('id'), 'all') changed to :
+                            RD.torrents.select_files(data_item.get('id'), get_string)
+                        else:
+                            RD.torrents.select_files(data_item.get('id'), 'all')
+                    except Exception as e:
+                        logger.error(f"  - ...but an Error has occured forcing file selection on {data_item.get('filename')} : {e}")
+                    
+
+
             dled_rd_hashes = [data_item.get('hash') for data_item in data if data_item.get('status') == 'downloaded']
 
             if (os.path.exists(pile_file)):
-                cur_pile = file_to_array(pile_file)
+                _, cur_pile = file_to_array(pile_file)
                 if len(dled_rd_hashes) > 0:
                     delta_elements = [item for item in dled_rd_hashes if item not in cur_pile]
                     array_to_file(pile_file, delta_elements)
@@ -237,6 +258,7 @@ def remoteScan():
             return None
 
         if server_data.get('pilekey') != cur_key:
+            logger.warning(f"Remote pile key has changed, it will get hashe starting from default increment (in settings)")
             remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{DEFAULT_INCR}"
             try:
                 response = requests.get(remote_loc)
