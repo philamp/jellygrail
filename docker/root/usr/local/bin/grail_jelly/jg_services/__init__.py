@@ -250,7 +250,7 @@ def remoteScan():
         remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{cur_incr}"
 
         try:
-            response = requests.get(remote_loc)
+            response = requests.get(remote_loc, timeout=10)
             response.raise_for_status()
             server_data = response.json()
         except Exception as e:
@@ -261,7 +261,7 @@ def remoteScan():
             logger.warning(f"Remote pile key has changed, it will get hashe starting from default increment (in settings)")
             remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{DEFAULT_INCR}"
             try:
-                response = requests.get(remote_loc)
+                response = requests.get(remote_loc, timeout=10)
                 response.raise_for_status()
                 server_data = response.json()
             except Exception as e:
