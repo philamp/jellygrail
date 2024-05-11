@@ -353,7 +353,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
             # EF case
             if multiple_movie_or_disc_present:
 
-                insert_data("/movies/"+releasefolder+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
+                insert_data("/movies/"+releasefolder+" - JGxNoMerge"+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
 
             # Esingle case
             elif rootfilename.lower().endswith(ALLOWED_EXTENSIONS):
@@ -380,15 +380,15 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
         for rootfoldername in dive_e_['rootfoldernames']:
             if multiple_movie_or_disc_present:
-                insert_data("/movies/"+releasefolder+"/"+os.path.relpath(rootfoldername, os.path.join(endpoint, releasefolder)), None, release_folder_path, rar_item, dive_e_['mediatype'])
+                insert_data("/movies/"+releasefolder+" - JGxNoMerge"+"/"+os.path.relpath(rootfoldername, os.path.join(endpoint, releasefolder)), None, release_folder_path, rar_item, dive_e_['mediatype'])
 
 
         # COLLECT BASE FOLDER IF APPLIES
         # EF 
         if multiple_movie_or_disc_present:
-            insert_data("/movies/"+releasefolder, None, None, None, dive_e_['mediatype'])
+            insert_data("/movies/"+releasefolder+" - JGxNoMerge", None, None, None, dive_e_['mediatype'])
             if atleastoneextra:
-                insert_data("/movies/"+releasefolder+"/extras", None, None, None, dive_e_['mediatype'])
+                insert_data("/movies/"+releasefolder+" - JGxNoMerge"+"/extras", None, None, None, dive_e_['mediatype'])
 
         # Esingle folder
         if one_movie_present:
@@ -537,16 +537,16 @@ def scan():
     else:
         if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
             try:
-                requests.get(PLEX_REFRESH_A)
+                requests.get(PLEX_REFRESH_A, timeout=10)
             except Exception as e:
                 logger.error("error with plex refresh")
         if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
             try:
-                requests.get(PLEX_REFRESH_B)
+                requests.get(PLEX_REFRESH_B, timeout=10)
             except Exception as e:
                 logger.error("error with plex refresh")
         if PLEX_REFRESH_C != 'PASTE_C_REFRESH_URL_HERE':
             try:
-                requests.get(PLEX_REFRESH_C)
+                requests.get(PLEX_REFRESH_C, timeout=10)
             except Exception as e:
                 logger.error("error with plex refresh")

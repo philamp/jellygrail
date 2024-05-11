@@ -12,7 +12,6 @@ import datetime
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
 from script_runner import ScriptRunner
 
-
 # dotenv for RD API management
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
@@ -230,7 +229,7 @@ if __name__ == "__main__":
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
 
-    # Config JF before starting threads and server threads, trigger a first scan if it's first use
+    # Config JF before starting threads and server threads, trigger a first scan if it's first use (rd_progress potentially does it as well but RD may not be used)
     if JF_WANTED:
         jf_config_result = jfconfig()
         if jf_config_result == "FIRST_RUN":
@@ -244,7 +243,6 @@ if __name__ == "__main__":
         _scan_instance = ScriptRunner.get(scan)
         _scan_instance.daemon = True 
         _scan_instance.run()
-
 
     # ------------------- threads A, Ars, B, C, D -----------------------
     
@@ -264,26 +262,20 @@ if __name__ == "__main__":
         
         logger.info("~ Real Debrid API rd_progress will be triggered every 2mn")
 
-
-
-
     # C: inotify deamon
     if len(to_watch) > 0:
         thread_c = threading.Thread(target=inotify_deamon, args=(to_watch,))
-        thread_c.daemon = True  # exists when parent thread exits
+        thread_c.daemon = True  # exits when parent thread exits
         thread_c.start()
     
-
     # B: restart_jellygrail_at 6.30am
     thread_b = threading.Thread(target=restart_jgdocker_at)
-    thread_b.daemon = True  # exists when parent thread exits
+    thread_b.daemon = True  # exits when parent thread exits
     thread_b.start()
-
 
     # D: server thread
     # server_thread = threading.Thread(target=run_server)
     # server_thread.daemon = False
     # server_thread.start()
-    run_server()    
-      # Arrêtez le serveur
+    run_server()
     #server_thread.join() 
