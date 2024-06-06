@@ -50,11 +50,11 @@ High-Quality audio passthrough to Soundbars etc. | 🟠           | ✔️**   |
 
 > \** At least AC3+ (Atmos) and DTS with most Kodi platform versions and up to TrueHD DTS-MA with CoreELEC Kodi
 
-## 📥️ Installation (or upgrade)
+# 📥️ Installation (or upgrade)
 
 Follow sections 1/ to 7/
 
-### ✋ 1/ Prerequisites
+## ✋ 1/ Prerequisites
 
 - Linux system 🐧 with Bash shell.
 - Tested on x86 system, should build on ARM and should run on a Raspberry 4, but not tested yet.
@@ -62,7 +62,7 @@ Follow sections 1/ to 7/
 - Git client to clone this repo (TODO: provide a prebuilt image).
 - Having a Real-Debrid account is better.
 
-### 🚧 2/ Build
+## 🚧 2/ Build
 
 Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_ and this folder is represented by a dot ``.`` in this page.
 
@@ -74,11 +74,11 @@ sudo docker build -t philamp/jellygrail .
 
 > If you upgrade, replace the ``git clone ...`` command by a ``git pull`` command inside the ``.`` folder
 
-### ✨ 3/ Configuration wizard
+## ✨ 3/ Configuration wizard
 
 > Grab your Real-Debrid API key : https://real-debrid.com/apitoken.
 
-#### 3.1/ First install
+### 3.1/ First install
 
 Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
 ````
@@ -86,7 +86,7 @@ sudo chmod u+x PREPARE.SH
 sudo ./PREPARE.SH
 ````
 
-#### 3.2/ Upgrade
+### 3.2/ Upgrade
 
 Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
 ````
@@ -97,12 +97,12 @@ sudo ./PREPARE.SH upgrade
 This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container and is available to the host system, not only inside the container)
 > Learn more about "rshared" here : https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759
 
-### 🐳 4/ Docker command
+## 🐳 4/ Docker command
 
 Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4.3 below:
 > don't forget the "\\" before a new line and ignore "..." lines
 
-#### 🐳 4.1/ Docker run base
+### 🐳 4.1/ Docker run base
 
 Example with common transcoding device access mounted and running in host mode (TODO: provide ports forwarding version)
 > The first time you launch this command, you can run with "run -it" instead of "run -d" if you want, so that you can see the output, once first tasks are finished it stops and restarts in deamonized mode anyway.
@@ -124,7 +124,7 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 
 > ⚠ Not yet tested without "--privileged --security-opt apparmor=unconfined", so I let it and thus it's unsecure. **Remember its experimental stuff.**
 
-#### 🐳 4.2/ Mounting local storages (optionnal)
+### 🐳 4.2/ Mounting local storages (optionnal)
 
 Example with 2 local folders
 
@@ -139,7 +139,7 @@ Example with 2 local folders
 > 
 > ⚠ local-storage _movies/_ folders also supports video files that would be directly inside this folder. But shows must always be in a subfolder (ex : _video/shows/scrubs/video.mkv_)
 
-#### 🐳 4.3/ Final part
+### 🐳 4.3/ Final part
 
 ````
 ...
@@ -148,33 +148,33 @@ Example with 2 local folders
 philamp/jellygrail:latest
 ````
 
-### 🚀 5/ Run
+## 🚀 5/ Run
 
 1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
 2. Verify that ``./mounts/remote_realdebrid/rclone.conf`` is populated with proper values.
 3. Verify that your working directory is ``.`` (the folder containing _PREPARE.SH_ file).
 4. Paste your docker command in your bash prompt and hit enter !
 
-### 📡 6/ Tasks triggering 
+## 📡 6/ Tasks triggering 
 
 On ``http://your_system_ip:6502`` an http server is provided to respond to these path calls below. 
 > With recent commits, only ``/backup`` should be called manually or via crontab.
 
-#### 📡 Path: ``/scan``
+### 📡 Path: ``/scan``
 
 > Not mandatory to be set as cron as rd_progress _potentially_ calls it every 2 minutes.
 
 Should be triggered to scan your folders in order to fill the ``./Video_Library/virtual/`` folder and refresh Jellyfin Library.
 
-#### 📡 Path: ``/backup`` 
+### 📡 Path: ``/backup`` 
 
 Should be triggered frequently to backup your RD torrents (dump file stored in ``./jellygrail/data/backup``).
 
-#### 📡 Path: ``/restore``
+### 📡 Path: ``/restore``
 
 Simple web page to choose the backup file to restore from
 
-#### 📡 Path: ``/remotescan``
+### 📡 Path: ``/remotescan``
 
 > Not mandatory to be set as cron since it's triggered internally every 7 minutes (if remote endpoint is configured).
 
@@ -188,7 +188,7 @@ to trigger the pull of new hashes from another JellyGrail instance (if configure
 
 Basically you won't use this trigger unless you want to synchronize your RD torrents with another instance of this app (aka friend remote instance).
 
-#### 📡 Path: ``/rd_progress``
+### 📡 Path: ``/rd_progress``
 
 > Not mandatory to be set as cron since it's triggered internally every 2 minutes.
 
@@ -197,7 +197,7 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 
 
 
-## 🚀 First and daily Usage
+# 🚀 First and daily Usage
 
 1. Verify that you have some torrents in your RD account _(JellyGrail does not provide any torrent indexer search or RD downloader)_.
 2. Wait for the ``./Video_Library/virtual/`` folder to be filled (The first library scan is called within 2 minutes if there are torrents in your RD account)
@@ -229,41 +229,41 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 > ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
 
 
-## ✅ Sanity checks / Troubleshooting
+# ✅ Sanity checks / Troubleshooting
 
 You can check it's running with following commands:
 
-### Is the container running ? 
+## Is the container running ? 
 
 ````
 sudo docker ps
 ````
 
-### Jellygrail python service Logs
+## Jellygrail python service Logs
 
 ````
 tail -f ./jellygrail/log/jelly_update.log
 ````
 
-### Live container logs
+## Live container logs
 
 ````
 sudo docker logs --follow jellygrail
 ````
 
-### Python service 
+## Python service 
 
 ````
 curl http://localhost:6502/test
 ````
 
-### Jellyfin 
+## Jellyfin 
 
 Open http://your_system_ip:8096 to launch Jellyfin web interface.
 
 ___
 
-## Good to know / Known issues
+# Good to know / Known issues
 - Check **🚀 First and daily Usage** section above
 - m2ts files not inside a BDMV structure are ignored.
 - **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient and can -in some cases- lead to degraded performance.**
@@ -293,15 +293,15 @@ ___
 
 ___
 
-## Kodi recommended setup
+# Kodi recommended setup
 
-### Devices
+## Devices
 - Nvidia Shield: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (arm64-v8a)) 
 - Chromecast with Google TV: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (armeabi-v7a)
 (to be completed...)
 - CoreElec compatible box
 
-### Add-ons
+## Add-ons
 - Jellyfin add-on ``*``
   - with 'add-on' paths, not 'native' paths, otherwise you loose the functionnality to choose the video variant upon play.
 
