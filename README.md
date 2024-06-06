@@ -43,6 +43,7 @@ Remote&local storages merging  | ✔️           | ✔️   | ❌              
 Open Source                | ❌           | ✔️             | ✔️                          | ❌            | ✔️
 Plays nearly every formats including BDMV & DVD ISOs  | ❌           | 🟠             | ✔️                       | ❌            | ✔️WebDAV share fallback
 Own curated library with unlimited storage | ✔️           | ✔️   | ❌                          | ❌            | ✔️
+High-Quality audio passthrough to Soundbars etc. | 🟠           | ✔️   | ✔️                          | ❌            | ✔️
 
 🟠 = "more or less"
 >  \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
