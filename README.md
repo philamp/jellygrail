@@ -43,10 +43,11 @@ Remote&local storages merging  | ✔️           | ✔️   | ❌              
 Open Source                | ❌           | ✔️             | ✔️                          | ❌            | ✔️
 Plays nearly every formats including BDMV & DVD ISOs  | ❌           | 🟠             | ✔️                       | ❌            | ✔️WebDAV share fallback
 Own curated library with unlimited storage | ✔️           | ✔️   | ❌                          | ❌            | ✔️
-High-Quality audio passthrough to Soundbars etc. | 🟠           | ✔️   | ✔️                          | ❌            | ✔️
+High-Quality audio passthrough to Soundbars etc. | 🟠           | ✔️**   | ✔️**                          | ❌            | ✔️**
 
 🟠 = "more or less"
->  \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
+> \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
+> \** At least AC3+ (Atmos) and DTS with most Kodi platform versions and up to TrueHD DTS-MA with CoreELEC Kodi
 
 ## 📥️ Installation (or upgrade)
 
