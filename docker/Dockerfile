@@ -114,6 +114,7 @@ RUN cd /mounts/kodi/software && wget https://kodi.jellyfin.org/repository.jellyf
 RUN cd /mounts/kodi/software && wget https://github.com/fandangos/JRE-Kodi-Android/releases/download/1.2-aarch64/script.service.jre-aarch64-v1.2.zip 
 RUN cd /mounts/kodi/software && wget https://jurialmunkey.github.io/repository.jurialmunkey/repository.jurialmunkey-3.4.zip
 RUN cd /mounts/kodi/software && wget https://a4k-openproject.github.io/a4kSubtitles/packages/a4kSubtitles-repository.zip
+RUN cd /mounts/kodi/software && wget https://abratchik.github.io/kodi.repository/leia/script.unlock.advancedsettings/script.unlock.advancedsettings-1.0.3.zip
 
 # copy conf and s6 scripts from repo
 # COPY rclone.conf /root/.config/rclone/
