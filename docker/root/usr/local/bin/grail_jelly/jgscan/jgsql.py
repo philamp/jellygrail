@@ -92,8 +92,8 @@ def ls_virtual_folder(folder_path):
     cursor.execute("SELECT depdec(virtual_fullpath) FROM main_mapping WHERE virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
     return cursor.fetchall()
 
-# ------ JF
 
+'''
 def init_jellyfin_db(path):
     """ Initialize the jf db connection """
     global connjf
@@ -111,3 +111,4 @@ def fetch_api_key():
     cursorjf = connjf.cursor()
     cursorjf.execute("SELECT * FROM ApiKeys WHERE Name = 'jellygrail'")
     return cursorjf.fetchall()
+'''

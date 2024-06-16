@@ -46,6 +46,7 @@ def jfconfig():
             if len(array) > 0:
                 
                 jfapi.jfapikey = array[0]
+                jfapi.jfapikey = '485a44ec487bdda1084514eb403c5fa3' #TODO remove
                 # logger.info(f"> retrieved API key is {jfapikey}")
                 logger.info(f"> retrieved API key is ***")
             

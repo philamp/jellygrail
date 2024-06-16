@@ -1,11 +1,22 @@
 import requests
 from base import *
-import datetime
+from datetime import datetime
 
 
-BASE_URI = "http://localhost:8096"
+BASE_URI = "http://172.22.2.2:8096" # TODO temp for test !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 jfapikey = None
+
+
+
+def jellyfin(path, method='get', **kwargs):
+    response = getattr(requests, method)(
+        f'{BASE_URI}/{path}',
+        headers={'X-MediaBrowser-Token': jfapikey},
+        **kwargs
+    )
+    response.raise_for_status()
+    return response
 
 def merge_versions():
     if jfapikey is not None:
@@ -28,13 +39,6 @@ def merge_versions():
                     logger.info("> Videos variants merged (only for movies)")
                     break
                 time.sleep(3)
-
-def jellyfin(path, method='get', **kwargs):
-    return getattr(requests, method)(
-        f'{BASE_URI}/{path}',
-        headers={'X-MediaBrowser-Token': jfapikey},
-        **kwargs
-    )
 
 def lib_refresh_all():
     if jfapikey is not None:

@@ -8,6 +8,7 @@ from script_runner import ScriptRunner
 import urllib
 import os
 import datetime
+from nfo_generator import nfo_loop_service
 
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
 from script_runner import ScriptRunner
@@ -229,7 +230,7 @@ if __name__ == "__main__":
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
 
-    # Config JF before starting threads and server threads, trigger a first scan if it's first use (rd_progress potentially does it as well but RD may not be used)
+    # Config JF before starting threads and server threads, trigger a first scan if it's first use (rd_progress potentially does it as well but RD may not be used TODO fix with regular scan as well)
     if JF_WANTED:
         jf_config_result = jfconfig()
         if jf_config_result == "FIRST_RUN":
@@ -272,6 +273,10 @@ if __name__ == "__main__":
     thread_b = threading.Thread(target=restart_jgdocker_at)
     thread_b.daemon = True  # exits when parent thread exits
     thread_b.start()
+
+
+    # TODO test to remove
+    nfo_loop_service()
 
     # D: server thread
     # server_thread = threading.Thread(target=run_server)
