@@ -1,5 +1,5 @@
 > [!CAUTION]
-> Docker build currently fails, see https://github.com/philamp/jellygrail/issues/2.
+> Docker build currently fails on the original github (https://github.com/philamp/jellygrail/), see https://github.com/philamp/jellygrail/issues/2.
 > will fix it ASAP.
 
 <img src="jellygrail_logo.png">
