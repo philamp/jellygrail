@@ -3,26 +3,32 @@
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
 
-- Access remote and Real-Debrid files as if they were local (https://github.com/itsToggle/rclone_RD).
-- RAR archives extracted on the fly (https://github.com/hasse69/rar2fs):
+- Access remote and Real-Debrid files as if they were local (like https://github.com/itsToggle/rclone_RD and Zurg).
+
+- ✨✨ RAR archives extracted on the fly (https://github.com/hasse69/rar2fs):
   - No need to extract your local RAR downloads. 
   - No need to download and extract Real-Debrid torrents with RARs, it's just streamed and extracted on-the-fly.
-    - ✨ With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly).
+    - With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly).
+
+- ✨ Auto-organized TV shows and movies in a virtual folder:
+  - Subtitle files renaming following standards as most as possible.
+  - Detects extras and put them in the movie's "extras" subfolder.
+  - You can manage the virtual folder as if it were a real one (rename and move files the way you want).
+  - Smart deletion of actual assets behind virtual files (including rclone cache files).
+
+- ✨ Almost fully automatized Jellyfin configuration (except login/password) and scan triggering:
+  - New items detection for Real-Debrid and local files (with rd_api_py and pyinotify), triggering JF or PLEX library refresh. (Jellyfin can also be disabled if another or no media center used).
+
+- ✨ Can be used without any media center while keeping some practicality:
+  - Nice "scrapper-less/offline" file renamer for movies (https://github.com/platelminto/parse-torrent-title - accurate 99,8% of the time for movies, and not accurate for shows with a year as name) This improves plain filesystem browsing.  
+  - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
+  - Virtual folder can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085). 
+  - Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly)
+
 - Real-Debrid magnet hashes management:
   - Automatic backup of all Real-Debrid torrents hashes + a service to restore them if RD account emptied by mistake.
   - RD torrent-hashes sync from another instance of JellyGrail (although no secured proxy or VPN is provided in this container).
-- ✨ Auto-organized TV shows and movies in a virtual folder:
-  - ✨ Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly):
-  - ✨ New items detection for Real-Debrid and local files (with rd_api_py and pyinotify). 
-  - Subtitle files renaming following standards as most as possible.
-  - ✨ Detects extras and put them in the movie's "extras" subfolder.
-  - Nice file renamer for movies (https://github.com/platelminto/parse-torrent-title) - accurate 99,8% of the time for movies, and not accurate for shows with a year as name.
-  - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
-  - You can manage this virtual folder as if it were a real one (rename and move files the way you want).
-  - It can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085).
-  - Smart deletion of actual assets behind virtual files (including rclone cache files).
-- ✨ Almost fully automatized Jellyfin configuration (except login/password).
-  - Can be disabled if another or no media center used.
+
  
 > [!CAUTION]
 > - I'm not responsible of any data loss.
