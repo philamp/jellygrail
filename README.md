@@ -16,6 +16,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
   - ✨ New items detection for Real-Debrid and local files (with rd_api_py and pyinotify). 
   - Subtitle files renaming following standards as most as possible.
   - ✨ Detects extras and put them in the movie's "extras" subfolder.
+  - Nice file renamer for movies (https://github.com/platelminto/parse-torrent-title) - accurate 99,8% of the time for movies, and not accurate for shows with a year as name
   - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
   - You can manage this virtual folder as if it were a real one (rename and move files the way you want).
   - It can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085).
@@ -264,8 +265,9 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 ___
 
 # Good to know / Known issues
-- Check **🚀 First and daily Usage** section above
-- m2ts files not inside a BDMV structure are ignored.
+- Check **🚀 First and daily Usage** section above.
+- m2ts/ts files not inside a BDMV structure are ignored.
+- ⚠️ Deletion of a media item which is actually in a RAR file in the underlying file-system will cause the deletion of the whole RAR file.
 - **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient and can -in some cases- lead to degraded performance.**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./RESTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
