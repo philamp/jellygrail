@@ -78,7 +78,7 @@ Follow sections 1/ to 7/
 
 ## 🚧 2/ Build
 
-Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_ and this folder is represented by a dot ``.`` in this page.
+Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_ and the jellygrail folder created by git pull is represented by a dot ``.`` in this page.
 
 ````
 git clone https://github.com/philamp/jellygrail.git
