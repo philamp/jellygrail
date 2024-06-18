@@ -11,7 +11,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
     - download and extract Real-Debrid torrents with RARs, it's just streamed and extracted on-the-fly.
   - With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly)
 > Note that:
-> RAR on-the-fly extract only works with "archive" mode (no compression actually used). Other modes are very rarely used in this context anyway.
+> RAR on-the-fly extract only works with "archive" mode (= no compression actually used). Other modes are very rarely used in this context anyway.
 
 - ✨ Auto-organized TV shows and movies in a virtual folder:
   - Subtitle files renaming following standards as most as possible.
@@ -21,11 +21,11 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 
 
 - ✨ Almost fully automatized Jellyfin configuration (except login/password) and scan triggering:
-  - New items detection for Real-Debrid and local files (with rd_api_py and pyinotify), triggering JF or PLEX library refresh. (Jellyfin can also be disabled if another or no media center used).
+  - New items detection for Real-Debrid and local files (with rd_api_py and pyinotify), triggering Jellyfin or PLEX library refresh. (Jellyfin can also be disabled if another or no media center used).
 
 
 - ✨ Can be used without any media center while keeping some practicality:
-  - Nice "scrapper-less/offline" file renamer for movies (https://github.com/platelminto/parse-torrent-title - accurate 99,8% of the time for movies, and not accurate for shows with a year as name) This improves plain filesystem browsing.  
+  - "scrapper-less/offline-mode" filename cleaner for movies (https://github.com/platelminto/parse-torrent-title - accurate 99,8%). This improves filesystem browsing.  
   - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
   - Virtual folder can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085). 
   - Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly)
@@ -48,7 +48,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 Functionnalities/Solutions       | Plex w/ rclone_rd   | Jellyfin w/ rclone_rd + Kodi  |  File-System share + Kodi | Streamio      | JellyGrail + Kodi
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
 Play on request           | 🟠           | 🟠             | ❌                          | ✔️            | 🟠within few minutes  
-Variants grouping         | ✔️           | ❌             | ❌                          | ✔️            | ✔️
+Video variants grouping         | ✔️           | ❌             | ❌                          | ✔️            | ✔️
 On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✔️
 File-System share fallback | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✔️
 Subtitle management       | ✔️ | ✔️  | ✔️w/ kodi add-on or Bazarr  | 🟠            | ✔️with jellyfin add-on or kodi add-on
