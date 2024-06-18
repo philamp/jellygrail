@@ -6,10 +6,9 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 - Access remote and Real-Debrid files as if they were local (like https://github.com/itsToggle/rclone_RD and Zurg).
 
 - ✨✨ RAR archives extracted on the fly (https://github.com/hasse69/rar2fs):
-  - No more hassle to:
-    - extract your local RAR downloads. 
-    - download and extract Real-Debrid torrents with RARs, it's just streamed and extracted on-the-fly.
-  - With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly)
+  - No more hassle to extract your local RAR downloads. 
+  - No more hassle downloading and extracting Real-Debrid RAR torrents, now you can just stream and extract on-the-fly.
+  - It provides an optimized cache to strongly mitigate Real-Debrid rate-limiting issues that can happen with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly)
 > Note that:
 > RAR on-the-fly extract only works with "archive" mode (= no compression actually used). Other modes are very rarely used in this context anyway.
 
