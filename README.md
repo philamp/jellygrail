@@ -1,31 +1,40 @@
-> [!CAUTION]
-> Docker build currently fails on the original github (https://github.com/philamp/jellygrail/), see https://github.com/philamp/jellygrail/issues/2.
-> will fix it ASAP.
-
 <img src="jellygrail_logo.png">
 
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
 
-- Access remote and Real-Debrid files as if they were local (https://github.com/itsToggle/rclone_RD).
-- RAR archives extracted on the fly (https://github.com/hasse69/rar2fs):
-  - No need to extract your local RAR downloads. 
-  - No need to download and extract Real-Debrid torrents with RARs, it's just streamed and extracted on-the-fly.
-    - ✨ With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly).
+- Access remote and Real-Debrid files as if they were local (like https://github.com/itsToggle/rclone_RD and Zurg).
+
+- ✨✨ RAR archives extracted on the fly (https://github.com/hasse69/rar2fs):
+  - No more hassle to:
+    - extract your local RAR downloads. 
+    - download and extract Real-Debrid torrents with RARs, it's just streamed and extracted on-the-fly.
+  - With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly)
+> Note that:
+> RAR on-the-fly extract only works with "archive" mode (= no compression actually used). Other modes are very rarely used in this context anyway.
+
+- ✨ Auto-organized TV shows and movies in a virtual folder:
+  - Subtitle files renaming following standards as most as possible.
+  - Detects extras and put them in the movie's "extras" subfolder.
+  - You can manage the virtual folder as if it were a real one (rename and move files the way you want).
+  - Smart deletion of actual assets behind virtual files (including rclone cache files).
+
+
+- ✨ Almost fully automatized Jellyfin configuration (except login/password) and scan triggering:
+  - New items detection for Real-Debrid and local files (with rd_api_py and pyinotify), triggering Jellyfin or PLEX library refresh. (Jellyfin can also be disabled if another or no media center used).
+
+
+- ✨ Can be used without any media center while keeping some practicality:
+  - "scrapper-less/offline-mode" filename cleaner for movies (https://github.com/platelminto/parse-torrent-title - accurate 99,8%). This improves filesystem browsing.  
+  - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
+  - Virtual folder can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085). 
+  - Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly)
+
+
 - Real-Debrid magnet hashes management:
   - Automatic backup of all Real-Debrid torrents hashes + a service to restore them if RD account emptied by mistake.
   - RD torrent-hashes sync from another instance of JellyGrail (although no secured proxy or VPN is provided in this container).
-- ✨ Auto-organized TV shows and movies in a virtual folder:
-  - ✨ Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly):
-  - ✨ New items detection for Real-Debrid and local files (with rd_api_py and pyinotify). 
-  - Subtitle files renaming following standards as most as possible.
-  - ✨ Detects extras and put them in the movie's "extras" subfolder.
-  - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
-  - You can manage this virtual folder as if it were a real one (rename and move files the way you want).
-  - It can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085).
-  - Smart deletion of actual assets behind virtual files (including rclone cache files).
-- ✨ Almost fully automatized Jellyfin configuration (except login/password).
-  - Can be disabled if another or no media center used.
+
  
 > [!CAUTION]
 > - I'm not responsible of any data loss.
@@ -34,11 +43,12 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 > - Use at your own risks.
 > - This does not include any torrent indexer search or RD downloader.
 > - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
+> - There can be some rare cases where nginx/jellyfin hangs on readdir or readfile request. Workaround is a docker restart. See details below in ``Known issues`` section. 
 
 Functionnalities/Solutions       | Plex w/ rclone_rd   | Jellyfin w/ rclone_rd + Kodi  |  File-System share + Kodi | Streamio      | JellyGrail + Kodi
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
 Play on request           | 🟠           | 🟠             | ❌                          | ✔️            | 🟠within few minutes  
-Variants grouping         | ✔️           | ❌             | ❌                          | ✔️            | ✔️
+Video variants grouping         | ✔️           | ❌             | ❌                          | ✔️            | ✔️
 On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✔️
 File-System share fallback | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✔️
 Subtitle management       | ✔️ | ✔️  | ✔️w/ kodi add-on or Bazarr  | 🟠            | ✔️with jellyfin add-on or kodi add-on
@@ -268,10 +278,11 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 ___
 
 # Good to know / Known issues
-- Check **🚀 First and daily Usage** section above
-- m2ts files not inside a BDMV structure are ignored.
-- **Some current limitations related to multi-threading in BindFS makes so that multi-access to same or different files through BindFS is not efficient and can -in some cases- lead to degraded performance.**
-- ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./RESTART.SH`` to fix it.
+- Check **🚀 First and daily Usage** section above.
+- m2ts/ts files not inside a BDMV structure are ignored.
+- ⚠️ Deletion of a media item which is actually in a RAR file in the underlying file-system will cause the deletion of the whole RAR file.
+- **there can be some rare cases (bad .MKV, .TS, .ISO file or big complex .RAR file) where bindfs hangs (being mono-threaded) because of rclone hanged (due to lot of seeks and read in those bad files, causing somewhat undefined behavior in my rclone_rd fork) it causes nginx and jellyfin to possibily hang as well. Current workaround is a full restart of the docker.**
+- ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./STOPSTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
 - Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but follow this convention:
   - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
@@ -320,11 +331,3 @@ ___
 - Keymap editor add-on (optionnal)
 
 > ``*`` Kodi repo included (with "install from zip") in HTTP WebDAV server provided on port 8085 in ``./Video_Library/actual/kodi/software/``
-
-
-
-
-
-
-
-
