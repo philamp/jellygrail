@@ -1,4 +1,11 @@
+> [!CAUTION]
+> Next main branch release named "July24" breaking changes:
+> (maybe not) Please delete your ./jellygrail/.bindfs_jelly.db file as there are some improvements during scan, this will reset your custom changes :(
+> Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
+> ...
+
 <img src="jellygrail_logo.png">
+
 
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
