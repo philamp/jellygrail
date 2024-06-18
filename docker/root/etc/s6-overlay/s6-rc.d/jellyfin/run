@@ -1,2 +1,3 @@
 #!/command/execlineb -P
+s6-setuidgid www-data
 env JELLYFIN_FFmpeg__analyzeduration=4000000 /jellyfin/jellyfin --datadir /jellygrail/jellyfin/config --cachedir /jellygrail/jellyfin/cache --ffmpeg /usr/lib/jellyfin-ffmpeg/ffmpeg
