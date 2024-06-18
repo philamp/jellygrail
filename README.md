@@ -6,10 +6,9 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 - Access remote and Real-Debrid files as if they were local (like https://github.com/itsToggle/rclone_RD and Zurg).
 
 - ✨✨ RAR archives extracted on the fly (https://github.com/hasse69/rar2fs):
-  - No more hassle to:
-    - extract your local RAR downloads. 
-    - download and extract Real-Debrid torrents with RARs, it's just streamed and extracted on-the-fly.
-  - With an optimized cache to mitigate real-debrid issues with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly)
+  - No more hassle to extract your local RAR downloads. 
+  - No more hassle downloading and extracting Real-Debrid RAR torrents, now you can just stream and extract on-the-fly.
+  - It provides an optimized cache to strongly mitigate Real-Debrid rate-limiting issues that can happen with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly)
 > Note that:
 > RAR on-the-fly extract only works with "archive" mode (= no compression actually used). Other modes are very rarely used in this context anyway.
 
@@ -37,11 +36,9 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
 
  
 > [!CAUTION]
-> - I'm not responsible of any data loss.
+> - I'm not responsible of any data loss / I'm not responsible of any illegal use / Use at your own risks.
+>   - This does not include any torrent indexer search or RD downloader. 
 > - Do not open ports 8085 and 6502 to the internet.
-> - I'm not responsible of any illegal use.
-> - Use at your own risks.
-> - This does not include any torrent indexer search or RD downloader.
 > - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
 > - There can be some rare cases where nginx/jellyfin hangs on readdir or readfile request. Workaround is a docker restart. See details below in ``Known issues`` section. 
 
@@ -78,7 +75,7 @@ Follow sections 1/ to 7/
 
 ## 🚧 2/ Build
 
-Find a conveniant directory on your system, beware this folder will store the rclone cache _(0.5%~ of your real-debrid storage size)_ and the jellygrail folder created by ``git clone ...`` is represented by a dot ``.`` in this page.
+Find a conveniant directory on your system, beware this folder will store ``jellygrail`` subfolder and the rclone cache _(0.5%~ of your real-debrid storage size)_. The ``jellygrail`` subfolder created by ``git clone ...`` is represented by a dot ``.`` in this page.
 
 ````
 git clone https://github.com/philamp/jellygrail.git
@@ -331,11 +328,3 @@ ___
 - Keymap editor add-on (optionnal)
 
 > ``*`` Kodi repo included (with "install from zip") in HTTP WebDAV server provided on port 8085 in ``./Video_Library/actual/kodi/software/``
-
-
-
-
-
-
-
-
