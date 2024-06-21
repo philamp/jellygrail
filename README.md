@@ -1,9 +1,12 @@
 > [!CAUTION]
-> - Next main branch release named "July24" breaking changes:
->   - (maybe not) Please delete your ./jellygrail/.bindfs_jelly.db file as there are some improvements during scan, this will reset your custom changes :(
->   - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
->   - Merge versions Jellyfin add-on to be removed. It's confusing when deleting library items since some variants are within same folders while other are not. Removing that will remove this ambiguity.
-> ...
+> - Next main branch release named "July24":
+>   - breaking changes:
+>     - (maybe not) Please delete your ./jellygrail/.bindfs_jelly.db file as there are some improvements during scan, this will reset your custom changes :(
+>     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
+>     - Merge versions Jellyfin add-on to be removed. It's confusing when deleting library items since some variants are within same folders while other are not. Removing that will remove this ambiguity.
+>   - Fixes:
+>     - fallbackdata items now displayed in all dynamically filtered folders (TODO)
+>     - ... 
 
 <img src="jellygrail_logo.png">
 
