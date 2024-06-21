@@ -20,24 +20,6 @@ def ytpl(value):
         return f" ({str(value)})"
     return ''
 
-def get_ext(filename):
-    last_dot_index = filename.rfind('.')
-    if last_dot_index == -1:
-        return ""
-    return filename[last_dot_index:]
-
-def get_wo_ext(filename):
-    last_dot_index = filename.rfind('.')
-    if last_dot_index == -1:
-        return filename
-    return filename[:last_dot_index]
-
-def get_tuple(filename):
-    last_dot_index = filename.rfind('.')
-    if last_dot_index == -1:
-        return (filename, "")
-    return (filename[:last_dot_index], filename[last_dot_index:])
-
 def clean_string(s):
     s = s.replace(".", " ")
     s = s.replace("-", "")

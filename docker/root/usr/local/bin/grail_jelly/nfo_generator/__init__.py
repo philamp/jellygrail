@@ -6,12 +6,18 @@ import jfapi
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
+# jellyfin root for metadata and its len
+JF_METADATA_ROOT = "/jellygrail/jellyfin/config/metadata"
+JF_MD_SHIFT = len(JF_METADATA_ROOT)
+
+JG_VIRTUAL = "/Video_Library/virtual"
+JF_VIRT_SHIFT = len(JG_VIRTUAL)
 
 # jf_syncqueue_last_requested_date_file
-JFSQ_LAST_REQUEST = '/jellygrail/data/jf_sync_queue_last_request.txt'
+JFSQ_LAST_REQUEST = "/jellygrail/data/jf_sync_queue_last_request.txt"
 
 # folder to store nfos
-JFSQ_STORED_NFO = '/jellygrail/data/nfos'
+JFSQ_STORED_NFO = "/jellygrail/data/nfos"
 
 # Webdav ip + port specified for local network (as seen by a local network device)
 WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
@@ -40,7 +46,7 @@ def nfo_loop_service():
 
     # currentqueue
     try:
-        syncqueue = jfapi.jellyfin(f'Jellyfin.Plurgin.KodiSyncQueue/{user_id}/GetItems', params = dict(lastUpdateDt=read_jfsqdate_from_file())).json()
+        syncqueue = jfapi.jellyfin(f'Jellyfin.Plugin.KodiSyncQueue/{user_id}/GetItems', params = dict(lastUpdateDt=read_jfsqdate_from_file())).json()
     except Exception as e:
         logger.critical(f"> Get JF sync queue failed with error: {e}")
         return False
@@ -81,14 +87,14 @@ def nfo_loop_service():
 
                     # get images from API + ensure nginx serve them
                     try:
-                        item_images = jfapi.jellyfin(f'Items/{item['Id']}/Images').json()
+                        item_images = jfapi.jellyfin(f'Items/{item["Id"]}/Images').json()
                     except Exception as e:
-                        logger.critical(f"> Get JF sync queue failed with error: {e}")
+                        logger.critical(f"> Get JF pics failed with error: {e}")
                         return False
 
                     for itmimg in item_images:
                         if itmimg.get('ImageType') == 'Primary':
-                            ET.SubElement(root, "thumb", {"aspect": "poster"}).text = "dav://URI_PORT/" + 
+                            ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://URI_PORT/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
 
 
 
@@ -98,6 +104,14 @@ def nfo_loop_service():
                     xml_str = ET.tostring(root, encoding="unicode")
                     pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
                     print(pretty_xml_str)
+
+                    # save this nfo for all paths in mediasources
+                    for mediasource in item.get('MediaSources'):
+                        nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JF_VIRT_SHIFT:]) + ".nfo.jf"
+                        os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
+                        with open(nfo_full_path, "w", encoding="utf-8") as file:
+                            file.write(pretty_xml_str)
+
 
 
                     # ---- end movie case
