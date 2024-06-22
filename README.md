@@ -6,7 +6,9 @@
 >     - Merge versions Jellyfin add-on to be removed. It's confusing when deleting library items since some variants are within same folders while other are not. Removing that will remove this ambiguity.
 >   - Fixes:
 >     - fallbackdata items now displayed in all dynamically filtered folders (TODO)
->     - ... 
+>     - real added date in virtual filesystem (so recently added lists are correct)
+>     - improved datamodel management
+>     - improved configuration wizard that remembers previous settings
 
 <img src="jellygrail_logo.png">
 
