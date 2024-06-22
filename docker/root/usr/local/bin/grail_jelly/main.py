@@ -8,6 +8,7 @@ from script_runner import ScriptRunner
 import urllib
 import os
 import datetime
+import socket
 from nfo_generator import nfo_loop_service
 
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
@@ -221,11 +222,58 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
             logger.info(f"JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
             httpd.shutdown()
 
+def handle_socket_request(connection, client_address):
+    try:
+        print(f"Connection from {client_address}")
+
+        while True:
+            data = connection.recv(1024)
+            if data:
+                message = data.decode('utf-8')
+                logger.info(f"Message received from BindFS: {message}")
+
+                response = f"This response is coming from python service".encode('utf-8')
+                connection.sendall(response)
+            else:
+                break
+    finally:
+        connection.close()
+
+def socket_server_waiting():
+    server_address = '/tmp/jelly_socket'
+    
+    # Make sure the socket does not already exist
+    try:
+        os.unlink(server_address)
+    except OSError:
+        if os.path.exists(server_address):
+            raise
+
+    # Create a UNIX socket
+    server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+    # Bind the socket to the address
+    logger.info(f"Starting socket server for BindFS requests on {server_address}")
+    server_socket.bind(server_address)
+
+    # Listen for incoming connections
+    server_socket.listen()
+
+    while True:
+        logger.info("Waiting for a connection...")
+        connection, client_address = server_socket.accept() # it waits here
+        threading.Thread(target=handle_socket_request, args=(connection, client_address)).start()
+
 if __name__ == "__main__":
+
+
+
+    # --- TODO test temp toremove
+    # start_server()
 
     # ----------------- INITs -----------------------------------------
 
-    init_bdd() # before jfconfig so that base folders are for sure created
+    init_bdd() # before jfconfig so that base folders are for sure created and databases has played migrations
 
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
@@ -245,7 +293,7 @@ if __name__ == "__main__":
         _scan_instance.daemon = True 
         _scan_instance.run()
 
-    # ------------------- threads A, Ars, B, C, D -----------------------
+    # ------------------- threads A + Ars, B, C, D, E(socket) -----------------------
     
     if RD_API_SET:
 
@@ -275,8 +323,13 @@ if __name__ == "__main__":
     thread_b.start()
 
 
-    # TODO test to remove
-    nfo_loop_service()
+    # TODO test toremove
+    #nfo_loop_service()
+
+    # E (socket loop waiting thread) -- multithread requests quite ready even though bindfs is not yet
+    thread_e = threading.Thread(target=socket_server_waiting)
+    thread_e.daemon = True  # exits when parent thread exits
+    thread_e.start()
 
     # D: server thread
     # server_thread = threading.Thread(target=run_server)

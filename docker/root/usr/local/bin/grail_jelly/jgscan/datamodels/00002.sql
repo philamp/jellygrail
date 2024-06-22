@@ -1,0 +1,1 @@
+ALTER TABLE main_mapping ADD COLUMN last_updated INTEGER;

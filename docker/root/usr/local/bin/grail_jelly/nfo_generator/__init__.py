@@ -28,6 +28,8 @@ WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 # Jellyfin.Plugin.KodiSyncQueue/1197e3fbeaee4d1e905a5b3ef7f5380c/GetItems?lastUpdateDt=2024-06-12T00:00:00.0000000Z
 # {{baseUrl}}/Items?ParentId=f137a2dd21bbc1b99aa5c0f6bf02a805&Fields=MediaSources,ProviderIds,Overview
 
+
+
 def nfo_loop_service():
 
     # jf_json_dump to store whole response
@@ -61,7 +63,7 @@ def nfo_loop_service():
     if items_added_and_updated := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
         # refresh ram dumps
         try:
-            whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode,Series', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines')).json()['Items']
+            whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode,Series', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags')).json()['Items']
         except Exception as e:
             logger.critical(f"> Get JF lib json dump failed with error: {e}")
             return False

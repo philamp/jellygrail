@@ -29,7 +29,7 @@ PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
 def init_mountpoints():
 
     global dual_endpoints
-    logger.info("wait for rclone to be ready ... ")
+    logger.info("Wait for rclone to be ready to ensure all storage endpoints will be found... ")
     time.sleep(10)
     for f in os.scandir(mounts_root): 
         if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
@@ -44,8 +44,12 @@ def init_mountpoints():
     return to_watch    
 
 def init_bdd():
-    # Initialize the database connection
-    init_database()
+
+    # Initialize the database connection, includes open() ----
+    init_database() 
+
+    # Play migrations
+    jg_datamodel_migration()
 
     # create movies and shows parent folders
     insert_data("/movies", None, None, None, 'all')

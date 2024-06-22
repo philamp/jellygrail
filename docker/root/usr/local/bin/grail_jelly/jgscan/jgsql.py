@@ -1,28 +1,11 @@
 from base import *
+from base.littles import *
 import sqlite3
 # logger = logging.getLogger('jellygrail')
 
 conn = None
 
 db_path = "/jellygrail/.bindfs_jelly.db"
-
-create_table_sql = '''
-CREATE TABLE IF NOT EXISTS main_mapping (
-    virtual_fullpath TEXT PRIMARY KEY COLLATE SCLIST,
-    actual_fullpath TEXT,
-    jginfo_rd_torrent_folder TEXT,
-    jginfo_rclone_cache_item TEXT,
-    mediatype TEXT
-);
-'''
-
-update_table_sql_v2 = '''
-ALTER TABLE main_mapping ADD COLUMN last_updated INTEGER;
-'''
-
-create_index = '''
-CREATE INDEX IF NOT EXISTS rename_depth ON main_mapping (virtual_fullpath COLLATE SCDEPTH);
-'''
 
 def sqcommit():
     """ Commit the transaction """
@@ -38,25 +21,69 @@ def sqrollback():
     global conn
     conn.rollback()
 
+def set_current_version(version):
+    # Mise à jour de la version dans la base de données
+    global conn
+    cursor = conn.cursor()
+    conn.execute('DELETE FROM schema_version')
+    conn.execute('INSERT INTO schema_version (version) VALUES (?)', (version,))
+
+def get_current_version():
+    global conn
+    cursor = conn.cursor()
+    # Lecture de la version actuelle depuis la base de données
+    try:
+        cursor.execute('SELECT version FROM schema_version')
+        row = cursor.fetchone()
+        return row[0] if row else 0
+    except sqlite3.OperationalError:
+        # Si la table schema_version n'existe pas encore
+        return 0
+
+def apply_migration(migration_file):
+    global conn
+    cursor = conn.cursor()
+    with open(migration_file, 'r') as file:
+        sql = file.read()
+    try:
+        conn.executescript(sql)
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e):
+            logger.info("> UPDATE DATAMODEL : The column already exists. Skipping addition.")
+            return True
+        else:
+            return False
+    else:
+        return True
+
+def jg_datamodel_migration():
+    global conn
+    cursor = conn.cursor()
+
+    # look for the current version if possible
+    incr = get_current_version()
+
+    # loop through each migration from
+    migration_files = sorted(os.listdir('jgscan/datamodels'))
+
+    for migration_file in migration_files:
+        migration_version = int(get_wo_ext(migration_file))
+        if migration_version > incr:
+            if apply_migration(os.path.join('jgscan/datamodels', migration_file)):
+                set_current_version(migration_version)
+                sqcommit()
+                logger.warning(f'Applied {migration_file} migr. file and commited')
+            else:
+                logger.critical("Failure to apply migr.: SQLite error: ", e)
+
+
 def init_database():
     """ Initialize the database connection """
     global conn
     conn = sqlite3.connect(db_path, isolation_level='DEFERRED')
     conn.enable_load_extension(True)
     conn.load_extension("/usr/local/share/bindfs-jelly/libsupercollate.so")
-    cursor = conn.cursor()
-    cursor.execute(create_table_sql)
-    cursor.execute(create_index)
-    sqcommit()
-    """ TABLE UPDATES : v2 """
-    try:
-        cursor.execute(update_table_sql_v2)
-        sqcommit()
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" in str(e):
-            logger.info("> UPDATE DATAMODEL : The column already exists. Skipping addition.")
-        else:
-            logger.critical("> An operational error occurred:", e)
+
 
 
 def insert_data(virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype = None):
