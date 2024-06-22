@@ -7,7 +7,8 @@
 >   - Fixes:
 >     - fallbackdata items now displayed in all dynamically filtered folders (TODO)
 >     - real added date in virtual filesystem (so recently added lists are correct)
->     - improved datamodel mangement
+>     - improved datamodel management
+>     - improved configuration wizard that remembers previous settings
 
 <img src="jellygrail_logo.png">
 
