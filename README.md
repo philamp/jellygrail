@@ -276,7 +276,6 @@ ___
 # Good to know / Known issues
 - Check **🚀 First and daily Usage** section above.
 - m2ts/ts files not inside a BDMV structure are ignored.
-- ⚠️ Deletion of a media item which is actually in a RAR file in the underlying file-system will cause the deletion of the whole RAR file.
 - **there can be some rare cases (bad .MKV, .TS, .ISO file or big complex .RAR file) where bindfs hangs (being mono-threaded) because of rclone hanged (due to lot of seeks and read in those bad files, causing somewhat undefined behavior in my rclone_rd fork) it causes nginx and jellyfin to possibily hang as well. Current workaround is a full restart of the docker.**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./STOPSTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
