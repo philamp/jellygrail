@@ -37,7 +37,7 @@ def get_current_version():
         row = cursor.fetchone()
         return row[0] if row else 0
     except sqlite3.OperationalError:
-        # Si la table schema_version n'existe pas encore
+        # Si la table schema_version n'existe pas encore, return default value
         return 0
 
 def apply_migration(migration_file):
@@ -52,6 +52,7 @@ def apply_migration(migration_file):
             logger.info("> UPDATE DATAMODEL : The column already exists. Skipping addition.")
             return True
         else:
+            logger.critical("> Migration failure, SQLite error is: ", e)
             return False
     else:
         return True
@@ -63,18 +64,17 @@ def jg_datamodel_migration():
     # look for the current version if possible
     incr = get_current_version()
 
-    # loop through each migration from
-    migration_files = sorted(os.listdir('jgscan/datamodels'))
+    sqlfiles_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "datamodels")
 
-    for migration_file in migration_files:
+    for migration_file in sorted(os.listdir(sqlfiles_folder)):
         migration_version = int(get_wo_ext(migration_file))
         if migration_version > incr:
-            if apply_migration(os.path.join('jgscan/datamodels', migration_file)):
+            if apply_migration(os.path.join(sqlfiles_folder, migration_file)):
                 set_current_version(migration_version)
                 sqcommit()
                 logger.warning(f'Applied {migration_file} migr. file and commited')
             else:
-                logger.critical("Failure to apply migr.: SQLite error: ", e)
+                logger.critical("Migration failure just happened")
 
 
 def init_database():

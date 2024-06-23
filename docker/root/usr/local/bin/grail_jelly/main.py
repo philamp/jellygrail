@@ -222,7 +222,7 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
             logger.info(f"JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
             httpd.shutdown()
 
-def handle_socket_request(connection, client_address):
+def handle_socket_request(connection, client_address, socket_type):
     try:
         print(f"Connection from {client_address}")
 
@@ -232,15 +232,17 @@ def handle_socket_request(connection, client_address):
                 message = data.decode('utf-8')
                 logger.info(f"Message received from BindFS: {message}")
 
-                response = f"This response is coming from python service".encode('utf-8')
-                connection.sendall(response)
+                logger.info(f"Socket type is: {socket_type}")
+                # TODO toremove
+                response = "/jellygrail/data/nfos/movies/Godzilla Minus One (2023)/Godzilla Minus One (2023) - 2160p Blu-ray H.265 JGx1.nfo.jf"
+                connection.sendall(response.encode('utf-8'))
             else:
                 break
     finally:
         connection.close()
 
-def socket_server_waiting():
-    server_address = '/tmp/jelly_socket'
+def socket_server_waiting(socket_type):
+    server_address = f'/tmp/jelly_{socket_type}_socket'
     
     # Make sure the socket does not already exist
     try:
@@ -262,7 +264,10 @@ def socket_server_waiting():
     while True:
         logger.info("Waiting for a connection...")
         connection, client_address = server_socket.accept() # it waits here
-        threading.Thread(target=handle_socket_request, args=(connection, client_address)).start()
+        _handle_client_thread = threading.Thread(target=handle_socket_request, args=(connection, client_address, socket_type))
+        _handle_client_thread.daemon = True
+        _handle_client_thread.start()
+
 
 if __name__ == "__main__":
 
@@ -293,6 +298,9 @@ if __name__ == "__main__":
         _scan_instance.daemon = True 
         _scan_instance.run()
 
+    # TODO test toremove
+    nfo_loop_service()
+
     # ------------------- threads A + Ars, B, C, D, E(socket) -----------------------
     
     if RD_API_SET:
@@ -310,6 +318,9 @@ if __name__ == "__main__":
             logger.info("~ Real Debrid API remoteScan will be triggered every 7mn")
         
         logger.info("~ Real Debrid API rd_progress will be triggered every 2mn")
+    else:
+        logger.warning("> Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env")
+
 
     # C: inotify deamon
     if len(to_watch) > 0:
@@ -323,11 +334,10 @@ if __name__ == "__main__":
     thread_b.start()
 
 
-    # TODO test toremove
-    #nfo_loop_service()
 
-    # E (socket loop waiting thread) -- multithread requests quite ready even though bindfs is not yet
-    thread_e = threading.Thread(target=socket_server_waiting)
+
+    # E (nfo path retriever socket : loop waiting thread) -- multithread requests ready but bindfs is not
+    thread_e = threading.Thread(target=socket_server_waiting, args=("nfopath",))
     thread_e.daemon = True  # exits when parent thread exits
     thread_e.start()
 

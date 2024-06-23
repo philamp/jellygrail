@@ -48,7 +48,7 @@ def jfconfig():
                 jfapi.jfapikey = array[0]
                 jfapi.jfapikey = '485a44ec487bdda1084514eb403c5fa3' #TODO remove
                 # logger.info(f"> retrieved API key is {jfapikey}")
-                logger.info(f"> retrieved API key is ***")
+                logger.info(f"> retrieved Jellyfin API key is ***")
             
             else:
                 key = ''.join(random.choice('0123456789abcdef') for _ in range(32))
