@@ -23,7 +23,7 @@ if [ -f "$SETTINGS_PATH" ]; then
             fi
         fi
     fi
-    if [ "$1" = "change"  ]; then
+    if [ "$1" = "change" ]; then
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
             read -p $'\nIt's recommanded that you stop current container to take new settings into account.\nWould you like to stop the already running JellyGrail container ? (yes/no) :\n>' upyesno
             if [ $upyesno = "yes" ]; then
