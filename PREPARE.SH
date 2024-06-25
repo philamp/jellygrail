@@ -157,8 +157,8 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] |
     # Prompt the user for the API key
     echo ""
     read -p $'\nPlease enter your Real-Debrid API key (leave empty to keep default/current: '"$RD_APITOKEN"$' ):\n> ' api_key
-    read -p $'\nPlease enter the remote JellyGrail instance location (ex: http://10.6.0.1:6502 ; leave empty to keep default/current: '"$REMOTE_RDUMP_BASE_LOCATION"$' ):\n> ' remote_loc
-    read -p $'\nPlease enter this docker webdav host:port as seen by the external device running Kodi \n(ex: http://your-nas-ip:8085 ; leave empty to keep default/current: '"$WEBDAV_LAN_HOST"$' ):\n> ' webdav_lan
+    read -p $'\nPlease enter the remote JellyGrail instance location, including protocol (ex: http://10.6.0.1:6502 ; leave empty to keep default/current: '"$REMOTE_RDUMP_BASE_LOCATION"$' ):\n> ' remote_loc
+    read -p $'\nPlease enter this docker webdav host:port as seen by an external device on the network, excluding protocol \n(ex: your-nas-ip:8085 ; leave empty to keep default/current: '"$WEBDAV_LAN_HOST"$' ):\n> ' webdav_lan
 
     if [ ! -z "$remote_loc" ]; then
         read -p $'\nPlease enter the default increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists BUT applies if the remote has changed a lot \n(leave empty to keep default/current: '"$DEFAULT_INCR"$' ):\n> ' default_incr
