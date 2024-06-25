@@ -9,7 +9,7 @@ SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
 if [ -f "$SETTINGS_PATH" ]; then
     source $SETTINGS_PATH
     echo "Found previous settings values, loading them as default."
-    if [ "$1" = "change" ]; then
+    if [ "$1" = "change" ] && [ "$RUNNING_VERSION" = "$VERSION" ]; then
         echo "If you have a running jellygrail container: "
         echo " - named something else than 'jellygrail'" 
         echo " - or managed with systemd" 
