@@ -295,14 +295,14 @@ else
 fi
 
 if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "jellygrail" ]; then
-    read -p $'It seems that a jellygrail container is not instanciated, Would you like to prepare the rshared mounted folders ? (yes/no ; recommanded:yes) :\n>' mountingrshared
+    read -p $'It seems that a jellygrail container is not instanciated (could be wrong if your renamed it), Would you like to prepare the rshared mounted folders ? (yes/no ; recommanded:yes) :\n>' mountingrshared
     if [ "$mountingrshared" = "yes" ]; then
         ./_MOUNT.SH mount
     fi
     echo "You now have to instanciate the jellygrail container with 'docker run etc...' (explained in README)"
 fi  
 if [ $HASTORESTART = "yes" ]; then
-    read -p $'Would you like to restart the container now ? (yes/no ; if you manage it through systemd, plase do it manually and answer no) :\n>' restartcontainer
+    read -p $'Would you like to restart the container now ? (yes/no ; if you manage it through systemd or renamed it, please do it manually and answer no) :\n>' restartcontainer
     if [ "$restartcontainer" = "yes" ]; then
         # docker start jellygrail 2> /dev/null
         echo "Existing jellygrail container has been started, it will load new settings"
