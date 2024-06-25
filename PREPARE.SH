@@ -16,7 +16,7 @@ if [ -f "$SETTINGS_PATH" ]; then
     echo " - named something else than 'jellygrail'" 
     echo " - or managed with systemd" 
     if [ "$1" = "change" ]; then
-        echo "-> please manually stop it and answer no to the following question:"
+        echo "-> please manually stop it"
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
             read -p $'\nYou want to change settings, It\'s mandatory to stop current container to take new settings into account.\nWould you like to stop the already running jellygrail container ? (yes/no) :\n>' upyesnochange
             if [ $upyesnochange = "yes" ]; then
@@ -27,7 +27,7 @@ if [ -f "$SETTINGS_PATH" ]; then
         fi
     fi
     if [ "$RUNNING_VERSION" != "$VERSION" ]; then
-        echo "-> maybe you'll need to stop it and remove it manually, and you can answer no to the following question: "
+        echo "-> maybe you'll need to stop it and remove it manually"
         ONE="change"
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
             read -p $'\nIt\'s recommanded that you stop and remove your current container as you have pulled a new version of JellyGrail.\nWould you like to stop and remove the already running jellygrail container ? (yes/no) :\n>' upyesno
