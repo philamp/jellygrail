@@ -17,22 +17,30 @@ if [ -f "$SETTINGS_PATH" ]; then
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
             read -p $'\nIt's recommanded that you stop and remove your current container as you have pulled a new version of JellyGrail.\nWould you like to stop and remove the already running JellyGrail container ? (yes/no) :\n>' upyesno
             if [ $upyesno = "yes" ]; then
-                docker stop jellygrail 2> /dev/null
-                docker rm jellygrail 2> /dev/null
+                # docker stop jellygrail 2> /dev/null
+                # docker rm jellygrail 2> /dev/null
                 echo "Container stopped and removed (if there was one named jellygrail)"
             fi
+        fi
+        read -p $'\nWould you like to remove your current virtual-renaming database ? Read this version release note ('"$VERSION"$') to know if it\'s recommanded (yes/no):\n>' dbdelyesno
+        if [ $dbdelyesno = "yes" ]; then
+            cp ./jellygrail/.bindfs_jelly.db ./jellygrail/bindfs_jelly.$(db.date +"%Y%m%d-%H%M%S").backup
+            rm ./jellygrail/.bindfs_jelly.db
+            echo "A datestamped backup has been created in ./jellygrail folder."
         fi
     fi
     if [ "$1" = "change" ]; then
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
             read -p $'\nIt's recommanded that you stop current container to take new settings into account.\nWould you like to stop the already running JellyGrail container ? (yes/no) :\n>' upyesno
             if [ $upyesno = "yes" ]; then
-                docker stop jellygrail 2> /dev/null
+                # docker stop jellygrail 2> /dev/null
                 echo "Container stopped (if there was one named jellygrail)"
             fi
         fi
     fi
 fi
+
+
 
 #----- 
 
@@ -129,15 +137,6 @@ prompt_for_l_choice() {
 }
 
 #----
-
-
-
-read -p $'\nWould you like to remove your current virtual-renaming database ? Read this version release note ('"$VERSION"$') to know if it\'s recommanded (yes/no):\n>' dbdelyesno
-if [ $dbdelyesno = "yes" ]; then
-    cp ./jellygrail/.bindfs_jelly.db ./jellygrail/bindfs_jelly.$(db.date +"%Y%m%d-%H%M%S").backup
-    rm ./jellygrail/.bindfs_jelly.db
-    echo "A backup has been created in ./jellygrail folder"
-fi
 
 
 # Check if the configuration file already exists
@@ -300,8 +299,8 @@ else
 fi
 
 if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "jellygrail" ]; then
-    read -p $'It seems that a jellygrail container is not instanciated, Would you like to prepare the rshared mounted folders ? (recommanded : yes)\n>' mountingrshared
-    if [ "$mountingrshared" = "yes" ]
+    read -p $'It seems that a jellygrail container is not instanciated, Would you like to prepare the rshared mounted folders ? (recommanded:yes) :\n>' mountingrshared
+    if [ "$mountingrshared" = "yes" ]; then
         ./_MOUNT.SH mount
     fi
 fi  
