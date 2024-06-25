@@ -28,7 +28,7 @@ if [ -f "$SETTINGS_PATH" ]; then
     fi
     if [ "$RUNNING_VERSION" != "$VERSION" ]; then
         echo "-> maybe you'll need to stop it and remove it manually, and you can answer no to the following question: "
-        1="change"
+        ONE="change"
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
             read -p $'\nIt\'s recommanded that you stop and remove your current container as you have pulled a new version of JellyGrail.\nWould you like to stop and remove the already running jellygrail container ? (yes/no) :\n>' upyesno
             if [ $upyesno = "yes" ]; then
@@ -147,7 +147,7 @@ prompt_for_l_choice() {
 
 
 # Check if the configuration file already exists
-if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ]; then
+if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; then
 
     # Copy the example configuration file to the new configuration file
     if [ -f "$SETTINGS_EXAMPLE_PATH" ] ; then
