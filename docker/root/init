@@ -117,7 +117,8 @@ if [ "$JF_WANTED" = "no" ]; then
 fi
 
 # Copy the example configuration file to the new configuration file
-cp -f "/mounts/remote_realdebrid/rclone.conf.example" "/mounts/remote_realdebrid/rclone.conf"
+mkdir -p "/mounts/remote_realdebrid"
+cp -f "/bash_templates/mounts/remote_realdebrid/rclone.conf.example" "/mounts/remote_realdebrid/rclone.conf"
 
 # Replace the placeholder with the user-provided API key
 sed -i "s/PASTE-YOUR-KEY-HERE/$api_key/" "/mounts/remote_realdebrid/rclone.conf"
