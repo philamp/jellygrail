@@ -1,5 +1,5 @@
 > [!CAUTION]
-> - Next main branch release named "July24":
+> - Next main branch release named "20240715":
 >   - breaking changes:
 >     - (maybe not) Please delete your ./jellygrail/.bindfs_jelly.db file as there are some improvements during scan, this will reset your custom changes :(
 >     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
