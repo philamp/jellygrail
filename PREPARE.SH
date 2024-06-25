@@ -301,7 +301,7 @@ if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "je
     fi
     echo "You now have to instanciate the jellygrail container with 'docker run etc...' (explained in README)"
 fi  
-if [ $HASTORESTART = "yes" ]; then
+if [ "$HASTORESTART" = "yes" ]; then
     read -p $'Would you like to restart the container now ? (yes/no ; if you manage it through systemd or renamed it, please do it manually and answer no) :\n>' restartcontainer
     if [ "$restartcontainer" = "yes" ]; then
         # docker start jellygrail 2> /dev/null
