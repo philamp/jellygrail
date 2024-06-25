@@ -92,7 +92,7 @@ prompt_for_c_choice() {
             fi
 
         else
-            f_c_input="US"
+            f_c_input=""
             return
         fi
 
@@ -136,7 +136,7 @@ prompt_for_l_choice() {
             fi
 
         else
-            f_l_input="en"
+            f_l_input=""
             return
         fi
 
