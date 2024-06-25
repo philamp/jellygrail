@@ -141,7 +141,6 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 --network host \
 -v ${PWD}/jellygrail:/jellygrail \
 -v ${PWD}/Video_Library:/Video_Library:rshared \
--v ${PWD}/mounts/remote_realdebrid:/mounts/remote_realdebrid \
 -v ${PWD}/fallbackdata:/mounts/fallback \
 ...
 ````
@@ -175,9 +174,8 @@ philamp/jellygrail:latest
 ## 🚀 5/ Run
 
 1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
-2. Verify that ``./mounts/remote_realdebrid/rclone.conf`` is populated with proper values.
-3. Verify that your working directory is ``.`` (the folder containing _PREPARE.SH_ file).
-4. Paste your docker command in your bash prompt and hit enter !
+2. Verify that your working directory is ``.`` (the folder containing _PREPARE.SH_ file).
+3. Paste your docker command in your bash prompt and hit enter !
 
 ## 📡 6/ Tasks triggering 
 
@@ -294,9 +292,11 @@ ___
 - **there can be some rare cases (bad .MKV, .TS, .ISO file or big complex .RAR file) where bindfs hangs (being mono-threaded) because of rclone hanged (due to lot of seeks and read in those bad files, causing somewhat undefined behavior in my rclone_rd fork) it causes nginx and jellyfin to possibily hang as well. Current workaround is a full restart of the docker.**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./STOPSTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
-- Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but follow this convention:
-  - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
-  - and name the file "rclone.conf".
+- Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as this: 
+  - create a "*name_of_your_cloud*" folder inside the ``.`` folder, and then create a "rclone.conf" file inside it.
+  - name your rclone config title (in between [ ] ) with *name_of_your_cloud* and fill the rest as you would do with rclone (you can generate a dummy config file with rclone).
+  - mount the "*name_of_your_cloud*" folder to "/mounts/name_of_your_cloud":
+    - (ex : ``-v ${PWD}/name_of_your_cloud:/mounts/name_of_your_cloud``) in the docker run command
   - the cloud mount source is not configurable (yet)
   - video files can't be directly located within the root of the mount (/mounts/remote_mycloud_provider/video.mkv will not be scanned it should rather be /mounts/remote_mycloud_provider/movies/Title/Title.mkv)
 - Underlying files deletion:
