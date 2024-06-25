@@ -296,7 +296,8 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
     sed -i "s/RUNNING_VERSION=/RUNNING_VERSION=$VERSION/" "$SETTINGS_PATH"
 
 else
-    echo "The configuration file already exists and you have not prompted for a change or have pulled any new version. However if you want to force a change of settings, please rerun this script with parameter 'change'"
+    echo "The configuration file already exists and you have not prompted for a change you have not pulled any new version."
+    echo "However if you want to force a change of settings, please rerun this script with parameter 'change'."
 fi
 
 if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "jellygrail" ]; then
@@ -305,6 +306,8 @@ if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "je
         ./_MOUNT.SH mount
     fi
     echo "You now have to instanciate the jellygrail container with 'docker run etc...' (explained in README)"
+else
+    echo "Your jellygrail instance seems to be running already"
 fi  
 if [ "$HASTORESTART" = "yes" ]; then
     read -p $'Would you like to restart the container now ? (yes/no ; if you manage it through systemd or renamed it, please do it manually and answer no) :\n>' restartcontainer
