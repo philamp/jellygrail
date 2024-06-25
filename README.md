@@ -98,25 +98,18 @@ sudo docker build -t philamp/jellygrail .
 
 > If you upgrade, replace the ``git clone ...`` command by a ``git pull`` command inside the ``.`` folder
 
-## ✨ 3/ Configuration wizard
+## ✨ 3/ Configuration wizard for first install and upgrade
 
 > Grab your Real-Debrid API key : https://real-debrid.com/apitoken.
-
-### 3.1/ First install
 
 Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
 ````
 sudo chmod u+x PREPARE.SH
 sudo ./PREPARE.SH
 ````
+> [!TIP]
+> You can as well run ``sudo ./PREPARE.SH change`` if you want to change your settings
 
-### 3.2/ Upgrade
-
-Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
-````
-sudo chmod u+x PREPARE.SH
-sudo ./PREPARE.SH upgrade
-````
 
 This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container and is available to the host system, not only inside the container)
 > Learn more about "rshared" here : https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759
