@@ -3,9 +3,6 @@ cd "$(dirname "$0")"
 # TODO put back docker stop start commands in place
 VERSION="20240715"
 
-CONF_PATH="./mounts/remote_realdebrid/rclone.conf"
-CONF_EXAMPLE_PATH="./mounts/remote_realdebrid/rclone.conf.example"
-
 SETTINGS_PATH="./jellygrail/config/settings.env"
 SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
 
@@ -150,7 +147,7 @@ prompt_for_l_choice() {
 
 
 # Check if the configuration file already exists
-if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; then
+if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; then
 
     # Copy the example configuration file to the new configuration file
     if [ -f "$SETTINGS_EXAMPLE_PATH" ] ; then
