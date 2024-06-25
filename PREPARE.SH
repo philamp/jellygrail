@@ -1,4 +1,7 @@
 #!/bin/bash
+cd "$(dirname "$0")"
+
+VERSION="20240715"
 
 CONF_PATH="./mounts/remote_realdebrid/rclone.conf"
 CONF_EXAMPLE_PATH="./mounts/remote_realdebrid/rclone.conf.example"
@@ -8,10 +11,28 @@ SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
 
 if [ -f "$SETTINGS_PATH" ]; then
     source $SETTINGS_PATH
-    echo "Loading previous values as they exist"
+    echo "Found previous settings values, loading them as default."
+    if [ "$RUNNING_VERSION" != "$VERSION" ]; then
+        1="change"
+        if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
+            read -p $'\nIt's recommanded that you stop and remove your current container as you have pulled a new version of JellyGrail.\nWould you like to stop and remove the already running JellyGrail container ? (yes/no) :\n>' upyesno
+            if [ $upyesno = "yes" ]; then
+                docker stop jellygrail 2> /dev/null
+                docker rm jellygrail 2> /dev/null
+                echo "Container stopped and removed (if there was one named jellygrail)"
+            fi
+        fi
+    fi
+    if [ "$1" = "change"  ]; then
+        if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
+            read -p $'\nIt's recommanded that you stop current container to take new settings into account.\nWould you like to stop the already running JellyGrail container ? (yes/no) :\n>' upyesno
+            if [ $upyesno = "yes" ]; then
+                docker stop jellygrail 2> /dev/null
+                echo "Container stopped (if there was one named jellygrail)"
+            fi
+        fi
+    fi
 fi
-
-echo "Please note that modyfing these values imply to restart the container if already running"
 
 #----- 
 
@@ -111,16 +132,16 @@ prompt_for_l_choice() {
 
 
 
-if [ "$1" = "upgrade" ]; then
-    read -p $'\nWould you like to stop and remove the already running JellyGrail container ? (yes/no) (needed for running a new one):\n>' upyesno
-    if [ $upyesno = "yes" ]; then
-        docker stop jellygrail
-        docker rm jellygrail
-    fi
-fi 
+read -p $'\nWould you like to remove your current virtual-renaming database ? Read this version release note ('"$VERSION"$') to know if it\'s recommanded (yes/no):\n>' dbdelyesno
+if [ $dbdelyesno = "yes" ]; then
+    cp ./jellygrail/.bindfs_jelly.db ./jellygrail/bindfs_jelly.$(db.date +"%Y%m%d-%H%M%S").backup
+    rm ./jellygrail/.bindfs_jelly.db
+    echo "A backup has been created in ./jellygrail folder"
+fi
+
 
 # Check if the configuration file already exists
-if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ]; then
+if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ]; then
 
     # Copy the example configuration file to the new configuration file
     if [ -f "$SETTINGS_EXAMPLE_PATH" ] ; then
@@ -278,8 +299,12 @@ else
     echo "The configuration file already exists."
 fi
 
-echo "Proceeding with the script (creation of jf config folders and rshare mounting of Video_Library folder)"
-echo "------------------------------------------------------------------------------------------------------"
-#./_MOUNT.SH mount
+if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "jellygrail" ]; then
+    read -p $'It seems that a jellygrail container is not instanciated, Would you like to prepare the rshared mounted folders ? (recommanded : yes)\n>' mountingrshared
+    if [ "$mountingrshared" = "yes" ]
+        ./_MOUNT.SH mount
+    fi
+fi  
+echo "----------------"
 echo "SCRIPT COMPLETED"
 echo "----------------"
