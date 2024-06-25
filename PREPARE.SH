@@ -296,7 +296,7 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
     sed -i "s/RUNNING_VERSION=/RUNNING_VERSION=$VERSION/" "$SETTINGS_PATH"
 
 else
-    echo "The configuration file already exists and you have not prompted for a change you have not pulled any new version."
+    echo "The configuration file already exists, you have not prompted for a change and you have not pulled any new version."
     echo "However if you want to force a change of settings, please rerun this script with parameter 'change'."
 fi
 
