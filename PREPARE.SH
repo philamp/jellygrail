@@ -296,7 +296,7 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
     sed -i "s/RUNNING_VERSION=/RUNNING_VERSION=$VERSION/" "$SETTINGS_PATH"
 
 else
-    echo "The configuration file already exists and you have not prompted for a change, if you want to force a change of settings, please rerun this script with parameter 'change'"
+    echo "The configuration file already exists and you have not prompted for a change or have pulled any new version. However if you want to force a change of settings, please rerun this script with parameter 'change'"
 fi
 
 if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "jellygrail" ]; then
