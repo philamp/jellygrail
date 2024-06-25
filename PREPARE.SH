@@ -264,18 +264,6 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] |
 
     # Check if the user input is empty
     if [ ! -z "$api_key" ]; then
-        # Make sure the example configuration file exists
-        if [ -f "$CONF_EXAMPLE_PATH" ]; then
-            # Copy the example configuration file to the new configuration file
-            cp -f "$CONF_EXAMPLE_PATH" "$CONF_PATH"
-    
-            # Replace the placeholder with the user-provided API key
-            sed -i "s/PASTE-YOUR-KEY-HERE/$api_key/" "$CONF_PATH"
-    
-            echo "The RD rclone configuration file has been created and the API key has been inserted."
-        else
-            echo "The RD rclone example configuration file does not exist. Please check the path."
-        fi
 
         # Make sure the configuration file exists
         if [ -f "$SETTINGS_PATH" ]; then
@@ -300,8 +288,10 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] |
         echo "No API key entered. The configuration file will not be created. Real-Debrid implementation will not work"
     fi
 
+    sed -i "s/RUNNING_VERSION=/RUNNING_VERSION=$VERSION/" "$SETTINGS_PATH"
+
 else
-    echo "The configuration file already exists."
+    echo "The configuration file already exists and you have not prompted for a change, if you want to force a change of settings, please rerun this script with parameter 'change'"
 fi
 
 if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "jellygrail" ]; then
@@ -314,8 +304,8 @@ fi
 if [ $HASTORESTART = "yes" ]; then
     read -p $'Would you like to restart the container now ? (yes/no ; if you manage it through systemd, plase do it manually and answer no) :\n>' restartcontainer
     if [ "$restartcontainer" = "yes" ]; then
-        docker start jellygrail 2> /dev/null
-        echo "
+        # docker start jellygrail 2> /dev/null
+        echo "Existing jellygrail container has been started, it will load new settings"
     fi
 fi
 echo "----------------"
