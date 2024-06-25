@@ -61,7 +61,7 @@ l_choices=("aa" "ab" "af" "ak" "sq" "am" "ar" "an" "hy" "as" "av" "ae" "ay" "az"
 #-----
 
 prompt_for_c_choice() {
-    echo "Start typing your country code (case insensitive, 2 chars max.) and press Enter to autocomplete: (default:US;leave empty to keep default/current: $JF_COUNTRY )"
+    echo "Start typing your country code (case insensitive, 2 chars max.) and press Enter to autocomplete: (leave empty to keep default/current: $JF_COUNTRY )"
     while read -e -p "> " c_input; do
         # Use compgen to generate a list of matches
 
@@ -104,7 +104,7 @@ prompt_for_c_choice() {
 }
 
 prompt_for_l_choice() {
-    echo "Start typing your language code (case insensitive, 2 chars max.) and press Enter to autocomplete: (default:en;leave empty to keep default/current: $JF_LANGUAGE )"
+    echo "Start typing your language code (case insensitive, 2 chars max.) and press Enter to autocomplete: (leave empty to keep default/current: $JF_LANGUAGE )"
     while read -e -p "> " l_input; do
 
         if [ ! -z "$l_input" ]; then
@@ -227,8 +227,13 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] |
         fi
 
         # defaults already taken into account in prompting part
-        sed -i "s/JF_COUNTRY=\"CH\"/JF_COUNTRY=\"$f_c_input\"/" "$SETTINGS_PATH"
-        sed -i "s/JF_LANGUAGE=\"fr\"/JF_LANGUAGE=\"$f_l_input\"/" "$SETTINGS_PATH"
+        if [ ! -z "$f_c_input" ]; then
+            sed -i "s/JF_COUNTRY=\"CH\"/JF_COUNTRY=\"$f_c_input\"/" "$SETTINGS_PATH"
+        fi
+        if [ ! -z "$f_l_input" ]; then
+            sed -i "s/JF_LANGUAGE=\"fr\"/JF_LANGUAGE=\"$f_l_input\"/" "$SETTINGS_PATH"
+        fi
+
     fi
 
     read -p $'\nIf an additional custom host mount folder is needed type the full desired path here\n(leave empty to keep empty/current: '"$ADD_HOST_MOUNT"$' )\n> ' add_host_mount
