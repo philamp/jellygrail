@@ -12,10 +12,10 @@ SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
 if [ -f "$SETTINGS_PATH" ]; then
     source $SETTINGS_PATH
     echo "Found previous settings values, loading them as default."
-    echo "If you have a running jellygrail container: "
-    echo " - named something else than 'jellygrail'" 
-    echo " - or managed with systemd" 
     if [ "$1" = "change" ]; then
+        echo "If you have a running jellygrail container: "
+        echo " - named something else than 'jellygrail'" 
+        echo " - or managed with systemd" 
         echo "-> please manually stop it"
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
             read -p $'\nYou want to change settings, It\'s mandatory to stop current container to take new settings into account.\nWould you like to stop the already running jellygrail container ? (yes/no) :\n>' upyesnochange
@@ -27,6 +27,9 @@ if [ -f "$SETTINGS_PATH" ]; then
         fi
     fi
     if [ "$RUNNING_VERSION" != "$VERSION" ]; then
+        echo "If you have a running jellygrail container: "
+        echo " - named something else than 'jellygrail'" 
+        echo " - or managed with systemd"
         echo "-> maybe you'll need to stop it and remove it manually"
         ONE="change"
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
