@@ -155,7 +155,6 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] |
     fi
         
     # Prompt the user for the API key
-    echo "-- Upgrade or creation of config files: $CONF_PATH and $SETTINGS_PATH will be created --"
     echo ""
     read -p $'\nPlease enter your Real-Debrid API key (leave empty to keep default/current: '"$RD_APITOKEN"$' ):\n> ' api_key
     read -p $'\nPlease enter the remote JellyGrail instance location (ex: http://10.6.0.1:6502 ; leave empty to keep default/current: '"$REMOTE_RDUMP_BASE_LOCATION"$' ):\n> ' remote_loc
