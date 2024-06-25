@@ -253,6 +253,11 @@ You can check it's running with following commands:
 ````
 sudo docker ps
 ````
+or
+````
+sudo ./PREPARE.SH
+````
+> Will output "Your jellygrail instance seems to be running already"
 
 ## Jellygrail python service Logs
 
