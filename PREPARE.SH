@@ -1,6 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-
+# TODO put back docker stop start commands in place
 VERSION="20240715"
 
 CONF_PATH="./mounts/remote_realdebrid/rclone.conf"
@@ -12,31 +12,38 @@ SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
 if [ -f "$SETTINGS_PATH" ]; then
     source $SETTINGS_PATH
     echo "Found previous settings values, loading them as default."
+    echo "If you have a running jellygrail container: "
+    echo " - named something else than 'jellygrail'" 
+    echo " - or managed with systemd" 
+    if [ "$1" = "change" ]; then
+        echo "-> please manually stop it and answer no to the following question:"
+        if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
+            read -p $'\nYou want to change settings, It's mandatory to stop current container to take new settings into account.\nWould you like to stop the already running jellygrail container ? (yes/no) :\n>' upyesnochange
+            if [ $upyesnochange = "yes" ]; then
+                # docker stop jellygrail 2> /dev/null
+                echo "Container stopped"
+                $HASTORESTART="yes"
+            fi
+        fi
+    fi
     if [ "$RUNNING_VERSION" != "$VERSION" ]; then
+        echo "-> maybe you'll need to stop it and remove it manually, and you can answer no to the following question: "
         1="change"
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
-            read -p $'\nIt's recommanded that you stop and remove your current container as you have pulled a new version of JellyGrail.\nWould you like to stop and remove the already running JellyGrail container ? (yes/no) :\n>' upyesno
+            read -p $'\nIt's recommanded that you stop and remove your current container as you have pulled a new version of JellyGrail.\nWould you like to stop and remove the already running jellygrail container ? (yes/no) :\n>' upyesno
             if [ $upyesno = "yes" ]; then
                 # docker stop jellygrail 2> /dev/null
                 # docker rm jellygrail 2> /dev/null
-                echo "Container stopped and removed (if there was one named jellygrail)"
+                echo "Container stopped and deleted"
             fi
         fi
-        read -p $'\nWould you like to remove your current virtual-renaming database ? Read this version release note ('"$VERSION"$') to know if it\'s recommanded (yes/no):\n>' dbdelyesno
+        read -p $'\nWould you like to DELETE your current virtual-renaming database ? Read this version release note ('"$VERSION"$') to know if it\'s recommanded (yes/no):\n>' dbdelyesno
         if [ $dbdelyesno = "yes" ]; then
             cp ./jellygrail/.bindfs_jelly.db ./jellygrail/bindfs_jelly.$(db.date +"%Y%m%d-%H%M%S").backup
             rm ./jellygrail/.bindfs_jelly.db
             echo "A datestamped backup has been created in ./jellygrail folder."
         fi
-    fi
-    if [ "$1" = "change" ]; then
-        if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
-            read -p $'\nIt's recommanded that you stop current container to take new settings into account.\nWould you like to stop the already running JellyGrail container ? (yes/no) :\n>' upyesno
-            if [ $upyesno = "yes" ]; then
-                # docker stop jellygrail 2> /dev/null
-                echo "Container stopped (if there was one named jellygrail)"
-            fi
-        fi
+        echo "Will now upgrade settings from version $RUNNING_VERSION to version $VERSION"
     fi
 fi
 
@@ -299,11 +306,19 @@ else
 fi
 
 if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "jellygrail" ]; then
-    read -p $'It seems that a jellygrail container is not instanciated, Would you like to prepare the rshared mounted folders ? (recommanded:yes) :\n>' mountingrshared
+    read -p $'It seems that a jellygrail container is not instanciated, Would you like to prepare the rshared mounted folders ? (yes/no ; recommanded:yes) :\n>' mountingrshared
     if [ "$mountingrshared" = "yes" ]; then
         ./_MOUNT.SH mount
     fi
+    echo "You now have to instanciate the jellygrail container with 'docker run etc...' (explained in README)"
 fi  
+if [ $HASTORESTART = "yes" ]; then
+    read -p $'Would you like to restart the container now ? (yes/no ; if you manage it through systemd, plase do it manually and answer no) :\n>' restartcontainer
+    if [ "$restartcontainer" = "yes" ]; then
+        docker start jellygrail 2> /dev/null
+        echo "
+    fi
+fi
 echo "----------------"
 echo "SCRIPT COMPLETED"
 echo "----------------"
