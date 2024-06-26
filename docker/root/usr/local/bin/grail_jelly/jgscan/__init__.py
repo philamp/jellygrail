@@ -43,7 +43,7 @@ def init_mountpoints():
 
     return to_watch    
 
-def init_bdd():
+def bdd_install():
 
     # Initialize the database connection, includes open() ----
     init_database() 
