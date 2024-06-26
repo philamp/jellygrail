@@ -17,7 +17,7 @@ if [ -f "$SETTINGS_PATH" ]; then
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
             read -p $'\nYou want to change settings, It\'s mandatory to stop current container to take new settings into account.\nWould you like to stop the already running jellygrail container ? (yes/no) :\n>' upyesnochange
             if [ $upyesnochange = "yes" ]; then
-                # docker stop jellygrail 2> /dev/null
+                docker stop jellygrail 2> /dev/null
                 echo "Container stopped"
                 $HASTORESTART="yes"
             fi
@@ -32,8 +32,8 @@ if [ -f "$SETTINGS_PATH" ]; then
         if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
             read -p $'\nIt\'s recommanded that you stop and remove your current container as you have pulled a new version of JellyGrail.\nWould you like to stop and remove the already running jellygrail container ? (yes/no) :\n>' upyesno
             if [ $upyesno = "yes" ]; then
-                # docker stop jellygrail 2> /dev/null
-                # docker rm jellygrail 2> /dev/null
+                docker stop jellygrail 2> /dev/null
+                docker rm jellygrail 2> /dev/null
                 echo "Container stopped and deleted"
             fi
         fi
@@ -312,7 +312,7 @@ fi
 if [ "$HASTORESTART" = "yes" ]; then
     read -p $'Would you like to restart the container now ? (yes/no ; if you manage it through systemd or renamed it, please do it manually and answer no) :\n>' restartcontainer
     if [ "$restartcontainer" = "yes" ]; then
-        # docker start jellygrail 2> /dev/null
+        docker start jellygrail 2> /dev/null
         echo "Existing jellygrail container has been started, it will load new settings"
     fi
 fi
