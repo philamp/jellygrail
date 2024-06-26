@@ -23,6 +23,7 @@ REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 # check if api key is set
 RD_API_SET = os.getenv('RD_APITOKEN') != "PASTE-YOUR-KEY-HERE"
 JF_WANTED = os.getenv('JF_WANTED') != "no"
+socket_started = False
 
 # ------ Contact points
 from jgscan import init_bdd, init_mountpoints, scan
@@ -224,7 +225,7 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
 
 def handle_socket_request(connection, client_address, socket_type):
     try:
-        print(f"Connection from {client_address}")
+        print(f"Connection from BindFS")
 
         while True:
             data = connection.recv(1024)
@@ -242,6 +243,7 @@ def handle_socket_request(connection, client_address, socket_type):
         connection.close()
 
 def socket_server_waiting(socket_type):
+    global socket_started
     server_address = f'/tmp/jelly_{socket_type}_socket'
     
     # Make sure the socket does not already exist
@@ -262,28 +264,39 @@ def socket_server_waiting(socket_type):
     server_socket.listen()
 
     while True:
-        logger.info("Waiting for a connection...")
+        logger.info("Waiting for a UNIX socket client...")
         connection, client_address = server_socket.accept() # it waits here
+        socket_started = True
         _handle_client_thread = threading.Thread(target=handle_socket_request, args=(connection, client_address, socket_type))
         _handle_client_thread.daemon = True
         _handle_client_thread.start()
 
 
 if __name__ == "__main__":
+    
+    global socket_started
+    # Thread 0 - UNIX Socket (nfo path retriever socket : loop waiting thread) -- multithread requests ready but bindfs is not
+    thread_e = threading.Thread(target=socket_server_waiting, args=("nfopath",))
+    thread_e.daemon = True  # exits when parent thread exits
+    thread_e.start()
 
-
-
-    # --- TODO test temp toremove
-    # start_server()
+    print("Attente de connexion au socket ...", end="")
+    waitloop = 0
+    while not socket_started:
+        print(".", end="", flush=True)
+        waitloop += 1
+        sleep(1)
+        if(waitloop > 30):
+            logger.critical("BindFS is not connected to socket, BindFS service is probably not working properly thus JellyGrail won't start ... ")
 
     # ----------------- INITs -----------------------------------------
 
-    init_bdd() # before jfconfig so that base folders are for sure created and databases has played migrations
+    bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
 
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
 
-    # Config JF before starting threads and server threads, trigger a first scan if it's first use (rd_progress potentially does it as well but RD may not be used TODO fix with regular scan as well)
+    # Config JF before starting threads and server threads, trigger a first scan if it's first use (rd_progress potentially does it as well but RD may not be used TODO fix with regular scan as well)        
     if JF_WANTED:
         jf_config_result = jfconfig()
         if jf_config_result == "FIRST_RUN":
@@ -299,9 +312,9 @@ if __name__ == "__main__":
         _scan_instance.run()
 
     # TODO test toremove
-    nfo_loop_service()
+    # nfo_loop_service()
 
-    # ------------------- threads A + Ars, B, C, D, E(socket) -----------------------
+    # ------------------- threads A + Ars, B, C, D  -----------------------
     
     if RD_API_SET:
 
@@ -332,14 +345,6 @@ if __name__ == "__main__":
     thread_b = threading.Thread(target=restart_jgdocker_at)
     thread_b.daemon = True  # exits when parent thread exits
     thread_b.start()
-
-
-
-
-    # E (nfo path retriever socket : loop waiting thread) -- multithread requests ready but bindfs is not
-    thread_e = threading.Thread(target=socket_server_waiting, args=("nfopath",))
-    thread_e.daemon = True  # exits when parent thread exits
-    thread_e.start()
 
     # D: server thread
     # server_thread = threading.Thread(target=run_server)
