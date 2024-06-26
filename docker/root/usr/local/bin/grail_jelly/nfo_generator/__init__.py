@@ -96,7 +96,7 @@ def nfo_loop_service():
 
                     for itmimg in item_images:
                         if itmimg.get('ImageType') == 'Primary':
-                            ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://URI_PORT/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                            ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
 
 
 
