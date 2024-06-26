@@ -131,7 +131,7 @@ ENV PATH="/opt/venv/bin:$PATH"
 # nginx
 RUN apt-get -y install nginx nginx-extras unzip
     
-COPY webdav.conf /etc/nginx/conf.d/default.conf
+# COPY webdav.conf /etc/nginx/conf.d/default.conf -- now done in init
 RUN rm /etc/nginx/sites-enabled/*
 
 # ADB
