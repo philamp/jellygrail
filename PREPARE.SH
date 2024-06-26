@@ -307,7 +307,7 @@ if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "je
     fi
     echo "You now have to instanciate the jellygrail container with 'docker run etc...' (explained in README)"
 else
-    echo "Your jellygrail instance seems to be running already"
+    echo "Your jellygrail instance seems to be running already, so _MOUNT.SH script won't be triggered automatically"
 fi  
 if [ "$HASTORESTART" = "yes" ]; then
     read -p $'Would you like to restart the container now ? (yes/no ; if you manage it through systemd or renamed it, please do it manually and answer no) :\n>' restartcontainer
