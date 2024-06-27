@@ -21,11 +21,11 @@ def jfconfig():
         iwait += 1
         try:
             if not urllib.request.urlopen('http://localhost:8096/health').read() == b'Healthy':
-                logger.debug(f"... Jellyfin not yet available, try number {iwait} ...")
+                logger.debug(f"Waiting for Jellyfin to be available: try {iwait} ...")
                 time.sleep(3)
                 continue
         except OSError as e:
-            logger.debug(f"... Jellyfin not yet available, try number {iwait} ...")
+            logger.debug(f"Waiting for Jellyfin to be available: try {iwait} ...")
         else:
             proceedinjf = True
             break
@@ -65,7 +65,7 @@ def jfconfig():
         # 1 - Install repo if necessary
         # get list of repos, if len < 3, re-declare
         declaredrepos = jfapi.jellyfin(f'Repositories', method='get').json()
-        if len(declaredrepos) < 3:
+        if len(declaredrepos) < 2:
             #declare all repos
             repodata = [
                 {
@@ -73,11 +73,11 @@ def jfconfig():
                     "Url": "https://repo.jellyfin.org/releases/plugin/manifest-stable.json",
                     "Enabled": True
                 },
-                {
-                    "Name": "Merge",
-                    "Url": "https://raw.githubusercontent.com/danieladov/JellyfinPluginManifest/master/manifest.json",
-                    "Enabled": True
-                },
+                # {
+                    # "Name": "Merge",
+                    # "Url": "https://raw.githubusercontent.com/danieladov/JellyfinPluginManifest/master/manifest.json",
+                    # "Enabled": True
+                # },
                 {
                     "Name": "subbuzz",
                     "Url": "https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.8.json",
@@ -94,7 +94,7 @@ def jfconfig():
             jfapi.jellyfin(f'Packages/Installed/subbuzz', method='post')
 
             #install merge
-            jfapi.jellyfin(f'Packages/Installed/Merge%20Versions', method='post')
+            # jfapi.jellyfin(f'Packages/Installed/Merge%20Versions', method='post')
 
             #delete unwanted triggers (chapter images and auto subtitle dl)
             triggerdata = []
@@ -260,7 +260,7 @@ def jfconfig():
                     name='Shows', collectionType="tvshows", paths=f"{base_v_root}/shows", refreshLibrary=False
                 ))
                 jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
-                jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # disable merge episodes which is not working well
+                # jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # disable merge episodes which is not working well
                 return "FIRST_RUN"
 
             logger.warning("> don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")

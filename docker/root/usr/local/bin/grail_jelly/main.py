@@ -262,9 +262,9 @@ def socket_server_waiting(socket_type):
 
     # Listen for incoming connections
     server_socket.listen()
-
+    logger.info("Waiting for a UNIX socket client...")
     while True:
-        logger.info("Waiting for a UNIX socket client...")
+        print(".", end="", flush=True)
         connection, client_address = server_socket.accept() # it waits here
         socket_started = True
         _handle_client_thread = threading.Thread(target=handle_socket_request, args=(connection, client_address, socket_type))
