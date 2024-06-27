@@ -81,8 +81,8 @@ fi
 
 # Webdav conf according to settings.env
 if [ "$WEBDAV_LAN_HOST" != "PASTE-WEBDAV-LAN-HOST-HERE" ]; then
-  cp -f /bash_templates/webdav.conf /etc/nginx/conf.d/default.conf
-  sed -i "s/#WDLH#/$WEBDAV_LAN_HOST/" "/etc/nginx/conf.d/default.conf"
+  cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
+  sed -i "s/#WDLH#/$WEBDAV_LAN_HOST/" "/etc/nginx/nginx.conf"
 else
   echo "CRITICAL : WEBDAV_LAN_HOST is not set in settings.env"
 fi
