@@ -284,7 +284,7 @@ if __name__ == "__main__":
     while not socket_started:
         print(".", end="", flush=True)
         waitloop += 1
-        sleep(1)
+        time.sleep(1)
         if(waitloop > 30):
             logger.critical("BindFS is not connected to socket, BindFS service is probably not working properly thus JellyGrail won't start ... ")
 
