@@ -274,7 +274,6 @@ def socket_server_waiting(socket_type):
 
 if __name__ == "__main__":
     
-    global socket_started
     # Thread 0 - UNIX Socket (nfo path retriever socket : loop waiting thread) -- multithread requests ready but bindfs is not
     thread_e = threading.Thread(target=socket_server_waiting, args=("nfopath",))
     thread_e.daemon = True  # exits when parent thread exits
