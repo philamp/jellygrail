@@ -26,7 +26,7 @@ JF_WANTED = os.getenv('JF_WANTED') != "no"
 socket_started = False
 
 # ------ Contact points
-from jgscan import init_bdd, init_mountpoints, scan
+from jgscan import bdd_install, init_mountpoints, scan
 from jfconfig import jfconfig
 
 import jg_services
