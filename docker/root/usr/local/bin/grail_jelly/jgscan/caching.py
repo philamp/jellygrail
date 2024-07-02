@@ -4,6 +4,35 @@ from base import *
 
 logger = logging.getLogger('jellygrail')
 
+
+def get_plain_ffprobe(file_path):
+    # this is plain ffprobe command call returning each part in separated vars, 
+    # not decoding stdout !!
+    # migrating to 8000000 analyse duration also
+    try:
+        command = [
+            "ffprobe", 
+            "-v", "error",  # Hide logging
+            "-analyzeduration", '8000000',
+            "-print_format", "json",
+            "-show_streams",
+            "-show_format",
+            file_path
+        ]
+
+        # Execute the command
+        result = subprocess.run(command, capture_output=True, check=True, text=False)
+
+    except subprocess.CalledProcessError as e:
+        logger.critical(f"get_plain_ffprobe failure:\nReturn code:{e.returncode}\nstdout:{e.output}\nstderr:{e.stderr}")
+        return (e.output, e.stderr, e.returncode)
+    
+    logger.info(f"get_plain_ffprobe success:\nReturn code:{result.returncode}\nstdout:{result.stdout}\nstderr:{result.stderr}")
+    return (result.stdout, result.stderr, result.returncode)
+
+
+
+
 def get_ffprobe(file_path):
     # Construct the ffprobe command to get the format information, which includes the overall bitrate
     try:
@@ -21,6 +50,9 @@ def get_ffprobe(file_path):
         # Execute the command
         result = subprocess.run(command, capture_output=True, text=True)
         output = result.stdout
+
+
+    
         info = json.loads(output)
         bitrate = round(int(info["format"]["bit_rate"]) / 1000000)
         # Extract overall bitrate

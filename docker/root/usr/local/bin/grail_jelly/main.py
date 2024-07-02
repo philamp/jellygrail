@@ -9,6 +9,7 @@ import urllib
 import os
 import datetime
 import socket
+import struct
 from nfo_generator import nfo_loop_service
 
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
@@ -26,7 +27,7 @@ JF_WANTED = os.getenv('JF_WANTED') != "no"
 socket_started = False
 
 # ------ Contact points
-from jgscan import bdd_install, init_mountpoints, scan
+from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
 from jfconfig import jfconfig
 
 import jg_services
@@ -230,13 +231,33 @@ def handle_socket_request(connection, client_address, socket_type):
         while True:
             data = connection.recv(1024)
             if data:
-                message = data.decode('utf-8')
-                logger.info(f"Message received from BindFS: {message}")
+                if socket_type == "ffprobe":
+                    messagein = data.decode('utf-8')
+                    (stdout, stderr, returncode) = get_fastpass_ffprobe(messagein)
+                    # Create a single message with lengths and data
+                    # todo remove
+                    stdout = f"4321out\n1234"
+                    stdout = stdout.encode('utf-8')
+                    stderr = f"4321err\n1234"
+                    stderr = stderr.encode('utf-8')
+                    returncode = 12
+                    messageout = (
+                        struct.pack('!I', len(stdout)) + stdout +
+                        struct.pack('!I', len(stderr)) + stderr +
+                        struct.pack('!i', returncode)
+                    )
+                    logger.warning(f"Return code (bytes): {struct.pack('i', returncode).hex()}")
+                    # logger.warning(f"Message sent: {messageout}")
+                    connection.sendall(messageout)
+                
+                else:
+                    message = data.decode('utf-8')
+                    logger.info(f"Message received from BindFS: {message}")
 
-                logger.info(f"Socket type is: {socket_type}")
-                # TODO toremove
-                response = "/jellygrail/data/nfos/movies/Godzilla Minus One (2023)/Godzilla Minus One (2023) - 2160p Blu-ray H.265 JGx1.nfo.jf"
-                connection.sendall(response.encode('utf-8'))
+                    logger.info(f"Socket type is: {socket_type}")
+                    # TODO toremove
+                    response = "/jellygrail/data/nfos/movies/Godzilla Minus One (2023)/Godzilla Minus One (2023) - 2160p Blu-ray H.265 JGx1.nfo.jf"
+                    connection.sendall(response.encode('utf-8'))
             else:
                 break
     finally:
@@ -266,7 +287,8 @@ def socket_server_waiting(socket_type):
     while True:
         print(".", end="", flush=True)
         connection, client_address = server_socket.accept() # it waits here
-        socket_started = True
+        if socket_type == "nfopath":
+            socket_started = True
         _handle_client_thread = threading.Thread(target=handle_socket_request, args=(connection, client_address, socket_type))
         _handle_client_thread.daemon = True
         _handle_client_thread.start()
@@ -274,10 +296,15 @@ def socket_server_waiting(socket_type):
 
 if __name__ == "__main__":
     
-    # Thread 0 - UNIX Socket (nfo path retriever socket : loop waiting thread) -- multithread requests ready but bindfs is not
+    # Thread 0.1 - UNIX Socket (nfo path retriever socket : loop waiting thread) -- multithread requests ready but bindfs is not
     thread_e = threading.Thread(target=socket_server_waiting, args=("nfopath",))
     thread_e.daemon = True  # exits when parent thread exits
     thread_e.start()
+
+    # Thread 0.2 - UNIX Socket (ffprobe bash wrapper responder)
+    thread_ef = threading.Thread(target=socket_server_waiting, args=("ffprobe",))
+    thread_ef.daemon = True  # exits when parent thread exits
+    thread_ef.start()
 
     print("Attente de connexion au socket ...", end="")
     waitloop = 0

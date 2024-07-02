@@ -16,7 +16,6 @@ present_virtual_folders = []
 present_virtual_folders_shows = []
 
 dual_endpoints = []
-mounts_root = "/mounts"
 
 JF_WANTED = os.getenv('JF_WANTED') != "no"
 
@@ -24,6 +23,11 @@ PLEX_REFRESH_A = os.getenv('PLEX_REFRESH_A')
 PLEX_REFRESH_B = os.getenv('PLEX_REFRESH_B')
 PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
 
+def get_fastpass_ffprobe(file_path):
+    # get ffprobe info from sqlite or use ffprobe, encode() it in utf8
+
+    # todo use sqlite
+    return get_plain_ffprobe(file_path)
 
 def init_mountpoints():
 
