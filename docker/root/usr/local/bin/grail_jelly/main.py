@@ -3,6 +3,7 @@
 import time
 import threading
 import pyinotify
+import shlex
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from script_runner import ScriptRunner
 import urllib
@@ -226,31 +227,31 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
 
 def handle_socket_request(connection, client_address, socket_type):
     try:
-        print(f"Connection from BindFS")
+        logger.debug(f"main/socket | Client requesting {socket_type} service.")
 
         while True:
             data = connection.recv(1024)
             if data:
                 if socket_type == "ffprobe":
-                    messagein = data.decode('utf-8')
+                    args = shlex.split(data.decode('utf-8'))
+                    messagein = args[-1]
                     (stdout, stderr, returncode) = get_fastpass_ffprobe(messagein)
                     # Create a single message with lengths and data
                     # todo remove
-                    stdout = f"4321out\n1234"
-                    stdout = stdout.encode('utf-8')
-                    stderr = f"4321err\n1234"
-                    stderr = stderr.encode('utf-8')
-                    returncode = 12
+                    # stdout = f"4321out\n1234"
+                    # stdout = stdout.encode('utf-8')
+                    # stderr = f"4321err\n1234"
+                    # stderr = stderr.encode('utf-8')
+                    # returncode = 12
                     messageout = (
                         struct.pack('!I', len(stdout)) + stdout +
                         struct.pack('!I', len(stderr)) + stderr +
                         struct.pack('!i', returncode)
                     )
-                    logger.warning(f"Return code (bytes): {struct.pack('i', returncode).hex()}")
                     # logger.warning(f"Message sent: {messageout}")
                     connection.sendall(messageout)
                 
-                else:
+                if socket_type == "nfopath":
                     message = data.decode('utf-8')
                     logger.info(f"Message received from BindFS: {message}")
 

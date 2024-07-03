@@ -49,10 +49,10 @@ def apply_migration(migration_file):
         conn.executescript(sql)
     except sqlite3.OperationalError as e:
         if "duplicate column name" in str(e):
-            logger.info("> UPDATE DATAMODEL : The column already exists. Skipping addition.")
+            logger.debug("jgscan/jgsql/apply_migration | The column already exists. Skipping addition.")
             return True
         else:
-            logger.critical("> Migration failure, SQLite error is: ", e)
+            logger.critical("jgscan/jgsql/apply_migration | Migration failure, SQLite error is: ", e)
             return False
     else:
         return True
@@ -86,7 +86,7 @@ def init_database():
 
 
 
-def insert_data(virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype = None):
+def insert_data(virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype = None, ffprobe = None):
     """ Insert data into the database """
     global conn
     cursor = conn.cursor()
@@ -94,9 +94,9 @@ def insert_data(virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jgi
     # ... but to avoid downgrading a mediatype value from something to None, on conflict we don't insert if mediatype == none for the item we overwrite
     # (mediatype is then used in bindfs to do filtering based on virtual folders suffixes (virtual_dv, virtual_bdmv))
     if mediatype != None:
-        cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, last_updated) VALUES (depenc(?), ?, ?, depenc(?), ?, strftime('%s', 'now')) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), mediatype=?, last_updated=strftime('%s', 'now')", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype))
+        cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, last_updated, ffprobe) VALUES (depenc(?), ?, ?, depenc(?), ?, strftime('%s', 'now'), ?) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), mediatype=?, last_updated=strftime('%s', 'now'), ffprobe=?", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, ffprobe, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, ffprobe))
     else:
-        cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, last_updated) VALUES (depenc(?), ?, ?, depenc(?), strftime('%s', 'now')) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), last_updated=strftime('%s', 'now')", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item))
+        cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, last_updated, ffprobe) VALUES (depenc(?), ?, ?, depenc(?), strftime('%s', 'now'), ?) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), last_updated=strftime('%s', 'now'), ffprobe=?", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, ffprobe, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, ffprobe))
 
 
 def fetch_present_virtual_folders():

@@ -1,1 +1,1 @@
-ALTER TABLE main_mapping ADD COLUMN ffprobe_json TEXT;
+ALTER TABLE main_mapping ADD COLUMN ffprobe BLOB;

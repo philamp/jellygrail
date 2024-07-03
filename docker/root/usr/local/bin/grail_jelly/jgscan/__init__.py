@@ -182,7 +182,10 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     if not filename.lower().endswith('.iso'):
                         # and storetype == 'remote' missing and rar_item ignored means we run ffprobe on mkv even if they're cache-heated with void-unrar
                         # cache-heater 1 for all files but iso
-                        (bitrate, dvprofile) = get_ffprobe(os.path.join(root, filename))
+                        # (bitrate, dvprofile) = get_ffprobe(os.path.join(root, filename))
+                        (stdout, _, _) = get_plain_ffprobe(os.path.join(root, filename))
+                        (premetastpl, dvprofile) = parse_ffprobe(stdout, filename)
+
 
                         if season_present: 
                             if(dvprofile) and dive_s_[show][season][episode_num]['mediatype_s'] == None:
@@ -190,7 +193,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             else:
                                 dive_s_[show][season][episode_num]['mediatype_s'] = None
                             
-                            dive_s_[show][season][episode_num]['premetas'] = f" -{tpl(bitrate)}{tpl(dvprofile, 'DVp')} JGx"
+                            #dive_s_[show][season][episode_num]['premetas'] = f" -{tpl(bitrate)}{tpl(dvprofile, 'DVp')} JGx"
+                            dive_s_[show][season][episode_num]['premetas'] = f"{premetastpl} JGx"
 
                         else:
                             if not bdmv_present and dive_e_['mediatype'] == None:
@@ -199,7 +203,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                                 else:
                                     dive_e_['mediatype'] = None
                                 
-                                dive_e_['premetas'] = f" -{tpl(bitrate)}{tpl(dvprofile, 'DVp')}"
+                                #dive_e_['premetas'] = f" -{tpl(bitrate)}{tpl(dvprofile, 'DVp')}"
+                                dive_e_['premetas'] = premetastpl
 
                     elif filename.lower().endswith('.iso'):
 
@@ -366,7 +371,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
             elif rootfilename.lower().endswith(ALLOWED_EXTENSIONS):
 
                 # M_DUP:
-                metas = f"{dive_e_['premetas']}{relmetas}"
+                metas = f"{dive_e_['premetas']}" #deleted {relmetas}here
                 if(will_idx_check):
                     if(idxdupmovset == 1):
                         for existing_file in ls_virtual_folder_a:
@@ -509,17 +514,24 @@ def scan():
                     bitrate = None
                     dvprofile = None
                     mediatype = None
+                    premetas = ""
                     if not f.name.lower().endswith('.iso'):
-                        (bitrate, dvprofile) = get_ffprobe(f.path)
+
+
+                        (stdout, _, _) = get_plain_ffprobe(f.path)
+                        (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
+                        premetas = premetastpl
+
+                        #(bitrate, dvprofile) = get_ffprobe(f.path)
                         if(dvprofile):
                             mediatype = '_dv'
                     else:
                         mediatype = '_bdmv'
                     
-                    premetas = f" -{tpl(bitrate)}{tpl(dvprofile, 'DVp')}"
+                    
 
                     # M_DUP:
-                    metas = f"{premetas}{relmetas}"
+                    metas = f"{premetas}" # deleted {relmetas} here
                     if(will_idx_check):
                         if(idxdupmovset == 1):
                             for existing_file in ls_virtual_folder_a:

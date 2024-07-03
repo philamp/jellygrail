@@ -17,7 +17,7 @@ def jfconfig():
     proceedinjf = None
 
     iwait = 0
-    while iwait < 20:
+    while iwait < 2:
         iwait += 1
         try:
             if not urllib.request.urlopen('http://localhost:8096/health').read() == b'Healthy':

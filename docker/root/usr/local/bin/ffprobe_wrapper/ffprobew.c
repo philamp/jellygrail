@@ -25,12 +25,33 @@ int read_all(int fd, void *buf, size_t count) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        fprintf(stderr, "Usage: %s <file_path>\n", argv[0]);
+
+    if (argc < 3) {
+        fprintf(stderr, "Usage: %s <arg1> <arg2> [... <argN>]\n", argv[0]);
         exit(EXIT_FAILURE);
     }
 
-    const char *file_path = argv[1];
+    // Combine all arguments into a single string
+    size_t total_length = 0;
+    for (int i = 1; i < argc; ++i) {
+        total_length += strlen(argv[i]) + 3; // +1 for space or null terminator
+    }
+
+    char *combined_args = malloc(total_length);
+    if (combined_args == NULL) {
+        fprintf(stderr, "Error allocating memory for combined arguments\n");
+        exit(EXIT_FAILURE);
+    }
+
+    combined_args[0] = '"';
+    for (int i = 1; i < argc; ++i) {
+        strcat(combined_args, argv[i]);
+        if (i < argc - 1) {
+            strcat(combined_args, "\" \"");
+        }
+    }
+    strcat(combined_args, "\"");
+
     int sockfd;
     struct sockaddr_un serv_addr;
     char buffer[BUFFER_SIZE];
@@ -38,7 +59,7 @@ int main(int argc, char *argv[]) {
     // Create socket
     sockfd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        printf("Error opening socket");
+        fprintf(stderr, "Error opening socket\n");
     }
 
     memset(&serv_addr, 0, sizeof(serv_addr));
@@ -47,52 +68,81 @@ int main(int argc, char *argv[]) {
 
     // Connect to the server
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        printf("Error connecting");
+        fprintf(stderr, "Error connecting\n");
+        close(sockfd);
+        free(combined_args);
+        return(EXIT_FAILURE);
     }
 
     // Send the file path to the server
-    if (write(sockfd, file_path, strlen(file_path)) < 0) {
-        printf("Error writing to socket");
+    if (write(sockfd, combined_args, strlen(combined_args)) < 0) {
+        fprintf(stderr, "Error writing to socket\n");
+        close(sockfd);
+        free(combined_args);
+        return(EXIT_FAILURE);
     }
+
+    free(combined_args);
 
     // Read the length of stdout
     uint32_t stdout_length;
     if (read_all(sockfd, &stdout_length, sizeof(stdout_length)) < 0) {
-        printf("Error reading stdout length");
+        fprintf(stderr, "Error reading stdout length\n");
+        close(sockfd);
+        return(EXIT_FAILURE);        
     }
     stdout_length = ntohl(stdout_length); // Convert from network byte order
 
     // Read stdout data
     char *stdout_data = malloc(stdout_length + 1);
     if (stdout_data == NULL) {
-        printf("Error allocating memory for stdout data");
+        fprintf(stderr, "Error allocating memory for stdout data\n");
+        close(sockfd);
+        return(EXIT_FAILURE);
     }
     if (read_all(sockfd, stdout_data, stdout_length) < 0) {
-        printf("Error reading stdout data");
+        fprintf(stderr, "Error reading stdout data\n");
+        close(sockfd);
+        free(stdout_data);
+        return(EXIT_FAILURE);
     }
     stdout_data[stdout_length] = '\0'; // Null-terminate the string
 
     // Read the length of stderr
     uint32_t stderr_length;
     if (read_all(sockfd, &stderr_length, sizeof(stderr_length)) < 0) {
-        printf("Error reading stderr length");
+        fprintf(stderr, "Error reading stderr length\n");
+        close(sockfd);
+        free(stdout_data);
+        return(EXIT_FAILURE);
     }
     stderr_length = ntohl(stderr_length); // Convert from network byte order
 
     // Read stderr data
     char *stderr_data = malloc(stderr_length + 1);
     if (stderr_data == NULL) {
-        printf("Error allocating memory for stderr data");
+        fprintf(stderr, "Error allocating memory for stderr data\n");
+        close(sockfd);
+        free(stdout_data);
+        return(EXIT_FAILURE);
     }
     if (read_all(sockfd, stderr_data, stderr_length) < 0) {
-        printf("Error reading stderr data");
+        fprintf(stderr, "Error reading stderr data\n");
+        close(sockfd);
+        free(stderr_data); 
+        free(stdout_data);
+        return(EXIT_FAILURE);
     }
     stderr_data[stderr_length] = '\0'; // Null-terminate the string
 
     // Read the return code
     int32_t return_code;
     if (read_all(sockfd, &return_code, sizeof(return_code)) < 0) {
-        printf("Error reading return code");
+        fprintf(stderr, "Error reading return code\n");
+        close(sockfd);
+        free(stderr_data); 
+        free(stdout_data);
+        return(EXIT_FAILURE);
     }
     return_code = ntohl(return_code); // Convert from network byte order
 
@@ -100,15 +150,15 @@ int main(int argc, char *argv[]) {
     close(sockfd);
 
     // Print stdout and stderr
-    printf("stdout: %s\n", stdout_data);
+    // adjusted temporarily for debug
+    printf(stdout_data);
+    printf("-----");
     printf("error code: %d\n", return_code);
-    fprintf(stderr, "stderr: %s\n", stderr_data);
+    fprintf(stderr, stderr_data);
 
     // Clean up
     free(stdout_data);
     free(stderr_data);
-
-
 
     // Exit with the return code from the server
     return return_code;

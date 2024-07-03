@@ -31,8 +31,9 @@ def get_plain_ffprobe(file_path):
     return (result.stdout, result.stderr, result.returncode)
 
 
+    
 
-
+'''
 def get_ffprobe(file_path):
     # Construct the ffprobe command to get the format information, which includes the overall bitrate
     try:
@@ -70,6 +71,7 @@ def get_ffprobe(file_path):
         dvprofile = sideinfo[0].get('dv_profile')
 
     return ( f"{bitrate}Mbps", dvprofile)
+'''
 
 # RARs
 def unrar_to_void(rar_file_path):

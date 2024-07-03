@@ -6,6 +6,41 @@ import pycountry
 from thefuzz import process
 from jgscan.constants import *
 
+def parse_ffprobe(stdout, filepathnotice):
+
+    hdrtpl = ""
+    bitratetpl = ""
+    resolutiontpl = ""
+    codectpl = ""
+    _dvprofile = None
+    try:
+        info = json.loads(stdout.decode("utf-8"))
+
+        for stream in info['streams']:
+            if stream.get('codec_type') == "video":
+                if stream.get('color_transfer') == "smpte2084":
+                    hdrtpl = f" HDR10"
+                else:
+                    hdrtpl = f" SDR{stream.get('bits_per_raw_sample', '')}"
+                if( sideinfo := stream.get('side_data_list') ):
+                    if(_dvprofile := sideinfo[0].get('dv_profile')):
+                        hdrtpl = f" DVp{_dvprofile}"
+                if codec_name := stream.get('codec_name') and codec_name not in ('hevc','h264'):
+                    codectpl = f" {stream.get('codec_name')}"
+
+            
+        if(info.get('format')):
+            if(bitrate := round(int(info.get("format").get("bit_rate")) / 1000000)):
+                bitratetpl = f" {bitrate}Mbps"
+
+
+
+    except (KeyError, IndexError, json.JSONDecodeError):
+        logger.error(f"jgscan/caching | Fail to extract stream details on {filepathnotice}")
+
+
+    return (f" -{bitratetpl}{resolutiontpl}{codectpl}{hdrtpl}", _dvprofile)
+
 def find_most_similar(input_str, string_list):
     # This returns the best match, its score and index
     best_match = process.extractOne(input_str, string_list)
