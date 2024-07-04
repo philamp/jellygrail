@@ -226,13 +226,12 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
             httpd.shutdown()
 
 def handle_socket_request(connection, client_address, socket_type):
+    logger.debug(f"main/socket | Client opening {socket_type} service.")
     try:
-        logger.debug(f"main/socket | Client requesting {socket_type} service.")
-
-        while True:
-            data = connection.recv(1024)
-            if data:
-                if socket_type == "ffprobe":
+        if socket_type == "ffprobe":
+            while True:
+                data = connection.recv(1024)
+                if data:
                     args = shlex.split(data.decode('utf-8'))
                     messagein = args[-1]
                     (stdout, stderr, returncode) = get_fastpass_ffprobe(messagein)
@@ -250,17 +249,25 @@ def handle_socket_request(connection, client_address, socket_type):
                     )
                     # logger.warning(f"Message sent: {messageout}")
                     connection.sendall(messageout)
+                else:
+                    logger.debug(f"main/socket | Client CLOSING {socket_type} service.")
+                    break
                 
-                if socket_type == "nfopath":
+        if socket_type == "nfopath":
+            while True:
+                data = connection.recv(1024)
+                if data:
+                    
                     message = data.decode('utf-8')
                     logger.info(f"Message received from BindFS: {message}")
 
-                    logger.info(f"Socket type is: {socket_type}")
+                    #logger.info(f"Socket type is: {socket_type}")
                     # TODO toremove
                     response = "/jellygrail/data/nfos/movies/Godzilla Minus One (2023)/Godzilla Minus One (2023) - 2160p Blu-ray H.265 JGx1.nfo.jf"
                     connection.sendall(response.encode('utf-8'))
-            else:
-                break
+                else:
+                    logger.debug(f"main/socket | Client CLOSING {socket_type} service.")
+                    break
     finally:
         connection.close()
 
@@ -279,12 +286,11 @@ def socket_server_waiting(socket_type):
     server_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
     # Bind the socket to the address
-    logger.info(f"Starting socket server for BindFS requests on {server_address}")
     server_socket.bind(server_address)
 
     # Listen for incoming connections
     server_socket.listen()
-    logger.info("Waiting for a UNIX socket client...")
+    logger.info(f"main/socket | Waiting for {socket_type} client.")
     while True:
         print(".", end="", flush=True)
         connection, client_address = server_socket.accept() # it waits here

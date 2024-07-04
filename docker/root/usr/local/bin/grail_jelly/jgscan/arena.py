@@ -6,6 +6,22 @@ import pycountry
 from thefuzz import process
 from jgscan.constants import *
 
+def get_bit_depth(pix_fmt):
+    bit_depth_map = {
+        'yuv420p': '8',
+        'yuv422p': '8',
+        'yuv444p': '8',
+        'yuv420p10le': '10',
+        'yuv422p10le': '10',
+        'yuv444p10le': '10',
+        'yuv420p12le': '12',
+        'yuv422p12le': '12',
+        'yuv444p12le': '12',
+        # Add other mappings as needed
+    }
+    
+    return bit_depth_map.get(pix_fmt, 'Unknown')
+
 def parse_ffprobe(stdout, filepathnotice):
 
     hdrtpl = ""
@@ -17,16 +33,26 @@ def parse_ffprobe(stdout, filepathnotice):
         info = json.loads(stdout.decode("utf-8"))
 
         for stream in info['streams']:
-            if stream.get('codec_type') == "video":
+            if stream.get('codec_type') == "video" and stream.get('codec_name') != "mjpeg":
                 if stream.get('color_transfer') == "smpte2084":
-                    hdrtpl = f" HDR10"
+                    hdrtpl = f" hdr10"
                 else:
-                    hdrtpl = f" SDR{stream.get('bits_per_raw_sample', '')}"
+                    hdrtpl = f" sdr{get_bit_depth(stream.get('pix_fmt', 'yuv420p'))}"
+                    if codec_name := stream.get('codec_name'):
+                        codectpl = f" {codec_name}"
+                            
                 if( sideinfo := stream.get('side_data_list') ):
                     if(_dvprofile := sideinfo[0].get('dv_profile')):
                         hdrtpl = f" DVp{_dvprofile}"
-                if codec_name := stream.get('codec_name') and codec_name not in ('hevc','h264'):
-                    codectpl = f" {stream.get('codec_name')}"
+                        codectpl = ""
+
+                if resx := stream.get('width'):
+                    if resy := stream.get('height'):
+                        if resx/resy >= 16/9:
+                            resolutiontpl = f" {str(round(resx * 9/16))}p"
+                        else:
+                            resolutiontpl = f" {str(resy)}p"
+
 
             
         if(info.get('format')):
@@ -39,7 +65,7 @@ def parse_ffprobe(stdout, filepathnotice):
         logger.error(f"jgscan/caching | Fail to extract stream details on {filepathnotice}")
 
 
-    return (f" -{bitratetpl}{resolutiontpl}{codectpl}{hdrtpl}", _dvprofile)
+    return (f"{bitratetpl}{resolutiontpl}{codectpl}{hdrtpl}", _dvprofile)
 
 def find_most_similar(input_str, string_list):
     # This returns the best match, its score and index

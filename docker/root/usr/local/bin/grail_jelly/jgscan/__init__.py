@@ -194,7 +194,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                                 dive_s_[show][season][episode_num]['mediatype_s'] = None
                             
                             #dive_s_[show][season][episode_num]['premetas'] = f" -{tpl(bitrate)}{tpl(dvprofile, 'DVp')} JGx"
-                            dive_s_[show][season][episode_num]['premetas'] = f"{premetastpl} JGx"
+                            dive_s_[show][season][episode_num]['premetas'] = f" -{premetastpl} JGx"
 
                         else:
                             if not bdmv_present and dive_e_['mediatype'] == None:
@@ -204,7 +204,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                                     dive_e_['mediatype'] = None
                                 
                                 #dive_e_['premetas'] = f" -{tpl(bitrate)}{tpl(dvprofile, 'DVp')}"
-                                dive_e_['premetas'] = premetastpl
+                                dive_e_['premetas'] = f" -{premetastpl} JGx"
 
                     elif filename.lower().endswith('.iso'):
 
@@ -520,7 +520,7 @@ def scan():
 
                         (stdout, _, _) = get_plain_ffprobe(f.path)
                         (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
-                        premetas = premetastpl
+                        premetas = f" -{premetastpl} JGx"
 
                         #(bitrate, dvprofile) = get_ffprobe(f.path)
                         if(dvprofile):
