@@ -38,13 +38,14 @@ def parse_ffprobe(stdout, filepathnotice):
                     hdrtpl = f" hdr10"
                 else:
                     hdrtpl = f" sdr{get_bit_depth(stream.get('pix_fmt', 'yuv420p'))}"
-                    if codec_name := stream.get('codec_name'):
+
+                if codec_name := stream.get('codec_name'):
+                    if hdrtpl == " sdr8" or codec_name not in "h264 hevc":
                         codectpl = f" {codec_name}"
                             
                 if( sideinfo := stream.get('side_data_list') ):
                     if(_dvprofile := sideinfo[0].get('dv_profile')):
                         hdrtpl = f" DVp{_dvprofile}"
-                        codectpl = ""
 
                 if resx := stream.get('width'):
                     if resy := stream.get('height'):
@@ -53,19 +54,16 @@ def parse_ffprobe(stdout, filepathnotice):
                         else:
                             resolutiontpl = f" {str(resy)}p"
 
-
-            
         if(info.get('format')):
-            if(bitrate := round(int(info.get("format").get("bit_rate")) / 1000000)):
+            if bitrate := info.get("format").get("bit_rate"):
+                bitrate = str(round(int(info.get("format").get("bit_rate")) / 1000000))
                 bitratetpl = f" {bitrate}Mbps"
-
-
 
     except (KeyError, IndexError, json.JSONDecodeError):
         logger.error(f"jgscan/caching | Fail to extract stream details on {filepathnotice}")
 
 
-    return (f"{bitratetpl}{resolutiontpl}{codectpl}{hdrtpl}", _dvprofile)
+    return (f"{bitratetpl}{resolutiontpl}{hdrtpl}{codectpl}", _dvprofile)
 
 def find_most_similar(input_str, string_list):
     # This returns the best match, its score and index
