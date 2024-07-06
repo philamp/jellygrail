@@ -70,10 +70,13 @@ def find_most_similar(input_str, string_list):
     best_match = process.extractOne(input_str, string_list)
     return best_match
 
+'''
 def tpl(str_value, preffix = ''):
     if str_value is not None:
         return f" {preffix}{str_value}"
     return ''
+'''
+    
 
 def ytpl(value):
     if value is not None:

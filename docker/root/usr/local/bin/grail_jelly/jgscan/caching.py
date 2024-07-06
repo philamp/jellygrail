@@ -149,10 +149,15 @@ def read_file_with_timeout(file_path, timeout = 604):
         return True
 
 def read_small_files(src_folder):
+    isdvd = False
     for root, dirs, files in os.walk(src_folder):
         for file in files:
             file_path = os.path.join(root, file)
+
+            if file.endswith(".vob"):
+                isdvd = True
             
             # if os.path.getsize(file_path) <= max_size_bytes: -> removed to read all files including > 34000000 but read_file_with_timeout will only take the 34000000 first bytes
             if not read_file_with_timeout(file_path):
                 logger.error(f" - FAILURE_read : Abandoning due to timeout or IO Error on mounted iso on {src_folder}")
+    return isdvd
