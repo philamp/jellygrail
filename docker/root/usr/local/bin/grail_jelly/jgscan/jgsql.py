@@ -119,6 +119,12 @@ def ls_virtual_folder(folder_path):
     cursor.execute("SELECT depdec(virtual_fullpath) FROM main_mapping WHERE virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
     return cursor.fetchall()
 
+def get_path_props(path):
+    global conn
+    cursor = conn.cursor()
+    cursor.execute("SELECT ffprobe FROM main_mapping WHERE virtual_fullpath = depenc(?)", (path,))
+    return cursor.fetchall()
+
 
 '''
 def init_jellyfin_db(path):

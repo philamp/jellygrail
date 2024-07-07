@@ -1,26 +1,11 @@
 # import requests
 from base import *
 from base.littles import *
+from base.constants import *
 from datetime import datetime
 import jfapi
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-
-# jellyfin root for metadata and its len
-JF_METADATA_ROOT = "/jellygrail/jellyfin/config/metadata"
-JF_MD_SHIFT = len(JF_METADATA_ROOT)
-
-JG_VIRTUAL = "/Video_Library/virtual"
-JF_VIRT_SHIFT = len(JG_VIRTUAL)
-
-# jf_syncqueue_last_requested_date_file
-JFSQ_LAST_REQUEST = "/jellygrail/data/jf_sync_queue_last_request.txt"
-
-# folder to store nfos
-JFSQ_STORED_NFO = "/jellygrail/data/nfos"
-
-# Webdav ip + port specified for local network (as seen by a local network device)
-WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
 # Name of librairies
 # LIB_NAMES = ("Movies", "Shows")
@@ -28,7 +13,9 @@ WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 # Jellyfin.Plugin.KodiSyncQueue/1197e3fbeaee4d1e905a5b3ef7f5380c/GetItems?lastUpdateDt=2024-06-12T00:00:00.0000000Z
 # {{baseUrl}}/Items?ParentId=f137a2dd21bbc1b99aa5c0f6bf02a805&Fields=MediaSources,ProviderIds,Overview
 
-
+# Webdav ip + port specified for local network (as seen by a local network device)
+# todo is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
+WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
 def nfo_loop_service():
 
@@ -109,7 +96,7 @@ def nfo_loop_service():
 
                     # save this nfo for all paths in mediasources
                     for mediasource in item.get('MediaSources'):
-                        nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JF_VIRT_SHIFT:]) + ".nfo.jf"
+                        nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + ".nfo.jf"
                         os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
                         with open(nfo_full_path, "w", encoding="utf-8") as file:
                             file.write(pretty_xml_str)

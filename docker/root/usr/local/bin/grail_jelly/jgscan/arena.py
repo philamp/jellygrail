@@ -4,7 +4,7 @@ import pycountry
 # for similarity
 # from thefuzz import fuzz
 from thefuzz import process
-from jgscan.constants import *
+from base.constants import *
 
 def get_bit_depth(pix_fmt):
     bit_depth_map = {

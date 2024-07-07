@@ -1,5 +1,6 @@
 #rd api
 from base import *
+from base.constants import *
 import requests
 from jg_services.jelly_rdapi import RD
 from datetime import datetime
@@ -8,20 +9,7 @@ RD = RD()
 # plug to same logging instance as main
 #logger = logging.getLogger('jellygrail')
 
-# rd local dump cron-backups folder
-rdump_backup_folder = '/jellygrail/data/backup'
 
-# rd local dump location
-rdump_file = '/jellygrail/data/rd_dump.json'
-
-# pile file
-pile_file = '/jellygrail/data/rd_pile.json'
-
-# rd last date of import file
-RDINCR_FILE = '/jellygrail/data/rd_incr.txt'
-
-# remote rd pile key
-REMOTE_PILE_KEY_FILE = '/jellygrail/data/remote_pile_key.txt'
 
 # one shot token
 oneshot_token = None
@@ -116,11 +104,11 @@ def rd_progress():
 
             dled_rd_hashes = [data_item.get('hash') for data_item in data if data_item.get('status') == 'downloaded']
 
-            if (os.path.exists(pile_file)):
-                _, cur_pile = file_to_array(pile_file)
+            if (os.path.exists(PILE_FILE)):
+                _, cur_pile = file_to_array(PILE_FILE)
                 if len(dled_rd_hashes) > 0:
                     delta_elements = [item for item in dled_rd_hashes if item not in cur_pile]
-                    array_to_file(pile_file, delta_elements)
+                    array_to_file(PILE_FILE, delta_elements)
 
                     if len(delta_elements) > 0:
                         logger.debug("RD_PROGRESS > I detected new torrents having 'downloaded' status, so I started /scan method")
@@ -134,7 +122,7 @@ def rd_progress():
                 
             else:
                 # 1st pile write tagged with unique identifier
-                array_to_file(pile_file, dled_rd_hashes, initialize_with_unique_key=True)
+                array_to_file(PILE_FILE, dled_rd_hashes, initialize_with_unique_key=True)
                 return "PLEASE_SCAN"
         else:
             logger.critical(f"An error occurred on getting RD data in rd_progress method")
@@ -155,7 +143,7 @@ def restoreList():
     # set a one time use token
     oneshot_token = ''.join(random.choice('0123456789abcdef') for _ in range(32))
 
-    for f in os.scandir(rdump_backup_folder):
+    for f in os.scandir(RDUMP_BACKUP_FOLDER):
         i += 1
         if f.is_file():
             backupList.append(f'-- <a href="/restoreitem?filename={f.name}&token={oneshot_token}" title="{f.name}">{f.name}</a> | {os.path.getsize(f.path)} kb --')
@@ -174,10 +162,10 @@ def restoreitem(filename, token):
     if token == oneshot_token:
         oneshot_token = None
         # .... proceed
-        if os.path.exists(os.path.join(rdump_backup_folder, filename)):
+        if os.path.exists(os.path.join(RDUMP_BACKUP_FOLDER, filename)):
             # ...proceed
             try:
-                with open(os.path.join(rdump_backup_folder, filename), 'r') as f:
+                with open(os.path.join(RDUMP_BACKUP_FOLDER, filename), 'r') as f:
                     backup_data = json.load(f)
                     
             except FileNotFoundError:
@@ -328,9 +316,9 @@ def remoteScan():
 # getrdincrement
         
 def getrdincrement(incr):
-    if (os.path.exists(pile_file)):
+    if (os.path.exists(PILE_FILE)):
         # gets full array 
-        pile_key, cur_pile = file_to_array(pile_file)
+        pile_key, cur_pile = file_to_array(PILE_FILE)
         return json.dumps({'hashes': cur_pile[incr:], 'lastid': len(cur_pile), 'pilekey': int(pile_key)}).encode()
     else:
         # it forces this sever to call rd_progress at least once
@@ -345,12 +333,12 @@ def getrdincrement(incr):
 
 def rdump_backup(including_backup = True, returning_data = False):
     if including_backup:
-        if(os.path.exists(rdump_file)):
-            os.makedirs(rdump_backup_folder, exist_ok=True)
+        if(os.path.exists(RDUMP_FILE)):
+            os.makedirs(RDUMP_BACKUP_FOLDER, exist_ok=True)
             # copy with date in filename
             today = datetime.now()
             file_backuped = "/rd_dump_"+today.strftime("%Y%m%d")+".json"
-            subprocess.call(['cp', rdump_file, rdump_backup_folder+file_backuped])
+            subprocess.call(['cp', RDUMP_FILE, RDUMP_BACKUP_FOLDER+file_backuped])
 
     try:
         # create horodated json file of my torrents
@@ -368,7 +356,7 @@ def rdump_backup(including_backup = True, returning_data = False):
         return "Error"
     else:
         # Store the data in a file
-        with open(rdump_file, 'w') as f:
+        with open(RDUMP_FILE, 'w') as f:
             json.dump(data, f)
         if returning_data:
             return data

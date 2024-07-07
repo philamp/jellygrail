@@ -7,7 +7,7 @@ from jgscan.arena import *
 import PTN
 #logger = logging.getLogger('jellygrail')
 
-from jgscan.constants import *
+from base.constants import *
 
 # merge those 2 elements
 ALLOWED_EXTENSIONS = SUB_EXTS + VIDEO_EXTENSIONS
@@ -24,9 +24,27 @@ PLEX_REFRESH_B = os.getenv('PLEX_REFRESH_B')
 PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
 
 def get_fastpass_ffprobe(file_path):
-    # get ffprobe info from sqlite or use ffprobe, encode() it in utf8
+    # get ffprobe info from sqlite or use ffprobe
+    logger.debug("fastpass ffprobew used, before switch between handover and DB")
+
+    ffprobe_data = None
+    fakestderror = ""
+
+    logger.debug(f"filepath input is {file_path}")
+
+    logger.debug(f"filepath requested to sqlite is {file_path[JG_VIRT_SHIFT:]}")
+
 
     # todo use sqlite
+    init_database()
+    print(get_path_props(file_path[JG_VIRT_SHIFT:]))
+    if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[JG_VIRT_SHIFT:]) if ffpitem[0] is not None]):
+        ffprobe_data = ffprobesq_result[0]
+        logger.debug("fastpass ffprobew used, used SQLITE ffprobe data, YEAH")
+        return (ffprobe_data, fakestderror.encode("utf-8"), 0)
+    sqclose()
+
+    logger.debug("fastpass ffprobew used, used normal ffprobe :(")
     return get_plain_ffprobe(file_path)
 
 def init_mountpoints():
@@ -34,14 +52,14 @@ def init_mountpoints():
     global dual_endpoints
     logger.info("Wait for rclone to be ready to ensure all storage endpoints will be found... ")
     time.sleep(10)
-    for f in os.scandir(mounts_root): 
+    for f in os.scandir(MOUNTS_ROOT): 
         '''f.name.startswith("remote_") or'''
         if f.is_dir() and (  f.name.startswith("local_")) and not '@eaDir' in f.name:
             logger.info(f"> FOUND MOUNTPOINT: {f.name}")
             type = "local" if f.name.startswith("local_") else "remote"
             for d in os.scandir(f.path):
                 if d.is_dir() and d.name != '@eaDir':
-                    dual_endpoints.append(( mounts_root+"/"+f.name+"/"+d.name,mounts_root+"/rar2fs_"+f.name+"/"+d.name, type))
+                    dual_endpoints.append(( MOUNTS_ROOT+"/"+f.name+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+f.name+"/"+d.name, type))
     print(dual_endpoints)
     to_watch = [point for (point, _, point_type) in dual_endpoints if point_type == 'local']
 
@@ -600,7 +618,7 @@ def scan():
 
                     logger.info(f"> FOUND NEW STANDALONE VIDEO FILE: {f.name}")
                     insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
-                    insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype)
+                    insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
                     sqcommit()
 
     # Close the connection
