@@ -163,6 +163,10 @@ RUN WORKDIR=`mktemp -d` && \
     cmake .. && \
     make clean all install && \
     rm -rf $WORKDIR
+    
+# copy the rest
+COPY root/ /
+RUN chmod u+x /init
 
 # ffprobew build
 RUN cd /usr/local/bin/ffprobe_wraper && \
@@ -177,10 +181,6 @@ RUN ln -s /usr/local/bin/ffprobe_wraper/ffprobew /usr/lib/jellyfin-ffmpeg/ffprob
 RUN cd /usr/local/bin && \
     ln -s /usr/lib/jellyfin-ffmpeg/ffprober ffprober && \
     ln -s /usr/local/bin/ffprobe_wraper/ffprobew ffprobe
-    
-# copy the rest
-COPY root/ /
-RUN chmod u+x /init
 
 # expose nginx
 EXPOSE 8085
