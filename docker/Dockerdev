@@ -169,18 +169,18 @@ COPY root/ /
 RUN chmod u+x /init
 
 # ffprobew build
-RUN cd /usr/local/bin/ffprobe_wraper && \
+RUN cd /usr/local/bin/ffprobe_wrapper && \
     gcc -o ffprobew ffprobew.c
 
 # ffprobe becomes ffprober
 RUN mv /usr/lib/jellyfin-ffmpeg/ffprobe /usr/lib/jellyfin-ffmpeg/ffprober
 # ffprobew becomes ffprobe via symlink
-RUN ln -s /usr/local/bin/ffprobe_wraper/ffprobew /usr/lib/jellyfin-ffmpeg/ffprobe
+RUN ln -s /usr/local/bin/ffprobe_wrapper/ffprobew /usr/lib/jellyfin-ffmpeg/ffprobe
 
 # ffprober and ffprobe(w) are available system wide
 RUN cd /usr/local/bin && \
     ln -s /usr/lib/jellyfin-ffmpeg/ffprober ffprober && \
-    ln -s /usr/local/bin/ffprobe_wraper/ffprobew ffprobe
+    ln -s /usr/local/bin/ffprobe_wrapper/ffprobew ffprobe
 
 # expose nginx
 EXPOSE 8085
