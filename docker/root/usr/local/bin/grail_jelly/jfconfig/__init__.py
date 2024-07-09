@@ -13,7 +13,7 @@ def jfconfig():
     #global jfapikey
 
     # check if /jellygrail/jellyfin/config/data/jellyfin.db exists
-
+    triggerdata = []
     proceedinjf = None
 
     iwait = 0
@@ -46,7 +46,7 @@ def jfconfig():
             if len(array) > 0:
                 
                 jfapi.jfapikey = array[0]
-                jfapi.jfapikey = '485a44ec487bdda1084514eb403c5fa3' #TODO remove
+                #jfapi.jfapikey = '485a44ec487bdda1084514eb403c5fa3' #TODO remove
                 # logger.info(f"> retrieved API key is {jfapikey}")
                 logger.info(f"> retrieved Jellyfin API key is ***")
             
@@ -97,7 +97,7 @@ def jfconfig():
             # jfapi.jellyfin(f'Packages/Installed/Merge%20Versions', method='post')
 
             #delete unwanted triggers (chapter images and auto subtitle dl)
-            triggerdata = []
+
             jfapi.jellyfin(f'ScheduledTasks/4e6637c832ed644d1af3370a2506e80a/Triggers', json=triggerdata, method='post')
             jfapi.jellyfin(f'ScheduledTasks/2c66a88bca43e565d7f8099f825478f1/Triggers', json=triggerdata, method='post')
 
@@ -259,7 +259,7 @@ def jfconfig():
                 jfapi.jellyfin(f'Library/VirtualFolders', json=tvshowlib, method='post', params=dict(
                     name='Shows', collectionType="tvshows", paths=f"{base_v_root}/shows", refreshLibrary=False
                 ))
-                jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
+                # jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
                 # jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # disable merge episodes which is not working well
                 return "FIRST_RUN"
 

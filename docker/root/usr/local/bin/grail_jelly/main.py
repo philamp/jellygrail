@@ -302,6 +302,8 @@ def socket_server_waiting(socket_type):
 
 
 if __name__ == "__main__":
+
+    full_run = True
     
     # Thread 0.1 - UNIX Socket (nfo path retriever socket : loop waiting thread) -- multithread requests ready but bindfs is not
     thread_e = threading.Thread(target=socket_server_waiting, args=("nfopath",))
@@ -338,7 +340,7 @@ if __name__ == "__main__":
             _scan_instance.run()
         elif jf_config_result == "ZERO-RUN":
             logger.info(f"JellyGrail will now shutdown for restart in deamon mode, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
-            httpd.shutdown()
+            full_run = False
     else:
         _scan_instance = ScriptRunner.get(scan)
         _scan_instance.daemon = True 
@@ -347,41 +349,43 @@ if __name__ == "__main__":
     # TODO test toremove
     # nfo_loop_service()
 
-    # ------------------- threads A + Ars, B, C, D  -----------------------
-    
-    if RD_API_SET:
 
-        # A: rd_progress called automatically every 2mn
-        thread_a = threading.Thread(target=periodic_trigger)
-        thread_a.daemon = True  # 
-        thread_a.start()
-
-        # Ars: remoteScan trigger every 7mn
-        if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
-            thread_ars = threading.Thread(target=periodic_trigger_rs)
-            thread_ars.daemon = True  # 
-            thread_ars.start()
-            logger.info("~ Real Debrid API remoteScan will be triggered every 7mn")
+    if full_run == True:
+        # ------------------- threads A + Ars, B, C, D  -----------------------
         
-        logger.info("~ Real Debrid API rd_progress will be triggered every 2mn")
-    else:
-        logger.warning("> Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env")
+        if RD_API_SET:
+
+            # A: rd_progress called automatically every 2mn
+            thread_a = threading.Thread(target=periodic_trigger)
+            thread_a.daemon = True  # 
+            thread_a.start()
+
+            # Ars: remoteScan trigger every 7mn
+            if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
+                thread_ars = threading.Thread(target=periodic_trigger_rs)
+                thread_ars.daemon = True  # 
+                thread_ars.start()
+                logger.info("~ Real Debrid API remoteScan will be triggered every 7mn")
+            
+            logger.info("~ Real Debrid API rd_progress will be triggered every 2mn")
+        else:
+            logger.warning("> Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env")
 
 
-    # C: inotify deamon
-    if len(to_watch) > 0:
-        thread_c = threading.Thread(target=inotify_deamon, args=(to_watch,))
-        thread_c.daemon = True  # exits when parent thread exits
-        thread_c.start()
-    
-    # B: restart_jellygrail_at 6.30am
-    thread_b = threading.Thread(target=restart_jgdocker_at)
-    thread_b.daemon = True  # exits when parent thread exits
-    thread_b.start()
+        # C: inotify deamon
+        if len(to_watch) > 0:
+            thread_c = threading.Thread(target=inotify_deamon, args=(to_watch,))
+            thread_c.daemon = True  # exits when parent thread exits
+            thread_c.start()
+        
+        # B: restart_jellygrail_at 6.30am
+        thread_b = threading.Thread(target=restart_jgdocker_at)
+        thread_b.daemon = True  # exits when parent thread exits
+        thread_b.start()
 
-    # D: server thread
-    # server_thread = threading.Thread(target=run_server)
-    # server_thread.daemon = False
-    # server_thread.start()
-    run_server()
-    #server_thread.join() 
+        # D: server thread
+        # server_thread = threading.Thread(target=run_server)
+        # server_thread.daemon = False
+        # server_thread.start()
+        run_server()
+        #server_thread.join() 

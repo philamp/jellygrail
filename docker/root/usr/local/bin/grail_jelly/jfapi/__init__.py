@@ -3,7 +3,7 @@ from base import *
 from datetime import datetime
 
 
-BASE_URI = "http://172.22.2.2:8096" # TODO temp for test !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+BASE_URI = "http://localhost:8096" 
 
 jfapikey = None
 

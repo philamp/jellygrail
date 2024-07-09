@@ -233,7 +233,7 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
 
     fi
 
-    read -p $'\nIf an additional custom host mount folder is needed type the full desired path here\n(leave empty to keep empty/current: '"$ADD_HOST_MOUNT"$' )\n> ' add_host_mount
+    read -p $'\nIf an additional custom host mount folder is needed type the full desired path here\n(It should be a new path or empty folder !!)\n(leave empty to keep empty/current: '"$ADD_HOST_MOUNT"$' )\n> ' add_host_mount
 
     if [ ! -z "$ADD_HOST_MOUNT" ] && [ -z "$add_host_mount" ]; then
         add_host_mount="$ADD_HOST_MOUNT"
