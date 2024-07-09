@@ -44,7 +44,7 @@ def get_fastpass_ffprobe(file_path):
         return (ffprobe_data, fakestderror.encode("utf-8"), 0)
     sqclose()
 
-    logger.debug("fastpass ffprobew used, used normal ffprobe :(")
+    logger.debug(f"fastpass ffprobew used, used normal ffprobe :( with {file_path}")
     return get_plain_ffprobe(file_path)
 
 def init_mountpoints():

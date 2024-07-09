@@ -259,7 +259,7 @@ def handle_socket_request(connection, client_address, socket_type):
                 if data:
                     
                     message = data.decode('utf-8')
-                    logger.info(f"Message received from BindFS: {message}")
+                    # logger.info(f"Message received from BindFS: {message}")
 
                     #logger.info(f"Socket type is: {socket_type}")
                     # TODO toremove
