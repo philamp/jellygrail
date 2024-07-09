@@ -164,9 +164,19 @@ RUN WORKDIR=`mktemp -d` && \
     make clean all install && \
     rm -rf $WORKDIR
 
-# create a ffprobe symlink
+# ffprobew build
+RUN cd /usr/local/bin/ffprobe_wraper && \
+    gcc -o ffprobew ffprobew.c
+
+# ffprobe becomes ffprober
+RUN mv /usr/lib/jellyfin-ffmpeg/ffprobe /usr/lib/jellyfin-ffmpeg/ffprober
+# ffprobew becomes ffprobe via symlink
+RUN ln -s /usr/local/bin/ffprobe_wraper/ffprobew /usr/lib/jellyfin-ffmpeg/ffprobe
+
+# ffprober and ffprobe(w) are available system wide
 RUN cd /usr/local/bin && \
-    ln -s /usr/lib/jellyfin-ffmpeg/ffprobe ffprobe
+    ln -s /usr/lib/jellyfin-ffmpeg/ffprober ffprober && \
+    ln -s /usr/local/bin/ffprobe_wraper/ffprobew ffprobe
     
 # copy the rest
 COPY root/ /

@@ -141,10 +141,12 @@ if [ -d "/root/devmode" ]; then
   # echo "AuthorizedKeysFile /root/.ssh/authorized_keys" >> /etc/ssh/sshd_config
   service ssh start
   # dev-context services
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/remote_realdebrid
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_remote_realdebrid
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/remote_realdebrid
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_remote_realdebrid
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive1
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive2
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
   # disrupt normal execution
   cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/main.py
   mkdir -p /root/dev

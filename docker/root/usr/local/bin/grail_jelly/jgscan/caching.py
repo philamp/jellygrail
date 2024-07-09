@@ -11,7 +11,7 @@ def get_plain_ffprobe(file_path):
     # migrating to 8000000 analyse duration also
     try:
         command = [
-            "ffprobe", 
+            "ffprober", 
             "-v", "error",  # Hide logging
             "-analyzeduration", '8000000',
             "-print_format", "json",
