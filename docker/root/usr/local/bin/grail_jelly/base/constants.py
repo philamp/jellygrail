@@ -14,6 +14,7 @@ JF_MD_SHIFT = len(JF_METADATA_ROOT)
 
 JG_VIRTUAL = "/Video_Library/virtual"
 JG_VIRT_SHIFT = len(JG_VIRTUAL)
+JG_VIRT_SHIFT_FFP = JG_VIRT_SHIFT + len("file:")
 
 # jf_syncqueue_last_requested_date_file
 JFSQ_LAST_REQUEST = "/jellygrail/data/jf_sync_queue_last_request.txt"

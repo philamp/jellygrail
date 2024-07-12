@@ -33,7 +33,7 @@ def parse_ffprobe(stdout, filepathnotice):
         info = json.loads(stdout.decode("utf-8"))
 
         for stream in info['streams']:
-            if stream.get('codec_type') == "video" and stream.get('codec_name') != "mjpeg":
+            if stream.get('codec_type') == "video" and stream.get('codec_name') != "mjpeg" and stream.get('codec_name') != "png":
                 if stream.get('color_transfer') == "smpte2084":
                     hdrtpl = f" hdr10"
                 else:

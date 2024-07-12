@@ -32,13 +32,13 @@ def get_fastpass_ffprobe(file_path):
 
     logger.debug(f"filepath input is {file_path}")
 
-    logger.debug(f"filepath requested to sqlite is {file_path[JG_VIRT_SHIFT:]}")
+    logger.debug(f"filepath requested to sqlite is {file_path[JG_VIRT_SHIFT_FFP:]}")
 
 
     # todo use sqlite
     init_database()
-    print(get_path_props(file_path[JG_VIRT_SHIFT:]))
-    if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[JG_VIRT_SHIFT:]) if ffpitem[0] is not None]):
+    # print(get_path_props(file_path[JG_VIRT_SHIFT:]))
+    if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[JG_VIRT_SHIFT_FFP:]) if ffpitem[0] is not None]):
         ffprobe_data = ffprobesq_result[0]
         logger.debug("fastpass ffprobew used, used SQLITE ffprobe data, YEAH")
         return (ffprobe_data, fakestderror.encode("utf-8"), 0)
@@ -554,6 +554,7 @@ def scan():
                     mediatype = None
                     nomergetype = ""
                     metas = ""
+                    stdout = None
 
                     idxdupmovset = 1
                     #file not in a release folder

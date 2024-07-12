@@ -26,6 +26,16 @@ int read_all(int fd, void *buf, size_t count) {
 
 int main(int argc, char *argv[]) {
 
+
+    // Open the file for writing
+    FILE *errorFile = freopen("/root/error_log.txt", "w", stderr);
+    if (errorFile == NULL) {
+        perror("freopen");
+        exit(EXIT_FAILURE);
+    }
+
+    fprintf(stderr, "forced error to test stderr as a file");  
+
     if (argc < 3) {
         fprintf(stderr, "Usage: %s <arg1> <arg2> [... <argN>]\n", argv[0]);
         exit(EXIT_FAILURE);
@@ -159,6 +169,13 @@ int main(int argc, char *argv[]) {
     // Clean up
     free(stdout_data);
     free(stderr_data);
+
+
+    // Close the file
+    if (fclose(errorFile) != 0) {
+        perror("fclose");
+        exit(EXIT_FAILURE);
+    }
 
     // Exit with the return code from the server
     return return_code;

@@ -233,7 +233,13 @@ def handle_socket_request(connection, client_address, socket_type):
                 data = connection.recv(1024)
                 if data:
                     args = shlex.split(data.decode('utf-8'))
-                    messagein = args[-1]
+                    rkey = 3
+                    for key, arg in enumerate(args):
+                        if arg == "-i":
+                            logger.debug(f"filepath position in args is {key + 1}")
+                            rkey = key + 1
+
+                    messagein = args[rkey]
                     (stdout, stderr, returncode) = get_fastpass_ffprobe(messagein)
                     # Create a single message with lengths and data
                     # todo remove
@@ -287,6 +293,8 @@ def socket_server_waiting(socket_type):
 
     # Bind the socket to the address
     server_socket.bind(server_address)
+
+    os.chmod(server_address, 0o777)
 
     # Listen for incoming connections
     server_socket.listen()
