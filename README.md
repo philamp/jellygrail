@@ -1,4 +1,6 @@
-<img src="jellygrail_logo.png">
+> [!CAUTION]
+> Since July 11 2024, Jellygrail can't work properly anymore due to Real Debrid API changes. Currently trying to fix rclone_rd fork to make it work again.
+ <img src="jellygrail_logo.png">
 
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
