@@ -1,6 +1,8 @@
 > [!CAUTION]
-> Since July 11 2024, Jellygrail can't work properly anymore due to Real Debrid API changes. Currently trying to fix rclone_rd fork to make it work again.
- <img src="jellygrail_logo.png">
+> Since July 12 2024, Jellygrail could not work properly anymore due to Real Debrid API changes. **This is now fixed** but looking at the rclone_rd code I realized that:
+> - You need to have at least a weekly call to /scan service (initially it's only called upon new torrents found) otherwise rclone_rd will miss the "refresh root" regular trigger that it currently needs to keep torrents unbroken (if you disabled Jellyfin, the daily jellygrail restart also does the call to /scan, because of a quirk in the code).
+> - You should not not change the rclone.tpl.sh --tpslimit argument : it was already set to avoid overloading RD API. And if it's removed or change for a higher value, you'll get 429 http errors from RD service.
+> - These above quirks will be fixed in upcoming Jellygrail release (along with a lot of new features)
 
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
