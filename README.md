@@ -12,7 +12,11 @@
 >   - 1. open will flag the torrent as broken, then a refresh rclone root will redownload it.
 >   - 2. readdir/stat will evaluate the torrent as broken and redownload it, and will try to unrestrict links but if torrent download unfinished, will be unrestricted later on a readdir/stat trigger.
 >  
-> These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features). Point 4/ is harder to improve.
+> These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features).
+> 
+> - Point 4/ is harder to improve.
+> - Separated array for detailed torrents must be cleaned regularly.
+> - Torrents update calls seems to have too small range.
 
 <img src="jellygrail_logo.png">
 
