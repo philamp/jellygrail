@@ -4,6 +4,7 @@
 > - You should not not change the rclone.tpl.sh --tpslimit argument : it was already set to avoid overloading RD API. And if it's removed or change for a higher value, you'll get 429 http errors from RD service.
 > - Doing stat on an object (when Listing a dir, it stats every file) still call torrent/info/id endpoint each time and this shloud be avoided (will be fixed soon for this current release)
 > - restarting all jellygrail instances at the same time is not a good practice if a /scan is called for every instance at the same time (= a rush for RD at the same time)
+> 
 > These above Real Debrid related quirks will be fixed either soon or in upcoming Jellygrail release (along with a lot of new features)
 
 # What is JellyGrail ?
