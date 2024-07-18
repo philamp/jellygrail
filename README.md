@@ -3,7 +3,7 @@
 > - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. And if it's removed or changed for a higher value, you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with all API endpoints beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4**.
 >   - (pacer lib can be used to be even lighter on retries).
 > - 2/ you should absolutely let a reasonable value for ``--dir-cache-time`` argument, such as ``10s``. If reduced rclone root refresh triggers /torrents endpoint too much -> **it seems to be a potential 2nd reason Real Debrid had issues with /torrents API endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 10s**.
-> - 3/ re-Starting every rclone instance (jellygrail restarts overnight) is not optimal:
+> - 3/ re-starting every rclone instance (jellygrail restarts overnight) is not optimal:
 >   - if in the same timezone at the same time, this is globally heavy on RD API calls.
 >     - can be improved with a regular dump to file, reloaded at rclone startup
 >   - torrent links details lost
