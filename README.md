@@ -13,7 +13,7 @@
 >   - first open will flag the torrent as broken, then a refresh rclone root will redownload it.
 >   - or first readdir/stat will evaluate the torrent as broken and redownload it, and will try to unrestrict links but it might be unfinished.
 >  
-> These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features).
+> These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features). Point 4/ is harder to fix 
 
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
