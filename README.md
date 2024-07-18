@@ -1,12 +1,12 @@
 > [!CAUTION]
 > Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes. **This is now fixed** but looking at the rclone_rd code I realized that:
-> - 1/ You should not not change the rclone.tpl.sh --tpslimit argument : it was already set to avoid overloading RD API. And if it's removed or change for a higher value, you'll get 429 http errors from RD service.
->   - pacer lib can be used to be even lighter on retries.
-> - 1bis/ you should absolutely let the --dir-cache-time 10s argument. if removed the rclone root refresh triggers /torrents endpoints (however with a limit of 1 result, so no catastrophic (higher limit is set every 15 minutes hardcoded)) -> **it seems to be the no.1 reason Real Debrid had issues with /torrents beeing overloaded with bad implementations of rclone_rd. Jellygrail always had this argument set since the beggining** 
+> - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. And if it's removed or changed for a higher value, you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with /torrents endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4 since the beggining**.
+>   - (pacer lib can be used to be even lighter on retries).
+> - 1bis/ you should absolutely let a reasonable value for ``--dir-cache-time`` argument, such as ``10s``. If reduced rclone root refresh triggers /torrents endpoint (however with a pagelimit of 1 result, so no catastrophic (higher pagelimit is requested every 15 minutes)) -> **it seems to be a potential 2nd reason Real Debrid had issues with /torrents endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 10s since the beggining**.
 > - 2/ Doing stat on an object (when listing a dir for instance, it stats every file) still calls torrent/info/id endpoint each time, should and can be easily avoided (will be fixed soon for this current release). -> fixed for a rclone session but point 3/ flushes everything
 > - 3/ re-Starting every rclone instance (jellygrail restarts overnight) has issues:
 >   - if in the same timezone at the same time, this is heavy on RD API.
->     - can be improved with a dump to file, relaoded at start
+>     - can be improved with a dump to file, reloaded at start
 >   - torrent links details lost
 >     - can be improved with a dump to file, reloaded a start
 > - 4/ rclone_rd does not know how to fix restricted links without flagging the parent torrent as broken and can't do that on the fly. 2 possibilities but it's unclear:
