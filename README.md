@@ -1,6 +1,6 @@
 > [!CAUTION]
 > Since July 12 2024, Jellygrail could not work properly anymore due to Real Debrid API changes. **This is now fixed** but looking at the rclone_rd code I realized that:
-> - You need to have at least a weekly call to /scan service (initially it's only called upon new torrents found) otherwise rclone_rd will miss the "refresh root" regular trigger that it currently needs to keep torrents unbroken (if you disabled Jellyfin, the daily jellygrail restart also does the call to /scan, because of a quirk in the code).
+> - You need to have at least a weekly call to /scan service (initially it's only called upon new torrents found) otherwise rclone_rd will miss the "refresh root" regular trigger that it currently needs to keep torrents unbroken (if you disabled Jellyfin, the daily jellygrail restart also does the call to /scan, because of a lucky quirk in the code).
 > - You should not not change the rclone.tpl.sh --tpslimit argument : it was already set to avoid overloading RD API. And if it's removed or change for a higher value, you'll get 429 http errors from RD service.
 > - These above quirks will be fixed in upcoming Jellygrail release (along with a lot of new features)
 
