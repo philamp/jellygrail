@@ -1,19 +1,18 @@
 > [!CAUTION]
 > Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes impacting rclone_rd app. **This is now fixed in my fork** but looking at the rclone_rd code I realized that:
-> - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. And if it's removed or changed for a higher value, you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with all API endpoints beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4 since the beggining**.
+> - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. And if it's removed or changed for a higher value, you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with all API endpoints beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4**.
 >   - (pacer lib can be used to be even lighter on retries).
-> - 1bis/ you should absolutely let a reasonable value for ``--dir-cache-time`` argument, such as ``10s``. If reduced rclone root refresh triggers /torrents endpoint too much (however with a pagelimit of 1 result, so no catastrophic (higher pagelimit is requested every 15 minutes)) -> **it seems to be a potential 2nd reason Real Debrid had issues with /torrents API endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 10s since the beggining**.
-> - 2/ Doing stat on an object (when listing a dir for instance, it stats every file) still calls torrent/info/id endpoint each time, should and can be easily avoided (will be fixed soon for this current release). -> fixed for a rclone session but point 3/ flushes everything
-> - 3/ re-Starting every rclone instance (jellygrail restarts overnight) has issues:
->   - if in the same timezone at the same time, this is heavy on RD API.
->     - can be improved with a dump to file, reloaded at start
+> - 2/ you should absolutely let a reasonable value for ``--dir-cache-time`` argument, such as ``10s``. If reduced rclone root refresh triggers /torrents endpoint too much -> **it seems to be a potential 2nd reason Real Debrid had issues with /torrents API endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 10s**.
+> - 3/ re-Starting every rclone instance (jellygrail restarts overnight) is not optimal:
+>   - if in the same timezone at the same time, this is globally heavy on RD API calls.
+>     - can be improved with a regular dump to file, reloaded at rclone startup
 >   - torrent links details lost
->     - can be improved with a dump to file, reloaded a start
-> - 4/ rclone_rd does not know how to fix restricted links without flagging the parent torrent as broken and can't do that on the fly. 2 possibilities but it's unclear:
->   - first open will flag the torrent as broken, then a refresh rclone root will redownload it.
->   - or first readdir/stat will evaluate the torrent as broken and redownload it, and will try to unrestrict links but it might be unfinished.
+>     - can be improved with a regular dump to file, reloaded at rclone startup
+> - 4/ rclone_rd does not know how to fix restricted links without flagging the parent torrent as broken and can't do that on the fly. Currently it seems to follow 2 paths but it's unclear:
+>   - 1. open will flag the torrent as broken, then a refresh rclone root will redownload it.
+>   - 2. readdir/stat will evaluate the torrent as broken and redownload it, and will try to unrestrict links but if torrent download unfinished, will be unrestricted later on a readdir/stat trigger.
 >  
-> These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features). Point 4/ is harder to fix 
+> These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features). Point 4/ is harder to improve.
 
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
