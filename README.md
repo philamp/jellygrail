@@ -5,9 +5,9 @@
 > - 2/ you should absolutely let a reasonable value for ``--dir-cache-time`` argument, such as ``10s``. If reduced rclone root refresh triggers /torrents endpoint too much -> **it seems to be a potential 2nd reason Real Debrid had issues with /torrents API endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 10s**.
 > - 3/ re-starting every rclone instance (jellygrail restarts overnight) is not optimal:
 >   - if in the same timezone at the same time, this is globally heavy on RD API calls.
->     - can be improved with a regular dump to file, reloaded at rclone startup
->   - torrent links details lost
->     - can be improved with a regular dump to file, reloaded at rclone startup
+>     - can be improved with a regular dump to file, reloaded at rclone startup to avoid some useless API calls.
+>   - torrent links details lost (they're only loaded in RAM)
+>     - can be improved with a regular dump to file, reloaded at rclone startup to avoid some useless API calls.
 > - 4/ rclone_rd does not know how to fix restricted links without flagging the parent torrent as broken and can't do that on the fly. Currently it seems to follow 2 paths but it's unclear:
 >   - 1. open will flag the torrent as broken, then a refresh rclone root will redownload it.
 >   - 2. readdir/stat will evaluate the torrent as broken and redownload it, and will try to unrestrict links but if torrent download unfinished, will be unrestricted later on a readdir/stat trigger.
