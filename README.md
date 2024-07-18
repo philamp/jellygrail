@@ -14,9 +14,9 @@
 >  
 > These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features).
 > 
-> - Point 4/ is harder to improve.
-> - Separated array for detailed torrents must be cleaned regularly.
-> - Torrents update calls seems to have too small range.
+> - Other dev points
+>   - Separated array for detailed torrents must be cleaned regularly.
+>   - Torrents update calls seems to have too small range.
 
 <img src="jellygrail_logo.png">
 
