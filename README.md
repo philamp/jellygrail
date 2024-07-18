@@ -1,13 +1,18 @@
 > [!CAUTION]
 > Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes. **This is now fixed** but looking at the rclone_rd code I realized that:
 > - 1/ You should not not change the rclone.tpl.sh --tpslimit argument : it was already set to avoid overloading RD API. And if it's removed or change for a higher value, you'll get 429 http errors from RD service.
+>   - pacer lib can be used to be even lighter on retries.
+> - 1bis/ you should absolutely let the --dir-cache-time 10s argument. if removed the rclone root refresh triggers /torrents endpoints (however with a limit of 1 result, so no catastrophic (higher limit is set every 15 minutes hardcoded)) -> **it seems to be the no.1 reason Real Debrid had issues with /torrents beeing overloaded with bad implementations of rclone_rd. Jellygrail always had this argument set since the beggining** 
 > - 2/ Doing stat on an object (when listing a dir for instance, it stats every file) still calls torrent/info/id endpoint each time, should and can be easily avoided (will be fixed soon for this current release). -> fixed for a rclone session but point 3/ flushes everything
 > - 3/ re-Starting every rclone instance (jellygrail restarts overnight) has issues:
 >   - if in the same timezone at the same time, this is heavy on RD API.
->     - can be improved with a dump to file
+>     - can be improved with a dump to file, relaoded at start
 >   - torrent links details lost
->     - can be improved with a dump to file 
-> 
+>     - can be improved with a dump to file, reloaded a start
+> - 4/ rclone_rd does not know how to fix restricted links without flagging the parent torrent as broken and can't do that on the fly. 2 possibilities but it's unclear:
+>   - first open will flag the torrent as broken, then a refresh rclone root will redownload it.
+>   - or first readdir/stat will evaluate the torrent as broken and redownload it, and will try to unrestrict links but it might be unfinished.
+>  
 > These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features).
 
 # What is JellyGrail ?
