@@ -1,7 +1,7 @@
 > [!CAUTION]
 > Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes. **This is now fixed** but looking at the rclone_rd code I realized that:
 > - You should not not change the rclone.tpl.sh --tpslimit argument : it was already set to avoid overloading RD API. And if it's removed or change for a higher value, you'll get 429 http errors from RD service.
-> - Doing stat on an object (when listing a dir for instance, it stats every file) still calls torrent/info/id endpoint each time, should and can be easily avoided (will be fixed soon for this current release). -> fixed for a rclone session, but when reloaded everything has to be reloaded (it's only in RAM)
+> - Doing stat on an object (when listing a dir for instance, it stats every file) still calls torrent/info/id endpoint each time, should and can be easily avoided (will be fixed soon for this current release). -> fixed for a rclone session, but when rclone restarted everything has to be reloaded (it's only in RAM)
 > 
 > These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features).
 
