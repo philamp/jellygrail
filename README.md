@@ -14,6 +14,8 @@
 >  
 > These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features). Point 4/ is harder to improve.
 
+<img src="jellygrail_logo.png">
+
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
 > *Jellyfin is an opensource alternative to Plex.
