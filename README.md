@@ -1,22 +1,14 @@
 > [!CAUTION]
-> Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes impacting rclone_rd app. **This is now fixed in my fork** but looking at the rclone_rd code I realized that:
-> - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. And if it's removed or changed for a higher value, you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with all API endpoints beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4**.
->   - (pacer lib can be used to be even lighter on retries).
+> Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes impacting rclone_rd app. **This is now fixed in my fork, and with improvements** but looking at the rclone_rd code I realized that:
+> - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. Otherwise you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with all API endpoints beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4**.
 > - 2/ you should absolutely let a reasonable value for ``--dir-cache-time`` argument, such as ``10s``. If reduced rclone root refresh triggers /torrents endpoint too much -> **it seems to be a potential 2nd reason Real Debrid had issues with /torrents API endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 10s**.
-> - 3/ re-starting every rclone instance (jellygrail restarts overnight) is not optimal:
->   - if in the same timezone at the same time, this is globally heavy on RD API calls.
->     - can be improved with a regular dump to file, reloaded at rclone startup to avoid some useless API calls.
->   - torrent links details lost (they're only loaded in RAM)
->     - can be improved with a regular dump to file, reloaded at rclone startup to avoid some useless API calls.
-> - 4/ rclone_rd does not know how to fix restricted links without flagging the parent torrent as broken and can't do that on the fly. Currently it seems to follow 2 paths but it's unclear:
->   - 1. open will flag the torrent as broken, then a refresh rclone root will redownload it.
->   - 2. readdir/stat will evaluate the torrent as broken and redownload it, and will try to unrestrict links but if torrent download unfinished, will be unrestricted later on a readdir/stat trigger.
+> - 3/ re-starting every rclone instance (jellygrail restarts overnight) is not optimal: **-> FIXED** with regular dump to file for ``/downloads`` and ``/torrent/info`` data. Only ``/torrents`` is fetched regularly.
+> - 4/ rclone_rd did not not know how to unrestrict links on the fly (or to fix bad unrestricted links). **-> FIXED**
+>   - And it will unrestrict only on very first listing and then keep the old link untill the user really opens the file. Huge difference from original rclone_rd. It decreases unrestricting calls a lot. Combined with jellygrail cache for RAR, ISO and ffprobe data, API endpoints and remote assets are rarely requested.
+> - 5/ Log file ``/jellygrail/log/remote_realdebrid`` is still very verbose to track any issue or abnormal API calls.
 >  
-> These Real Debrid related quirks will be fixed either soon or in upcoming JellyGrail release (along with a lot of new features).
-> 
-> - Other dev points
->   - Separated array for detailed torrents must be cleaned regularly.
->   - Torrents update calls seems to have too small range.
+> These Real Debrid related quirks are now **-> FIXED** for the most part and the little remainging ones will be soon
+
 
 <img src="jellygrail_logo.png">
 
