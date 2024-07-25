@@ -6,7 +6,7 @@
 > - 4/ rclone_rd did not not know how to unrestrict links on the fly (or to fix bad unrestricted links). **-> FIXED**
 >   - And it will unrestrict only on very first listing and then keep the old link untill the user really opens the file. Huge difference from original rclone_rd. It decreases unrestricting calls a lot. Combined with jellygrail cache for RAR, ISO and ffprobe data, API endpoints and remote assets are rarely requested.
 > - 5/ Log file ``/jellygrail/log/remote_realdebrid`` is still very verbose to track any issue or abnormal API calls.
-> - 6/ Note that my rclone_rd fork has a tuned cache system for random access on RAR and ISO file structures, thus avoiding multiple parralel HTTP sessions + useless requests to remote HTTP assets. Other solution to avoid rate-limiting issues would be to unrestrict a new link but it is surely not a fait-use practice. So Jellygrail won't do that
+> - 6/ Note that my rclone_rd fork has a tuned cache system for random access on RAR and ISO file structures, thus avoiding multiple repetitive parallel HTTP sessions. Other solution to avoid these rate-limiting related issues would be to unrestrict a new link but it is surely not a fair-use practice. So Jellygrail won't do that.
 >  
 > These Real Debrid related quirks are now **-> FIXED** for the most part and the little remainging ones will be soon
 
