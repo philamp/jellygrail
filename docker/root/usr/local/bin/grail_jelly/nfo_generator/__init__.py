@@ -18,10 +18,18 @@ from jgscan.jgsql import *
 # todo is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
 # WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
+
+def get_tech_xml_details():
+    # build the tech part of the nfo
+    return
+
 def fetch_nfo():
     # todo
     # given a bindfs provided virtual nfo path, give a populatednfo path
-    # movie : find .jf else .jg else generate .jg with fileinfo thanks to ffp data
+    # movie : find .jf else .jg else generate .jg with fileinfo thanks to ffp data in db
+    # show : find .jf else .jg else generate .jg with dummy data
+    # 
+    # careful to M_DUP and S_DUP management : no more identical.mkv + identical.mp4
 
 
 

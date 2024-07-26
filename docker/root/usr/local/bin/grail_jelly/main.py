@@ -11,7 +11,7 @@ import os
 import datetime
 import socket
 import struct
-from nfo_generator import nfo_loop_service
+from nfo_generator import nfo_loop_service, fetch_nfo
 
 # import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
 from script_runner import ScriptRunner
