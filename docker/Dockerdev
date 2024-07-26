@@ -16,7 +16,7 @@ RUN set -eux; \
 
 RUN apt-get update && apt-get install git -y
 
-ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/develop rclone_jelly_version.json
+ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/master rclone_jelly_version.json
 
 RUN rm -rf /go/src/github.com/rclone/rclone/
 
@@ -24,7 +24,7 @@ RUN mkdir -p /go/src/github.com/rclone/rclone/
 
 WORKDIR /go/src/github.com/rclone/rclone/
 
-RUN git clone -b develop https://github.com/philamp/rclone_jelly.git --single-branch .
+RUN git clone https://github.com/philamp/rclone_jelly.git .
 
 RUN CGO_ENABLED=0 make
 RUN ./rclone version
