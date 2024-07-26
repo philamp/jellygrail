@@ -6,6 +6,7 @@ from datetime import datetime
 import jfapi
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
+from jgscan.jgsql import *
 
 # Name of librairies
 # LIB_NAMES = ("Movies", "Shows")
@@ -15,7 +16,16 @@ from xml.dom import minidom
 
 # Webdav ip + port specified for local network (as seen by a local network device)
 # todo is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
-WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
+# WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
+
+def fetch_nfo():
+    # todo
+    # given a bindfs provided virtual nfo path, give a populatednfo path
+    # movie : find .jf else .jg else generate .jg with fileinfo thanks to ffp data
+
+
+
+    return
 
 def nfo_loop_service():
 

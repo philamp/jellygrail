@@ -165,7 +165,14 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
         read -p $'\nFrom the remote JellyGrail instance, do you want to take the whole content of torrents, including folders ? yes/no (default: yes ; leave empty to keep default):\n> ' whole_content
     fi
 
-    read -p $'\nDo you want to use integrated Jellyfin ? \nyes/no (default: yes ; leave empty to keep default)\n> ' jf_wanted
+
+
+
+    read -p $'\nDo you want to use integrated Jellyfin ? \nyes/no (leave empty to keep default/current: '"$JF_WANTED"$')\n> ' jf_wanted
+
+    if [ ! -z "$JF_WANTED" ] && [ -z "$jf_wanted" ]; then
+        jf_wanted="$JF_WANTED"
+    fi
 
     if [ "$jf_wanted" = "no" ]; then
 

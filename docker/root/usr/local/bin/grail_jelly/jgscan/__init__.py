@@ -628,7 +628,7 @@ def scan():
     if JF_WANTED:
         # refresh the jellyfin library and merge variants
         lib_refresh_all()
-        merge_versions()
+        merge_versions() # todo remove as it's not reliable anyway
     else:
         if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
             try:
