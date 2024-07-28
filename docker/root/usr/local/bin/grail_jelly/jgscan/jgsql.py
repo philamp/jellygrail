@@ -125,6 +125,13 @@ def get_path_props(path):
     cursor.execute("SELECT ffprobe FROM main_mapping WHERE virtual_fullpath = depenc(?)", (path,))
     return cursor.fetchall()
 
+def get_path_props_woext(path):
+    global conn
+    cursor = conn.cursor()
+    cursor.execute("SELECT ffprobe FROM main_mapping WHERE substr(depenc(virtual_fullpath), 1, instr(depenc(virtual_fullpath), '.') - 1) = ?", (path,))
+    return cursor.fetchall()
+
+
 
 '''
 def init_jellyfin_db(path):

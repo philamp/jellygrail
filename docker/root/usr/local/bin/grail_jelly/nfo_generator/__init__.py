@@ -18,12 +18,15 @@ from jgscan.jgsql import *
 # todo is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
 # WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
+def build_jg_nfo(nfopath):
+    return
+
 
 def get_tech_xml_details():
     # build the tech part of the nfo
     return
 
-def fetch_nfo():
+def fetch_nfo(nfopath):
     # todo
     # given a bindfs provided virtual nfo path, give a populatednfo path
     # movie : find .jf else .jg else generate .jg with fileinfo thanks to ffp data in db
@@ -31,9 +34,27 @@ def fetch_nfo():
     # 
     # careful to M_DUP and S_DUP management : no more identical.mkv + identical.mp4
 
+    fallback = "" # put a default path
+    
+    if ("/movies" in nfopath[JG_VIRT_SHIFT:JG_VIRT_SHIFT+7]):
+        pathtotest = JFSQ_STORED_NFO + get_wo_ext(nfopath[JG_VIRT_SHIFT:]) + ".nfo"
+        pathtotestjf = pathtotest + ".jf"
+        if os.path.exists(pathtotestjf):
+            return pathtotestjf
+        else:
+            pathtotestjg = pathtotest + ".jg"
+            if os.path.exists(pathtotestjg):
+                return pathtotestjg
+            else:
+                # build the jg simple nfo ....
+                build_jg_nfo(nfopath)
+                return pathtotestjg
+
+            
 
 
-    return
+
+    return fallback
 
 def nfo_loop_service():
 
