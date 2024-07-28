@@ -18,8 +18,27 @@ from jgscan.jgsql import *
 # todo is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
 # WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
-def build_jg_nfo(nfopath):
-    return
+def build_jg_nfo(nfopath, pathjg):
+    root = ET.Element("movie") # ...indeed
+    pathwoext = get_wo_ext(nfopath)
+    title = os.path.basename(pathwoext)
+    dirnames = os.path.dirname(pathjg)
+    ET.SubElement(root, "title").text = title
+    ET.SubElement(root, "uniqueid", {"type": "default"}).text = dirnames
+
+    tree = ET.ElementTree(root)
+    xml_str = ET.tostring(root, encoding="unicode")
+    pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
+    #print(pretty_xml_str)
+
+    try:
+        os.makedirs(dirnames, exist_ok = True)
+        with open(pathjg, "w", encoding="utf-8") as file:
+            file.write(pretty_xml_str)
+    except Exception as e:
+        return False
+
+    return True
 
 
 def get_tech_xml_details():
@@ -34,21 +53,25 @@ def fetch_nfo(nfopath):
     # 
     # careful to M_DUP and S_DUP management : no more identical.mkv + identical.mp4
 
-    fallback = "" # put a default path
+    fallback = "/mounts/filedefaultnfo_readme.txt" # put a default path
+
+    logger.debug(f"movies str equal ?:{nfopath}")
     
-    if ("/movies" in nfopath[JG_VIRT_SHIFT:JG_VIRT_SHIFT+7]):
-        pathtotest = JFSQ_STORED_NFO + get_wo_ext(nfopath[JG_VIRT_SHIFT:]) + ".nfo"
-        pathtotestjf = pathtotest + ".jf"
-        if os.path.exists(pathtotestjf):
-            return pathtotestjf
+    if ("/movies" in nfopath[:7]):
+        logger.debug("nfo movie to be created")
+        path = JFSQ_STORED_NFO + get_wo_ext(nfopath) + ".nfo"
+        pathjf = path + ".jf"
+        if os.path.exists(pathjf):
+            return pathjf
         else:
-            pathtotestjg = pathtotest + ".jg"
-            if os.path.exists(pathtotestjg):
-                return pathtotestjg
+            pathjg = path + ".jg"
+            if os.path.exists(pathjg):
+                return pathjg
             else:
                 # build the jg simple nfo ....
-                build_jg_nfo(nfopath)
-                return pathtotestjg
+                logger.debug(f"pathjg that will be written is: {pathjg}")
+                if build_jg_nfo(nfopath, pathjg):
+                    return pathjg
 
             
 

@@ -269,7 +269,8 @@ def handle_socket_request(connection, client_address, socket_type):
 
                     #logger.info(f"Socket type is: {socket_type}")
                     # TODO toremove
-                    response = "/jellygrail/data/nfos/movies/Godzilla Minus One (2023)/Godzilla Minus One (2023) - 2160p Blu-ray H.265 JGx1.nfo.jf"
+                    response = fetch_nfo(message)
+                    logger.debug(f" nfo created or found is :{response}")
                     connection.sendall(response.encode('utf-8'))
                 else:
                     logger.debug(f"main/socket | Client CLOSING {socket_type} service.")
