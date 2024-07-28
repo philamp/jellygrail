@@ -8,7 +8,10 @@
 > - 5/ Log file ``/jellygrail/log/remote_realdebrid`` is still very verbose to track any issue or abnormal API calls.
 > - 6/ Note that my rclone_rd fork has a tuned cache system for random access on RAR and ISO file structures, thus avoiding multiple repetitive parallel HTTP sessions. Other solution to avoid these rate-limiting related issues would be to unrestrict a new link but it is surely not a fair-use practice. So Jellygrail won't do that.
 >  
-> These Real Debrid related quirks are now **-> FIXED** for the most part and the little remainging ones will be soon
+> These Real Debrid related quirks are now **-> FIXED**.
+> 
+> The only remaining issue seems to be that accumulated unrestricted links (accumulation is on purpose) are deduplicated but not aligned upon refreshed torrents list, so this array grows a little bit too much over time, but nothing to worry about in terms of execution speed and RAM. This will be fixed way before it becomes a problem.
+
 
 
 <img src="jellygrail_logo.png">
