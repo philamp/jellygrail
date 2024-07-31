@@ -1,6 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-# TODO put back docker stop start commands in place
+# put back docker stop start commands in place
 VERSION="20240715"
 
 SETTINGS_PATH="./jellygrail/config/settings.env"

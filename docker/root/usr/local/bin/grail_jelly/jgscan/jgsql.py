@@ -128,7 +128,7 @@ def get_path_props(path):
 def get_path_props_woext(path):
     global conn
     cursor = conn.cursor()
-    cursor.execute("SELECT ffprobe FROM main_mapping WHERE substr(depenc(virtual_fullpath), 1, instr(depenc(virtual_fullpath), '.') - 1) = ?", (path,))
+    cursor.execute("SELECT ffprobe FROM main_mapping WHERE virtual_fullpath LIKE '%' || ? || '%'", (path,))
     return cursor.fetchall()
 
 

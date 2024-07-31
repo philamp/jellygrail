@@ -28,14 +28,16 @@ def parse_ffprobe(stdout, filepathnotice):
     bitratetpl = ""
     resolutiontpl = ""
     codectpl = ""
+    audiotpla = ""
+    audiotplb = ""
     _dvprofile = None
     try:
         info = json.loads(stdout.decode("utf-8"))
 
-        for stream in info['streams']:
+        for stream in info.get('streams', []):
             if stream.get('codec_type') == "video" and stream.get('codec_name') != "mjpeg" and stream.get('codec_name') != "png":
                 if stream.get('color_transfer') == "smpte2084":
-                    hdrtpl = f" hdr10"
+                    hdrtpl = " hdr10"
                 else:
                     hdrtpl = f" sdr{get_bit_depth(stream.get('pix_fmt', 'yuv420p'))}"
 
@@ -54,6 +56,21 @@ def parse_ffprobe(stdout, filepathnotice):
                         else:
                             resolutiontpl = f" {str(resy)}p"
 
+            elif codec_name in ['eac3', 'mlp']:
+                channel_layout = stream.get('channel_layout')
+            # eac3 (Enhanced AC-3) is often used for Atmos
+            # mlp (Meridian Lossless Packing) is used for TrueHD (which can carry Atmos)
+                if ('atmos' in (stream.get('tags') or {}).get('title', '').lower()) or (codec_name == 'eac3' and channel_layout and '7.1' in channel_layout) or (codec_name == 'mlp' and channel_layout and 'object_based' in channel_layout):
+                    audiotpla = " Atmos"
+
+            elif codec_name in ['dts', 'dts_hd']:
+                dtitle = (stream.get('tags') or {}).get('title', '').lower()
+            # Additional check in the 'title' metadata if available
+                if 'dts:x' in dtitle or 'dtsx' in dtitle:
+                    audiotplb = " dtsx"
+
+
+
         if(info.get('format')):
             if bitrate := info.get("format").get("bit_rate"):
                 bitrate = str(round(int(info.get("format").get("bit_rate")) / 1000000))
@@ -63,7 +80,7 @@ def parse_ffprobe(stdout, filepathnotice):
         logger.error(f"jgscan/caching | Fail to extract stream details on {filepathnotice}")
 
 
-    return (f"{bitratetpl}{resolutiontpl}{hdrtpl}{codectpl}", _dvprofile)
+    return (f"{bitratetpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile)
 
 def find_most_similar(input_str, string_list):
     # This returns the best match, its score and index

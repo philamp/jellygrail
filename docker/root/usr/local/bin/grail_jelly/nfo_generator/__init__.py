@@ -18,18 +18,29 @@ from jgscan.jgsql import *
 # todo is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
 # WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
-def build_jg_nfo(nfopath, pathjg):
-    root = ET.Element("movie") # ...indeed
+def build_jg_nfo_video(nfopath, pathjg, nfotype):
+    root = ET.Element(nfotype) # ...indeed
     pathwoext = get_wo_ext(nfopath)
     title = os.path.basename(pathwoext)
     dirnames = os.path.dirname(pathjg)
-    ET.SubElement(root, "title").text = title
-    ET.SubElement(root, "uniqueid", {"type": "default"}).text = dirnames
+    if nfotype == "tvshow":
+        ET.SubElement(root, "title").text = os.path.basename(os.path.dirname(nfopath))
+    else:
+        ET.SubElement(root, "title").text = title
+    ET.SubElement(root, "uniqueid", {"type": "default"}).text = (os.path.dirname(nfopath)).replace("/", "_").replace(" ", "-")
 
-    tree = ET.ElementTree(root)
+
+    #get tech details return et.element -----------
+    if nfotype == "movie" or nfotype == "episodedetails": # --- todo continue other types
+        if tech_details := get_tech_xml_details(pathwoext):
+            root.append(tech_details)
+
+    #tree = ET.ElementTree(root)
     xml_str = ET.tostring(root, encoding="unicode")
     pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
     #print(pretty_xml_str)
+
+
 
     try:
         os.makedirs(dirnames, exist_ok = True)
@@ -41,9 +52,81 @@ def build_jg_nfo(nfopath, pathjg):
     return True
 
 
-def get_tech_xml_details():
+def get_tech_xml_details(pathwoext):
     # build the tech part of the nfo
-    return
+    init_database()
+    if (ff_result := [ffpitem[0] for ffpitem in get_path_props_woext(pathwoext) if ffpitem[0] is not None]):
+        info = json.loads(ff_result[0].decode("utf-8"))
+
+        fileinfo = ET.Element('fileinfo')
+        streamdetails = ET.SubElement(fileinfo, 'streamdetails')
+
+        # Mapping of ffprobe keys to desired XML tags
+        AV_KEY_MAPPING = {
+            'codec_name': 'codec',
+            'display_aspect_ratio': 'aspect',
+            'width': 'width',
+            'height': 'height',
+            'channels': 'channels'
+        }
+
+        T_FORMAT = "%H:%M:%S"
+        
+        # Iterate over streams and add details to 'streamdetails' 
+        for stream in info.get('streams', []):
+            # VIDEO
+            hdrtype = None
+            if stream.get('codec_type') == "video" and stream.get('codec_name') != "mjpeg" and stream.get('codec_name') != "png":
+                video_element = ET.Element('video')
+                for ffprobe_key, xml_tag in AV_KEY_MAPPING.items():
+                    if ffprobe_key in stream:
+                        sub_element = ET.SubElement(video_element, xml_tag)
+                        sub_element.text = str(stream[ffprobe_key])
+                
+                # HDR
+                if stream.get('color_transfer') == "smpte2084":
+                    hdrtype = "hdr10"
+                if( sideinfo := stream.get('side_data_list') ):
+                    if(sideinfo[0].get('dv_profile')):
+                        hdrtype = "dolbyvision"
+                if hdrtype:
+                    sub_element = ET.SubElement(video_element, "hdrtype").text = hdrtype
+
+                # VTAGS
+                if( tags := stream.get('tags') ):
+                    if (tags.get('DURATION')):
+                        parsed_time = datetime.strptime(tags.get('DURATION')[:8], T_FORMAT)
+                        total_seconds = parsed_time.hour * 3600 + parsed_time.minute * 60 + parsed_time.second
+                        ET.SubElement(video_element, "durationinseconds").text = str(total_seconds)
+                    if (tags.get('language')):
+                        ET.SubElement(video_element, "language").text = tags.get('language')
+
+                streamdetails.append(video_element)
+            # AUDIO
+            if stream.get('codec_type') == "audio":
+                audio_element = ET.Element('audio')
+                for ffprobe_key, xml_tag in AV_KEY_MAPPING.items():
+                    if ffprobe_key in stream:
+                        sub_element = ET.SubElement(audio_element, xml_tag)
+                        sub_element.text = str(stream[ffprobe_key])
+                if( tags := stream.get('tags') ):
+                    if (tags.get('language')):
+                        ET.SubElement(audio_element, "language").text = tags.get('language')
+                streamdetails.append(audio_element)
+            # Subs
+            if stream.get('codec_type') == "subtitle":
+                subtitle_element = ET.Element('subtitle')
+                if( tags := stream.get('tags') ):
+                    if (tags.get('language')):
+                        ET.SubElement(subtitle_element, "language").text = tags.get('language')
+                streamdetails.append(subtitle_element)
+
+
+        sqclose()
+        return fileinfo
+
+    sqclose()
+    return None
 
 def fetch_nfo(nfopath):
     # todo
@@ -55,29 +138,42 @@ def fetch_nfo(nfopath):
 
     fallback = "/mounts/filedefaultnfo_readme.txt" # put a default path
 
-    logger.debug(f"movies str equal ?:{nfopath}")
+    #logger.debug(f"movies str equal ?:{nfopath}")
     
-    if ("/movies" in nfopath[:7]):
-        logger.debug("nfo movie to be created")
-        path = JFSQ_STORED_NFO + get_wo_ext(nfopath) + ".nfo"
-        pathjf = path + ".jf"
+    path = JFSQ_STORED_NFO + get_wo_ext(nfopath) + ".nfo"
+    pathjf = path + ".jf"
+    pathjg = path + ".jg"
+
+    nfotype = None
+
+    # switch case for video file
+    if "/movies" in nfopath[:7] and "bdmv" not in nfopath.lower() and "video_ts" not in nfopath.lower():
+        nfotype = "movie"
+                
+    # switch for tvshow file
+    elif os.path.basename(nfopath) == "tvshow.nfo":
+        nfotype = "tvshow"
+
+    # switch for episode
+    elif "/shows" in nfopath[:6]:
+        nfotype = "episodedetails"
+
+    # ----
+
+    if nfotype != None:
         if os.path.exists(pathjf):
             return pathjf
         else:
-            pathjg = path + ".jg"
             if os.path.exists(pathjg):
                 return pathjg
             else:
                 # build the jg simple nfo ....
-                logger.debug(f"pathjg that will be written is: {pathjg}")
-                if build_jg_nfo(nfopath, pathjg):
+                # logger.debug(f"pathjg that will be written is: {pathjg}")
+                if build_jg_nfo_video(nfopath, pathjg, nfotype):
                     return pathjg
 
-            
-
-
-
-    return fallback
+    else:
+        return fallback
 
 def nfo_loop_service():
 
@@ -112,7 +208,7 @@ def nfo_loop_service():
     if items_added_and_updated := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
         # refresh ram dumps
         try:
-            whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode,Series', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId')).json()['Items']
+            whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode,Series', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
         except Exception as e:
             logger.critical(f"> Get JF lib json dump failed with error: {e}")
             return False
@@ -120,7 +216,6 @@ def nfo_loop_service():
 
         for item in whole_jf_json_dump:
             if item.get('Id') in items_added_and_updated:
-                print(item['Id']) # todo remove
 
                 # DEVIDE by video type starting from here ---------------
                 if(item.get('Type') == 'Movie'):
@@ -151,10 +246,10 @@ def nfo_loop_service():
 
 
 
-                    tree = ET.ElementTree(root)
+                    #tree = ET.ElementTree(root)
                     xml_str = ET.tostring(root, encoding="unicode")
                     pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
-                    print(pretty_xml_str)
+                    #print(pretty_xml_str)
 
                     # save this nfo for all paths in mediasources
                     for mediasource in item.get('MediaSources'):

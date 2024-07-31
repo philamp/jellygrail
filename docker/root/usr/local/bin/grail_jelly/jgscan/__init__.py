@@ -39,9 +39,9 @@ def get_fastpass_ffprobe(file_path):
     init_database()
     # print(get_path_props(file_path[JG_VIRT_SHIFT:]))
     if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[JG_VIRT_SHIFT_FFP:]) if ffpitem[0] is not None]):
-        ffprobe_data = ffprobesq_result[0]
         logger.debug("fastpass ffprobew used, used SQLITE ffprobe data, YEAH")
-        return (ffprobe_data, fakestderror.encode("utf-8"), 0)
+        sqclose()
+        return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
     sqclose()
 
     logger.debug(f"fastpass ffprobew used, used normal ffprobe :( with {file_path}")
@@ -209,7 +209,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     # and storetype == 'remote' missing and rar_item ignored means we run ffprobe on mkv even if they're cache-heated with void-unrar
                     # cache-heater 1 for all files but iso
                     # (bitrate, dvprofile) = get_ffprobe(os.path.join(root, filename))
-                    (stdout, _, _) = get_plain_ffprobe(os.path.join(root, filename))
+                    (stdout, _, fferr) = get_plain_ffprobe(os.path.join(root, filename))
+                    if fferr != 0:
+                        stdout = None
                     (premetastpl, dvprofile) = parse_ffprobe(stdout, filename)
 
 
@@ -241,19 +243,19 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                     # cache-heater 0bis for all iso files if storing is remote
                     # done here because a RAR can store an ISO
-                    if storetype == 'remote':
-                        nomergetype = " - JGxBluRay"
-                        iso_file_path = os.path.join(root, filename)
-                        try:
-                            mount_iso(iso_file_path, "/mnt/tmp")
-                            if read_small_files("/mnt/tmp"):
-                                nomergetype = " - JGxDVD"
-                        except Exception as e:
-                            stopthere = True
-                            stopreason += ' >Pre-reading ISO failed'
-                            logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
-                        finally:
-                            unmount_iso("/mnt/tmp")
+                    # if storetype == 'remote': # read them even if not remote to know if its a dvd or bluray
+                    nomergetype = " - JGxBluRay"
+                    iso_file_path = os.path.join(root, filename)
+                    try:
+                        mount_iso(iso_file_path, "/mnt/tmp")
+                        if read_small_files("/mnt/tmp"):
+                            nomergetype = " - JGxDVD"
+                    except Exception as e:
+                        stopthere = True
+                        stopreason += ' >Pre-reading ISO failed'
+                        logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
+                    finally:
+                        unmount_iso("/mnt/tmp")
                     if not stopthere:
                         dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : None})
 
@@ -596,7 +598,10 @@ def scan():
 
                         logger.debug(f"      ## definitive similar movie folder : {title_year}")
 
-                        (stdout, _, _) = get_plain_ffprobe(f.path)
+                        (stdout, _, fferr) = get_plain_ffprobe(f.path)
+                        if fferr != 0:
+                            stdout = None
+                        
                         (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
                         metas = f" -{premetastpl} JGx"
 
