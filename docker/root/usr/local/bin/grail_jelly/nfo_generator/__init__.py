@@ -7,6 +7,7 @@ import jfapi
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from jgscan.jgsql import *
+from jfconfig.jfsql import *
 
 # Name of librairies
 # LIB_NAMES = ("Movies", "Shows")
@@ -187,6 +188,8 @@ def nfo_loop_service():
     users_name_mapping = [user.get('Id') for user in users]
     user_id = users_name_mapping[0]
 
+    init_jellyfin_db_ro("/jellygrail/jellyfin/config/data/library.db") # to get collection id which is not in WS :(
+
     # get Movies and shows perent lib ID
     # libraries = jellyfin(f'Items', params = dict(userId = user_id)).json()['Items']
     # libids = [lib.get('Id') for lib in libraries if libraries in LIB_NAMES]
@@ -209,8 +212,12 @@ def nfo_loop_service():
     # loop added and updated
     if items_added_and_updated := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
         # refresh ram dumps #todo remove season item type ?
+        # 1/ do all but Series, at its id is dependant on child (seasons) updated or not
+        # kodi has no nfo for seasons
+        s_data = {}
+
         try:
-            whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode,Series', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
+            whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
         except Exception as e:
             logger.critical(f"> Get JF lib json dump failed with error: {e}")
             return False
@@ -219,10 +226,20 @@ def nfo_loop_service():
         for item in whole_jf_json_dump:
             if item.get('Id') in items_added_and_updated:
 
-                # DEVIDE by video type starting from here ---------------
-                if(item.get('Type') == 'Movie'):
+                if(item.get('Type') == 'Season'):
+                    pid = item.get('ParentId')
+                    sidx = item.get('IndexNumber')
+                    suid = item.get('Id')
+                    s_data.setdefault(pid, [])
+                    s_data[pid].append({'sidx': sidx, 'suid': suid})
 
-                    root = ET.Element("movie") # ...indeed
+                # DEVIDE by video type starting from here ---------------
+                elif(item.get('Type') == 'Movie' or item.get('Type') == 'Episode'):
+
+                    if item.get('Type') == 'Episode':
+                        ET.SubElement(root, "showtitle").text = item.get('SeriesName', "")
+
+                    root = ET.Element("movie") if item.get('Type') == 'Movie' else ET.Element("episodedetails") 
                     
                     ET.SubElement(root, "title").text = item.get("Name", "")
                     ET.SubElement(root, "plot").text = item.get("Overview", "")
@@ -231,6 +248,13 @@ def nfo_loop_service():
                     if(item.get("TagLines")):
                         ET.SubElement(root, "tagline").text = item.get("TagLines")[0]
                     ET.SubElement(root, "runtime").text = str(ticks_to_minutes(item.get("RunTimeTicks", 60)))
+
+                    # fetch collectiondata from sqlite db
+                    if (itemdata_array := [itemdata[0] for itemdata in fetch_item_data(item["Id"]) if itemdata[0] is not None]):
+                        itemjsondb = json.loads(itemdata_array[0])
+                        if tmdb_collection := itemjsondb.get("TmdbCollectionName", None):
+                            setxml = ET.SubElement(root, "set")
+                            ET.SubElement(setxml, "name").text = tmdb_collection
 
 
                     # get images from API + ensure nginx serve them
@@ -260,13 +284,11 @@ def nfo_loop_service():
                     
                     # genres
                     for genre in item.get("GenreItems", []):
-                        ET.SubElement(root, "genre").text = genre.get("Name")
+                        ET.SubElement(root, "genre").text = genre.get("Name", "")
                     
                     # tags
                     for tag in item.get("Tags", []):
                         ET.SubElement(root, "tag").text = tag
-
-                    
 
 
 
@@ -274,12 +296,16 @@ def nfo_loop_service():
 
 
                     #tree = ET.ElementTree(root)
-                    xml_str = ET.tostring(root, encoding="unicode")
-                    pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
+
                     #print(pretty_xml_str)
 
                     # save this nfo for all paths in mediasources
                     for mediasource in item.get('MediaSources'):
+                        get_wo_ext_out = get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:])
+                        if tech_details := get_tech_xml_details(get_wo_ext_out):
+                            root.append(tech_details)
+                        xml_str = ET.tostring(root, encoding="unicode")
+                        pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
                         nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + ".nfo.jf"
                         os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
                         with open(nfo_full_path, "w", encoding="utf-8") as file:
@@ -301,9 +327,9 @@ def nfo_loop_service():
 
 
 
-
+    jfclose_ro()
     # ---- if finished correctly
-    # save_jfsqdate_to_file(nowdate)
+    # save_jfsqdate_to_file(nowdate) TODO : only if something new
 
 
 def read_jfsqdate_from_file():

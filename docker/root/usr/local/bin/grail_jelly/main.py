@@ -272,7 +272,6 @@ def handle_socket_request(connection, client_address, socket_type):
                     #logger.info(f"Socket type is: {socket_type}")
                     # TODO toremove
                     response = fetch_nfo(message)
-                    logger.debug(f" nfo created or found is :{response}")
                     connection.sendall(response.encode('utf-8'))
                 else:
                     logger.debug(f"main/socket | Client CLOSING {socket_type} service.")
