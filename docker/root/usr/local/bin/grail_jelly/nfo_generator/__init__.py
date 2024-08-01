@@ -15,7 +15,7 @@ from jgscan.jgsql import *
 # {{baseUrl}}/Items?ParentId=f137a2dd21bbc1b99aa5c0f6bf02a805&Fields=MediaSources,ProviderIds,Overview
 
 # Webdav ip + port specified for local network (as seen by a local network device)
-# todo is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
+# is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
 # WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
 def build_jg_nfo_video(nfopath, pathjg, nfotype):
@@ -27,11 +27,11 @@ def build_jg_nfo_video(nfopath, pathjg, nfotype):
         ET.SubElement(root, "title").text = os.path.basename(os.path.dirname(nfopath))
     else:
         ET.SubElement(root, "title").text = title
-    ET.SubElement(root, "uniqueid", {"type": "default"}).text = (os.path.dirname(nfopath)).replace("/", "_").replace(" ", "-")
+    ET.SubElement(root, "uniqueid", {"type": "jellygrail", "default": "true"}).text = (os.path.dirname(nfopath)).replace("/", "_").replace(" ", "-")
 
 
     #get tech details return et.element -----------
-    if nfotype == "movie" or nfotype == "episodedetails": # --- todo continue other types
+    if nfotype == "movie" or nfotype == "episodedetails": 
         if tech_details := get_tech_xml_details(pathwoext):
             root.append(tech_details)
 
@@ -129,14 +129,14 @@ def get_tech_xml_details(pathwoext):
     return None
 
 def fetch_nfo(nfopath):
-    # todo
+
     # given a bindfs provided virtual nfo path, give a populatednfo path
     # movie : find .jf else .jg else generate .jg with fileinfo thanks to ffp data in db
     # show : find .jf else .jg else generate .jg with dummy data
     # 
     # careful to M_DUP and S_DUP management : no more identical.mkv + identical.mp4
 
-    fallback = "/mounts/filedefaultnfo_readme.txt" # put a default path
+    fallback = "/mounts/filedefaultnfo_readme_p.txt" # put a default path
 
     #logger.debug(f"movies str equal ?:{nfopath}")
     
@@ -157,6 +157,8 @@ def fetch_nfo(nfopath):
     # switch for episode
     elif "/shows" in nfopath[:6]:
         nfotype = "episodedetails"
+
+    # todo switch for others
 
     # ----
 
@@ -206,7 +208,7 @@ def nfo_loop_service():
 
     # loop added and updated
     if items_added_and_updated := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
-        # refresh ram dumps
+        # refresh ram dumps #todo remove season item type ?
         try:
             whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode,Series', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
         except Exception as e:
@@ -241,6 +243,31 @@ def nfo_loop_service():
                     for itmimg in item_images:
                         if itmimg.get('ImageType') == 'Primary':
                             ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                        elif itmimg.get('ImageType') == 'Logo':
+                            ET.SubElement(root, "thumb", {"aspect": "clearlogo"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                        elif itmimg.get('ImageType') == 'Backdrop':
+                            ET.SubElement(root, "thumb", {"aspect": "landscape"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+
+                    #rating
+                    if(ratingvalue := item.get("CriticRating", None)):
+                        ratings = ET.SubElement(root, "ratings")
+                        rating = ET.SubElement(ratings, "rating", {"name": "tomatometerallaudience", "max": "100", "default": "true"})
+                        ET.SubElement(rating, "value").text = f"{ratingvalue}"
+
+                    # movie db keys vals
+                    for key, val in item.get("ProviderIds", {}).items():
+                        ET.SubElement(root, "uniqueid", {"type": key.lower()}).text = val
+                    
+                    # genres
+                    for genre in item.get("GenreItems", []):
+                        ET.SubElement(root, "genre").text = genre.get("Name")
+                    
+                    # tags
+                    for tag in item.get("Tags", []):
+                        ET.SubElement(root, "tag").text = tag
+
+                    
+
 
 
 

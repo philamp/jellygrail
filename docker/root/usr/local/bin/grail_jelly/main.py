@@ -168,6 +168,8 @@ class EventHandler(pyinotify.ProcessEvent):
     def process_IN_MOVED_TO(self, event):
         self.inotify_run()
     def inotify_run(self):
+        logger.debug("inotify handler will call /scan in 30 minutes")
+        time.sleep(1800) # todo to improve
         _scan_instance = ScriptRunner.get(scan)
         _scan_instance.run()
 
@@ -175,7 +177,7 @@ class EventHandler(pyinotify.ProcessEvent):
         
 # restart_jellygrail_at is in jfapi module
 
-def periodic_trigger(seconds=120):
+def periodic_trigger(seconds=800):
     _rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
     while True:
         time.sleep(seconds)
@@ -356,7 +358,7 @@ if __name__ == "__main__":
         _scan_instance.run()
 
     # TODO test toremove
-    # nfo_loop_service()
+    nfo_loop_service()
 
 
     if full_run == True:
