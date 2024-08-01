@@ -178,6 +178,125 @@ def fetch_nfo(nfopath):
     else:
         return fallback
 
+def jf_xml_create(item, sdata = None):
+
+    if item.get('Type') == 'Movie':
+        root = ET.Element("movie")
+        logger.debug("THIS IS A MOVIE")
+    elif item.get('Type') == 'Episode':
+        root = ET.Element("episodedetails")
+        logger.debug("THIS IS AN EPISODE")
+    elif item.get('Type') == 'Series':
+        logger.debug("THIS IS A TVSHOW")
+        seasons_data = []
+        root = ET.Element("tvshow")
+        if sdata:
+            seasons_data = sdata.get(item.get('Id'), [])
+
+    if item.get('Type') == 'Episode':
+        ET.SubElement(root, "showtitle").text = item.get('SeriesName', "")
+    
+    ET.SubElement(root, "title").text = item.get("Name", "")
+    ET.SubElement(root, "premiered").text = str(item.get("ProductionYear", ""))
+    ET.SubElement(root, "plot").text = item.get("Overview", "")
+    ET.SubElement(root, "originaltitle").text = item.get("OriginalTitle", "")
+
+    if(item.get("TagLines")):
+        ET.SubElement(root, "tagline").text = item.get("TagLines")[0]
+    ET.SubElement(root, "runtime").text = str(ticks_to_minutes(item.get("RunTimeTicks", 60)))
+
+    # fetch collectiondata from sqlite db
+    if item.get('Type') == 'Movie':
+        if (itemdata_array := [itemdata[0] for itemdata in fetch_item_data(item["Id"]) if itemdata[0] is not None]):
+            itemjsondb = json.loads(itemdata_array[0])
+            if tmdb_collection := itemjsondb.get("TmdbCollectionName", None):
+                setxml = ET.SubElement(root, "set")
+                ET.SubElement(setxml, "name").text = tmdb_collection
+
+    # nbseasons total in lib
+    # nbepisodes total in lib TODO
+
+    # get images from API + ensure nginx serve them
+    try:
+        item_images = jfapi.jellyfin(f'Items/{item["Id"]}/Images').json()
+    except Exception as e:
+        logger.critical(f"> Get JF pics failed with error: {e}")
+        return False
+
+    for itmimg in item_images:
+        if itmimg.get('ImageType') == 'Primary':
+            if item.get('Type') == 'Episode':
+                ET.SubElement(root, "thumb", {"aspect": "thumb"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+            else:
+                ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+        elif itmimg.get('ImageType') == 'Logo':
+            ET.SubElement(root, "thumb", {"aspect": "clearlogo"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+        elif itmimg.get('ImageType') == 'Backdrop':
+            ET.SubElement(root, "thumb", {"aspect": "landscape"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+
+    if item.get('Type') == 'Series':
+        for season_data in seasons_data:
+            try:
+                item_images = jfapi.jellyfin(f'Items/{season_data["suid"]}/Images').json()
+            except Exception as e:
+                logger.critical(f"> Get JF pics TVSHOW failed with error: {e}")
+                return False
+            
+            for itmimg in item_images:
+                ET.SubElement(root, "thumb", {"aspect": "poster", "type": "season", "season": str(season_data['sidx']) }).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+
+
+
+
+
+
+
+    #rating
+    if(ratingvalue := item.get("CriticRating", None)):
+        ratings = ET.SubElement(root, "ratings")
+        rating = ET.SubElement(ratings, "rating", {"name": "tomatometerallaudience", "max": "100", "default": "true"})
+        ET.SubElement(rating, "value").text = f"{ratingvalue}"
+
+    # movie db keys vals
+    for key, val in item.get("ProviderIds", {}).items():
+        ET.SubElement(root, "uniqueid", {"type": key.lower()}).text = val
+    
+    # genres
+    for genre in item.get("GenreItems", []):
+        ET.SubElement(root, "genre").text = genre.get("Name", "")
+    
+    # tags
+    if item.get('Type') == 'Movie':
+        for tag in item.get("Tags", []):
+            ET.SubElement(root, "tag").text = tag
+
+
+    # save this nfo for all paths in mediasources
+    if item.get('Type') != 'Series':
+        for mediasource in item.get('MediaSources'):
+            get_wo_ext_out = get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:])
+            if tech_details := get_tech_xml_details(get_wo_ext_out):
+                root.append(tech_details)
+            xml_str = ET.tostring(root, encoding="unicode")
+            pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
+            if mediasource.get("VideoType") == "BluRay":
+                nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + "/BDMV/index.nfo.jf"
+            elif mediasource.get("VideoType") == "Dvd":
+                nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + "/VIDEO_TS/VIDEO_TS.nfo.jf"
+            else:
+                nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + ".nfo.jf"
+    else:
+        xml_str = ET.tostring(root, encoding="unicode")
+        pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
+        nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(item.get('Path')[JG_VIRT_SHIFT:]) + "/tvshow.nfo.jf"
+
+        
+    os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
+    with open(nfo_full_path, "w", encoding="utf-8") as file:
+        file.write(pretty_xml_str)
+
+
+
 def nfo_loop_service():
 
     # jf_json_dump to store whole response
@@ -228,96 +347,34 @@ def nfo_loop_service():
 
                 if(item.get('Type') == 'Season'):
                     pid = item.get('ParentId')
+                    items_added_and_updated.append(pid)
+
+                elif(item.get('Type') == 'Movie' or item.get('Type') == 'Episode'):
+                    jf_xml_create(item)
+
+        #loop the neigboors seasons so that data is complete
+
+        for item in whole_jf_json_dump:
+            if(item.get('Type') == 'Season'):
+                if item.get('ParentId') in items_added_and_updated:
+                    pid = item.get('ParentId')
                     sidx = item.get('IndexNumber')
                     suid = item.get('Id')
                     s_data.setdefault(pid, [])
                     s_data[pid].append({'sidx': sidx, 'suid': suid})
-                    items_added_and_updated.append(pid)
-
-                elif(item.get('Type') == 'Movie' or item.get('Type') == 'Episode'):
-
-                    if item.get('Type') == 'Episode':
-                        ET.SubElement(root, "showtitle").text = item.get('SeriesName', "")
-
-                    root = ET.Element("movie") if item.get('Type') == 'Movie' else ET.Element("episodedetails") 
-                    
-                    ET.SubElement(root, "title").text = item.get("Name", "")
-                    ET.SubElement(root, "premiered").text = item.get("ProductionYear", "")
-                    ET.SubElement(root, "plot").text = item.get("Overview", "")
-                    ET.SubElement(root, "originaltitle").text = item.get("OriginalTitle", "")
-
-                    if(item.get("TagLines")):
-                        ET.SubElement(root, "tagline").text = item.get("TagLines")[0]
-                    ET.SubElement(root, "runtime").text = str(ticks_to_minutes(item.get("RunTimeTicks", 60)))
-
-                    # fetch collectiondata from sqlite db
-                    if (itemdata_array := [itemdata[0] for itemdata in fetch_item_data(item["Id"]) if itemdata[0] is not None]):
-                        itemjsondb = json.loads(itemdata_array[0])
-                        if tmdb_collection := itemjsondb.get("TmdbCollectionName", None):
-                            setxml = ET.SubElement(root, "set")
-                            ET.SubElement(setxml, "name").text = tmdb_collection
 
 
-                    # get images from API + ensure nginx serve them
-                    try:
-                        item_images = jfapi.jellyfin(f'Items/{item["Id"]}/Images').json()
-                    except Exception as e:
-                        logger.critical(f"> Get JF pics failed with error: {e}")
-                        return False
+        try:
+            whole_jf_json_dump_s = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Series', Fields = 'ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
+        except Exception as e:
+            logger.critical(f"> Get JF lib json TVSHOW dump failed with error: {e}")
+            return False
+        
+        for item in whole_jf_json_dump_s:
+            if item.get('Id') in items_added_and_updated:
 
-                    for itmimg in item_images:
-                        if itmimg.get('ImageType') == 'Primary':
-                            ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
-                        elif itmimg.get('ImageType') == 'Logo':
-                            ET.SubElement(root, "thumb", {"aspect": "clearlogo"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
-                        elif itmimg.get('ImageType') == 'Backdrop':
-                            ET.SubElement(root, "thumb", {"aspect": "landscape"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
-
-                    #rating
-                    if(ratingvalue := item.get("CriticRating", None)):
-                        ratings = ET.SubElement(root, "ratings")
-                        rating = ET.SubElement(ratings, "rating", {"name": "tomatometerallaudience", "max": "100", "default": "true"})
-                        ET.SubElement(rating, "value").text = f"{ratingvalue}"
-
-                    # movie db keys vals
-                    for key, val in item.get("ProviderIds", {}).items():
-                        ET.SubElement(root, "uniqueid", {"type": key.lower()}).text = val
-                    
-                    # genres
-                    for genre in item.get("GenreItems", []):
-                        ET.SubElement(root, "genre").text = genre.get("Name", "")
-                    
-                    # tags
-                    for tag in item.get("Tags", []):
-                        ET.SubElement(root, "tag").text = tag
-
-
-
-
-
-
-                    #tree = ET.ElementTree(root)
-
-                    #print(pretty_xml_str)
-
-                    # save this nfo for all paths in mediasources
-                    for mediasource in item.get('MediaSources'):
-                        get_wo_ext_out = get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:])
-                        if tech_details := get_tech_xml_details(get_wo_ext_out):
-                            root.append(tech_details)
-                        xml_str = ET.tostring(root, encoding="unicode")
-                        pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
-                        if mediasource.get("VideoType") == "BluRay":
-                            nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + "/BDMV/index.nfo.jf"
-                        elif mediasource.get("VideoType") == "Dvd":
-                            nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + "/VIDEO_TS/VIDEO_TS.nfo.jf"
-                        else:
-                            nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + ".nfo.jf"
-
-                        
-                        os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
-                        with open(nfo_full_path, "w", encoding="utf-8") as file:
-                            file.write(pretty_xml_str)
+                if(item.get('Type') == 'Series'):
+                    jf_xml_create(item, sdata = s_data)            
 
 
 

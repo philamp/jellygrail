@@ -67,7 +67,7 @@ def parse_ffprobe(stdout, filepathnotice):
                 dtitle = (stream.get('tags') or {}).get('title', '').lower()
             # Additional check in the 'title' metadata if available
                 if 'dts:x' in dtitle or 'dtsx' in dtitle:
-                    audiotplb = " dtsx"
+                    audiotplb = " DTSx"
 
 
 

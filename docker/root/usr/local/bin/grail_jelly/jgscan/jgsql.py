@@ -80,7 +80,7 @@ def jg_datamodel_migration():
 def init_database():
     """ Initialize the database connection """
     global conn
-    conn = sqlite3.connect(db_path, isolation_level='DEFERRED')
+    conn = sqlite3.connect(db_path, isolation_level='DEFERRED', check_same_thread=False)
     conn.enable_load_extension(True)
     conn.load_extension("/usr/local/share/bindfs-jelly/libsupercollate.so")
 
