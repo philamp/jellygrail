@@ -232,8 +232,8 @@ def nfo_loop_service():
                     suid = item.get('Id')
                     s_data.setdefault(pid, [])
                     s_data[pid].append({'sidx': sidx, 'suid': suid})
+                    items_added_and_updated.append(pid)
 
-                # DEVIDE by video type starting from here ---------------
                 elif(item.get('Type') == 'Movie' or item.get('Type') == 'Episode'):
 
                     if item.get('Type') == 'Episode':
@@ -242,6 +242,7 @@ def nfo_loop_service():
                     root = ET.Element("movie") if item.get('Type') == 'Movie' else ET.Element("episodedetails") 
                     
                     ET.SubElement(root, "title").text = item.get("Name", "")
+                    ET.SubElement(root, "premiered").text = item.get("ProductionYear", "")
                     ET.SubElement(root, "plot").text = item.get("Overview", "")
                     ET.SubElement(root, "originaltitle").text = item.get("OriginalTitle", "")
 
@@ -306,7 +307,14 @@ def nfo_loop_service():
                             root.append(tech_details)
                         xml_str = ET.tostring(root, encoding="unicode")
                         pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
-                        nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + ".nfo.jf"
+                        if mediasource.get("VideoType") == "BluRay":
+                            nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + "/BDMV/index.nfo.jf"
+                        elif mediasource.get("VideoType") == "Dvd":
+                            nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + "/VIDEO_TS/VIDEO_TS.nfo.jf"
+                        else:
+                            nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + ".nfo.jf"
+
+                        
                         os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
                         with open(nfo_full_path, "w", encoding="utf-8") as file:
                             file.write(pretty_xml_str)
