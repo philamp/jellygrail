@@ -238,7 +238,6 @@ def handle_socket_request(connection, client_address, socket_type):
                     rkey = 3
                     for key, arg in enumerate(args):
                         if arg == "-i":
-                            logger.debug(f"filepath position in args is {key + 1}")
                             rkey = key + 1
 
                     messagein = args[rkey]

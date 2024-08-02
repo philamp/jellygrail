@@ -25,14 +25,13 @@ PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
 
 def get_fastpass_ffprobe(file_path):
     # get ffprobe info from sqlite or use ffprobe
-    logger.debug("fastpass ffprobew used, before switch between handover and DB")
 
     ffprobe_data = None
     fakestderror = ""
 
-    logger.debug(f"filepath input is {file_path}")
+    # logger.debug(f"filepath input is {file_path}")
 
-    logger.debug(f"filepath requested to sqlite is {file_path[JG_VIRT_SHIFT_FFP:]}")
+    # logger.debug(f"filepath requested to sqlite is {file_path[JG_VIRT_SHIFT_FFP:]}")
 
 
     # todo use sqlite
@@ -53,8 +52,7 @@ def init_mountpoints():
     logger.info("Wait for rclone to be ready to ensure all storage endpoints will be found... ")
     time.sleep(10)
     for f in os.scandir(MOUNTS_ROOT): 
-        '''f.name.startswith("remote_") or'''
-        if f.is_dir() and (  f.name.startswith("local_")) and not '@eaDir' in f.name:
+        if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
             logger.info(f"> FOUND MOUNTPOINT: {f.name}")
             type = "local" if f.name.startswith("local_") else "remote"
             for d in os.scandir(f.path):
@@ -550,7 +548,7 @@ def scan():
                         release_browse(endpoint2browse, f.name, rar_item, f.path, storetype)
                         sqcommit()
 
-                else:
+                elif not '@eaDir' in f.name:
 
                     dvprofile = None
                     mediatype = None

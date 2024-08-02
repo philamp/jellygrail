@@ -102,6 +102,7 @@ RUN cd /tmp && \
 RUN chmod ugo+rx /usr/bin/rclone-linux && \
     mkdir -p /Video_Library && \
     mkdir -p /Cache_Check_Video_Library && \
+    mkdir -p /Kodi_Video_Library && \
     mkdir -p /mounts/kodi/software && \
     mkdir -p /mounts/kodi/backups
     # mkdir -p /root/.config/rclone

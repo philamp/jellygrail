@@ -24,7 +24,7 @@ def get_plain_ffprobe(file_path):
         result = subprocess.run(command, capture_output=True, check=True, text=False)
 
     except subprocess.CalledProcessError as e:
-        logger.critical(f"get_plain_ffprobe failure:\nReturn code:{e.returncode}\nstdout:{e.output}\nstderr:{e.stderr}")
+        logger.warning(f"get_plain_ffprobe failure:\nReturn code:{e.returncode}\nstdout:{e.output}\nstderr:{e.stderr}")
         return (e.output, e.stderr, e.returncode)
     
     #logger.info(f"get_plain_ffprobe success:\nReturn code:{result.returncode}\nstdout:{result.stdout}\nstderr:{result.stderr}")
