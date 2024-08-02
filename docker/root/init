@@ -134,6 +134,7 @@ done
 if [ -d "/root/devmode" ]; then
   apt install openssh-server libsqlite3-dev sqlite3 cmake -y
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/*
+  rm -f /etc/s6-overlay/s6-rc.d/jellyfin/dependencies.d/bindfs
   service ssh stop
   mkdir -p /root/.ssh
   cp -R /root/devmode/* /root/.ssh/
@@ -145,7 +146,8 @@ if [ -d "/root/devmode" ]; then
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_remote_realdebrid
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive1
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive2
-  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/bindfs
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
   # disrupt normal execution
   cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/main.py
