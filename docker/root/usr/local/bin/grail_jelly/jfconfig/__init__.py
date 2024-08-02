@@ -64,6 +64,7 @@ def jfconfig():
 
         # 1 - Install repo if necessary
         # get list of repos, if len < 3, re-declare
+        time.sleep(1)
         declaredrepos = jfapi.jellyfin(f'Repositories', method='get').json()
         if len(declaredrepos) < 2:
             #declare all repos
@@ -127,7 +128,7 @@ def jfconfig():
                         "EnableRealtimeMonitor": False,
                         "EnableChapterImageExtraction": False,
                         "ExtractChapterImagesDuringLibraryScan": False,
-                        "AutomaticallyAddToCollection": False,
+                        "AutomaticallyAddToCollection": True,
                         "MetadataSavers": [],
                         "DisabledSubtitleFetchers": [
                             "subbuzz"
@@ -259,8 +260,16 @@ def jfconfig():
                 jfapi.jellyfin(f'Library/VirtualFolders', json=tvshowlib, method='post', params=dict(
                     name='Shows', collectionType="tvshows", paths=f"{base_v_root}/shows", refreshLibrary=False
                 ))
-                # jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
-                # jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # disable merge episodes which is not working well
+                jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
+                try:
+                    jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # if installed disable merge episodes which is not working well
+                except Exception as e:
+                    logger.info("merging episodes already disabled")
+                try:
+                    jfapi.jellyfin(f'ScheduledTasks/fd957c84b0cfc2380becf2893e4b76fc/Triggers', json=triggerdata, method='post') # if installed disable merge movies which is not working well
+                except Exception as e:
+                    logger.info("merging movies already disabled")
+
                 return "FIRST_RUN"
 
             logger.warning("> don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
