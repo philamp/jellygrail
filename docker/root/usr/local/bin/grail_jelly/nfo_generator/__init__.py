@@ -20,14 +20,29 @@ from jfconfig.jfsql import *
 # WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
 def build_jg_nfo_video(nfopath, pathjg, nfotype):
-    root = ET.Element(nfotype) # ...indeed
+
+    NFO2XMLTYPE = {
+        "episodedetails":"episodedetails",
+        "bdmv":"movie",
+        "dvd":"movie",
+        "tvshow":"tvshow",
+        "movie":"movie"
+    }
+
+    root = ET.Element(NFO2XMLTYPE.get(nfotype,"movie")) # ...indeed
     pathwoext = get_wo_ext(nfopath)
     title = os.path.basename(pathwoext)
     dirnames = os.path.dirname(pathjg)
-    if nfotype == "tvshow":
-        ET.SubElement(root, "title").text = os.path.basename(os.path.dirname(nfopath))
-    else:
+
+    # take the temp title that fits not too badly
+    if nfotype == "bdmv" or nfotype == "dvd":
+        ET.SubElement(root, "title").text = os.path.basename(os.path.dirname(os.path.dirname(nfopath)))
+    elif nfotype == "movie" or nfotype == "episodedetails":
         ET.SubElement(root, "title").text = title
+    elif nfotype == "tvshow":
+        ET.SubElement(root, "title").text = os.path.basename(os.path.dirname(nfopath))
+
+
     ET.SubElement(root, "uniqueid", {"type": "jellygrail", "default": "true"}).text = (os.path.dirname(nfopath)).replace("/", "_").replace(" ", "-")
 
 
@@ -148,7 +163,15 @@ def fetch_nfo(nfopath):
     nfotype = None
 
     # switch case for video file
-    if "/movies" in nfopath[:7] and "bdmv" not in nfopath.lower() and "video_ts" not in nfopath.lower():
+    if "bdmv" in nfopath.lower():
+        if os.path.basename(nfopath).lower() == "index.nfo":
+            nfotype = "bdmv"
+    
+    elif "video_ts" in nfopath.lower():
+        if os.path.basename(nfopath).lower() == "sideo_ts.nfo":
+            nfotype = "dvd"
+
+    elif "/movies" in nfopath[:7]:
         nfotype = "movie"
                 
     # switch for tvshow file

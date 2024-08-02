@@ -357,7 +357,7 @@ if __name__ == "__main__":
         _scan_instance.run()
 
     # TODO test toremove
-    nfo_loop_service()
+    # nfo_loop_service()
 
 
     if full_run == True:

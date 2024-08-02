@@ -39,12 +39,12 @@ def get_fastpass_ffprobe(file_path):
     init_database()
     # print(get_path_props(file_path[JG_VIRT_SHIFT:]))
     if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[JG_VIRT_SHIFT_FFP:]) if ffpitem[0] is not None]):
-        logger.debug("fastpass ffprobew used, used SQLITE ffprobe data, YEAH")
+        logger.debug(f"ffprobe from SQLITE data: {file_path}")
         sqclose()
         return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
     sqclose()
 
-    logger.debug(f"fastpass ffprobew used, used normal ffprobe :( with {file_path}")
+    logger.debug(f"ffprobe from MEDIA FILE: {file_path}")
     return get_plain_ffprobe(file_path)
 
 def init_mountpoints():
@@ -243,7 +243,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                     # cache-heater 0bis for all iso files if storing is remote
                     # done here because a RAR can store an ISO
-                    # if storetype == 'remote': # read them even if not remote to know if its a dvd or bluray
+                    # if storetype == 'remote': # change : read them even if not remote to know if its a dvd or bluray
                     nomergetype = " - JGxBluRay"
                     iso_file_path = os.path.join(root, filename)
                     try:
