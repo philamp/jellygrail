@@ -256,6 +256,7 @@ def jf_xml_create(item, sdata = None):
             ET.SubElement(root, "thumb", {"aspect": "clearlogo"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
         elif itmimg.get('ImageType') == 'Backdrop':
             ET.SubElement(root, "thumb", {"aspect": "landscape"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+            ET.SubElement(root, "thumb", {"aspect": "banner"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
 
     if item.get('Type') == 'Series':
         for season_data in seasons_data:
@@ -303,9 +304,9 @@ def jf_xml_create(item, sdata = None):
             xml_str = ET.tostring(root, encoding="unicode")
             pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
             if mediasource.get("VideoType") == "BluRay":
-                nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + "/BDMV/index.nfo.jf"
+                nfo_full_path = JFSQ_STORED_NFO + mediasource.get('Path')[JG_VIRT_SHIFT:] + "/BDMV/index.nfo.jf"
             elif mediasource.get("VideoType") == "Dvd":
-                nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + "/VIDEO_TS/VIDEO_TS.nfo.jf"
+                nfo_full_path = JFSQ_STORED_NFO + mediasource.get('Path')[JG_VIRT_SHIFT:] + "/VIDEO_TS/VIDEO_TS.nfo.jf"
             else:
                 nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + ".nfo.jf"
     else:
@@ -408,12 +409,7 @@ def nfo_loop_service():
         # loop added
         # for item in items_added:
 
-
-
-
-
-
-
+        logger.info("~> Jellyfin NFOs updated <~")
 
     jfclose_ro()
     # ---- if finished correctly

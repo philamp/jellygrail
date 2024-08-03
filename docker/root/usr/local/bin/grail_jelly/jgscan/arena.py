@@ -43,7 +43,7 @@ def parse_ffprobe(stdout, filepathnotice):
                         hdrtpl = f" sdr{get_bit_depth(stream.get('pix_fmt', 'yuv420p'))}"
 
                     if hdrtpl == " sdr8" or codec_name not in "h264 hevc":
-                            codectpl = f" {codec_name}"
+                        codectpl = f" {codec_name}"
                                 
                     if( sideinfo := stream.get('side_data_list') ):
                         if(_dvprofile := sideinfo[0].get('dv_profile')):
