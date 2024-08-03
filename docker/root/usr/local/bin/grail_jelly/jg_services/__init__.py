@@ -111,13 +111,13 @@ def rd_progress():
                     array_to_file(PILE_FILE, delta_elements)
 
                     if len(delta_elements) > 0:
-                        logger.debug("RD_PROGRESS > I detected new torrents having 'downloaded' status, so I started /scan method")
+                        logger.info("  * New downloaded torrents > scan triggered [rd_progress]")
                         return "PLEASE_SCAN"
                     else:
-                        logger.debug("RD_PROGRESS > I did not detect any new torrents with 'downloaded' status")
+                        #logger.debug("RD_PROGRESS > I did not detect any new torrents with 'downloaded' status")
                         return ""
                 else:
-                    logger.debug("RD_PROGRESS > No item with downloading status from local RD")
+                    logger.warning("! Not any downloaded item in Real-Debrid [rd_progress]")
                     return ""
                 
             else:
@@ -125,10 +125,10 @@ def rd_progress():
                 array_to_file(PILE_FILE, dled_rd_hashes, initialize_with_unique_key=True)
                 return "PLEASE_SCAN"
         else:
-            logger.critical(f"An error occurred on getting RD data in rd_progress method")
+            logger.critical(f"An error occurred on getting RD data [rd_progress]")
             return ""
     else:
-        logger.critical(f"An error occurred on getting RD data in rd_progress method")
+        logger.critical(f"An error occurred on getting RD data [rd_progress]")
         return ""
 
 
@@ -157,7 +157,7 @@ def restoreitem(filename, token):
 
     global oneshot_token
 
-    logger.debug(f"provided token is : {token}, wanted token is: {oneshot_token}")
+    logger.debug(f"! provided token is : {token}, wanted token is: {oneshot_token} [restoreitem]")
 
     if token == oneshot_token:
         oneshot_token = None
@@ -179,10 +179,10 @@ def restoreitem(filename, token):
                         push_to_rd_hashes = [item.get('hash') for item in backup_data if item.get('hash') not in local_data_hashes]
 
                         if len(push_to_rd_hashes) > 0:
-
+                            logger.info(f"> Restoring RD items from {filename}... [restoreitem]")
                             for item in push_to_rd_hashes:
                                 try:
-                                    logger.debug(f"  - Try adding RD Hash from restored backup: {item} ...")
+                                    #logger.debug(f"  * Try adding RD Hash from restored backup: {item} ... [restoreitem]")
 
                                     # RD calls below !! caution !!
                                     returned = RD.torrents.add_magnet(item).json()
@@ -201,7 +201,7 @@ def restoreitem(filename, token):
                                     logger.error(f"  - ...An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry) : {e}")
                                     return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry)"
                                 else:
-                                    logger.debug(f"  - ...success")
+                                    logger.info(f"  * RD Hash {item} restored [restoreitem]")
                             return "Backup restored with success, please verify on your RD account"
                         else:
                             return "This backup file has no additionnal hash compared to your RD account"
@@ -246,7 +246,7 @@ def remoteScan():
             return None
 
         if server_data.get('pilekey') != cur_key:
-            logger.warning(f"Remote pile key has changed, it will get hashe starting from default increment (in settings)")
+            logger.warning(f"> Remote pile key changed, reset with increment from settings.env [remoteScan]")
             remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{DEFAULT_INCR}"
             try:
                 response = requests.get(remote_loc, timeout=10)
@@ -259,7 +259,7 @@ def remoteScan():
 
         if server_data is not None:
             if not len(server_data['hashes']) > 0:
-                logger.debug(f"Data was fetched but no new data")
+                logger.debug(f"> no new data [remoteScan]")
                 return None
         else:
             logger.critical(f"Data was fetched but data returned is None")
@@ -273,7 +273,7 @@ def remoteScan():
                 for item in push_to_rd_hashes:
                     try:
                         # RD calls below !! caution !!
-                        logger.debug(f"  - Adding RD Hash from remote: {item} ...")
+                        #logger.debug(f"  * Adding RD Hash from remote: {item} ...")
                         returned = RD.torrents.add_magnet(item).json()
                         
                         if WHOLE_CONTENT:
@@ -293,7 +293,7 @@ def remoteScan():
                         whole_batch_taken = False
                         break
                     else:
-                        logger.debug(f"  - ...success")
+                        logger.info(f"  * RD Hash {item} added from remote [remoteScan]")
                         cur_incr += 1
                 if whole_batch_taken:
                     # whole batch taken so we can save the real increment given by server
@@ -304,9 +304,9 @@ def remoteScan():
                     # as this is incremented on client side only upon new hashes (items not already in RD account), when applied on server side pile it can be deeper in the pile than really necessary, does not matter unless an intentionnal deletion happens on client just after an uncomplete batch containing this item, and in this very rare case, it means that the local deleted item could be then fetched again from remote instance on the next remoteScan.
                     save_data_to_file(RDINCR_FILE, cur_incr)
             else:
-                logger.critical(f"No local data has been retrieved via rdump_backup() in remoteScan()")
+                logger.critical(f"No local data retrieved (rdump_backup) for comparison [remoteScan]")
         else:
-            logger.critical(f"No local data has been retrieved via rdump_backup() in remoteScan()")
+            logger.critical(f"No local data retrieved (rdump_backup) for comparison [remoteScan]")
 
     else:
         logger.warning("---- No REMOTE_RDUMP_BASE_LOCATION specified, ignoring but remotescan can't work ----")
@@ -327,7 +327,7 @@ def getrdincrement(incr):
         if(service_rdprog_instance.get_output() != 'phony'):
             # logger.info("periodic trigger is working")
             # we are forced to consume output from this funciton to avoid disjoined calls to output queue
-            logger.warning(f"rd_progress called in getrdincrement (should happen only once)")
+            logger.warning(f"> force rd_progress (should happen once) [getrdincrement]")
         return ""
 
 
@@ -352,7 +352,7 @@ def rdump_backup(including_backup = True, returning_data = False):
             ipage += 1
             nbelements = len(idata)
     except Exception as e:
-        logger.critical(f"An error occurred on rdump: {e}")
+        logger.critical(f"!!! Error occurred [rdump_backup]: {e}")
         return "Error"
     else:
         # Store the data in a file
@@ -368,10 +368,10 @@ def read_data_from_file(filepath):
             strincr = file.read().strip()
             incr = int(strincr)  # Attempt to convert an empty string to an integer
     except FileNotFoundError:
-        logger.warning(f"Increment data file not exists yet (taking default then)")
+        logger.warning(f"! Increment or pilekey data file not exists yet [read_data_from_file]")
         return int(DEFAULT_INCR)
     except ValueError as e:
-        logger.critical(f"Error taking increment from data file, corrupted data (taking default): {e}")
+        logger.critical(f"!!! Error taking increment or pilekey from data file [read_data_from_file]: {e}")
         return int(DEFAULT_INCR)
     else:
         return incr
@@ -382,4 +382,4 @@ def save_data_to_file(filepath, incr):
         with open(filepath, 'w') as file:
             file.write(str(incr))
     except IOError as e:
-        logger.critical(f"Error saving incr to file: {e}")
+        logger.critical(f"!!! Error saving incr to file [save_data_to_file]: {e}")

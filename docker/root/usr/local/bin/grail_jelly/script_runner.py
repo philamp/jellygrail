@@ -43,18 +43,18 @@ class ScriptRunnerSub:
             if self.func:
                 self.manytimes += 1
                 # TODO: pass it to debug when ok
-                logger.info(f"ASYNC CALL: {self.func.__name__} | TIMES CALLED (since last restart): {self.manytimes}")
+                #logger.info(f"> THREAD: {self.func.__name__} | TIMES CALLED (since last restart): {self.manytimes}")
                 result = self.func(*self.args, **self.kwargs)
                 if result is not None:
                     self.output_queue.put(result)
             else:
-                raise ValueError("No function has been set to run in the async ScriptRunner.")
+                raise ValueError("> No function set to run as thread")
         except Exception as e:
-            logger.critical(f"An error occurred in thread: {self.func.__name__} error is: {e}", exc_info=True)
+            logger.critical(f"> Error occurred in thread: {self.func.__name__}; error is: {e}", exc_info=True)
         finally:
             # async bahavior parameters management post-set
             # TODO: pass it to debug when ok
-            logger.info(f"          : {self.func.__name__} FINISHED")
+            logger.info(f"~> THREAD {self.func.__name__} COMPLETED [{self.manytimes}] <~")
             self.is_running = False
             if self.queued_execution:
                 self.queued_execution = False # set it to False ASAP right after flag was interrogated

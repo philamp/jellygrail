@@ -77,7 +77,7 @@ def get_ffprobe(file_path):
 def unrar_to_void(rar_file_path):
 
     try:
-        logger.debug(f"      > Trying to void-unrar it ...")
+        logger.debug(f"      > Unrar it to cache ...")
         subprocess.run(['unrar', 't', "-sl34000000", "-y", "-ierr", rar_file_path], check=True, stderr=subprocess.PIPE)
 
     except subprocess.CalledProcessError as e:
@@ -94,13 +94,11 @@ def unrar_to_void(rar_file_path):
     except Exception as e:
         logger.error("      - The unrar command failed for unknown reason 2:", str(e))
         return "ERROR"
-    else:
-        logger.debug("      > ... SUCCESS !")
     return "OK"
 
 # ISOs
 def mount_iso(iso_path, mount_folder):
-    logger.debug(f"      > MOUNTING ISO to cache small metadata files in rclone: {iso_path}\n      ")
+    logger.debug(f"      > ISO Mounting to get structure and small files: {iso_path} ")
     # Create the mount folder if it doesn't exist
     if not os.path.exists(mount_folder):
         os.makedirs(mount_folder)
@@ -145,7 +143,7 @@ def read_file_with_timeout(file_path, timeout = 604):
         logger.error(f" - FAILURE_read : Reading file {file_path} failed due to an IO error.")
         return False
     else:
-        print("r", end="")
+        #print("r", end="")
         return True
 
 def read_small_files(src_folder):
@@ -160,4 +158,5 @@ def read_small_files(src_folder):
             # if os.path.getsize(file_path) <= max_size_bytes: -> removed to read all files including > 34000000 but read_file_with_timeout will only take the 34000000 first bytes
             if not read_file_with_timeout(file_path):
                 logger.error(f" - FAILURE_read : Abandoning due to timeout or IO Error on mounted iso on {src_folder}")
+                break # no need to try the other files if it fails at the first
     return isdvd

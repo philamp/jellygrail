@@ -13,9 +13,6 @@ import socket
 import struct
 from nfo_generator import nfo_loop_service, fetch_nfo
 
-# import script_runner threading class (ScriptRunnerSub) and its smart instanciator (ScriptRunner)
-from script_runner import ScriptRunner
-
 # dotenv for RD API management
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
@@ -30,6 +27,7 @@ socket_started = False
 # ------ Contact points
 from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
 from jfconfig import jfconfig
+from jgscan.jgsql import init_database, sqclose
 
 import jg_services
 
@@ -201,7 +199,7 @@ def inotify_deamon(to_watch):
 
     for item2watch in to_watch:
         wm.add_watch(item2watch, pyinotify.ALL_EVENTS, rec=True, auto_add=True)
-        logger.info(f"~ Activity monitored on : {item2watch}")
+        logger.debug(f"~ inotify_deamon | Monitoring : {item2watch}")
 
     # Event handler
     event_handler = EventHandler()
@@ -224,11 +222,11 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
         logger.info(f"~ Jellyfin next restart in {sleep_time} seconds.")
         time.sleep(sleep_time)
         if True:
-            logger.info(f"JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
+            logger.info(f"> JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
             httpd.shutdown()
 
 def handle_socket_request(connection, client_address, socket_type):
-    logger.debug(f"main/socket | Client opening {socket_type} service.")
+    logger.debug(f"~> main/socket | {socket_type} socket OPEN.")
     try:
         if socket_type == "ffprobe":
             while True:
@@ -257,7 +255,7 @@ def handle_socket_request(connection, client_address, socket_type):
                     # logger.warning(f"Message sent: {messageout}")
                     connection.sendall(messageout)
                 else:
-                    logger.debug(f"main/socket | Client CLOSING {socket_type} service.")
+                    #logger.debug(f"~> main/socket | {socket_type} socket CLOSED.")
                     break
                 
         if socket_type == "nfopath":
@@ -273,7 +271,7 @@ def handle_socket_request(connection, client_address, socket_type):
                     response = fetch_nfo(message)
                     connection.sendall(response.encode('utf-8'))
                 else:
-                    logger.debug(f"main/socket | Client CLOSING {socket_type} service.")
+                    logger.warning(f"~! main/socket | {socket_type} socket CLOSED. happens if nginx bindfs fails.")
                     break
     finally:
         connection.close()
@@ -301,7 +299,7 @@ def socket_server_waiting(socket_type):
     server_socket.listen()
     logger.info(f"main/socket | Waiting for {socket_type} client.")
     while True:
-        print(".", end="", flush=True)
+        #print(".", end="", flush=True)
         connection, client_address = server_socket.accept() # it waits here
         if socket_type == "nfopath":
             socket_started = True
@@ -324,16 +322,19 @@ if __name__ == "__main__":
     thread_ef.daemon = True  # exits when parent thread exits
     thread_ef.start()
 
-    print("Attente de connexion au socket ...", end="")
+    # todo : do we need NFO socket if user does not need nginx-webdav powered kodi ?
+    logger.info("~ Waiting for nginx-bindfs to open NFO socket ...")
     waitloop = 0
     while not socket_started:
-        print(".", end="", flush=True)
+        #print(".", end="", flush=True)
         waitloop += 1
         time.sleep(1)
         if(waitloop > 30):
-            logger.critical("BindFS is not connected to socket, BindFS service is probably not working properly thus JellyGrail won't start ... ")
+            logger.critical("!!! BindFS is not connecting to socket, BindFS service is probably not working properly thus JellyGrail won't start ... ")
 
     # ----------------- INITs -----------------------------------------
+    # Initialize the database connection, includes open() ----
+    init_database() 
 
     bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
 
@@ -356,7 +357,7 @@ if __name__ == "__main__":
         _scan_instance.run()
 
     # TODO test toremove
-    # nfo_loop_service()
+    nfo_loop_service()
 
 
     if full_run == True:
@@ -378,7 +379,7 @@ if __name__ == "__main__":
             
             logger.info("~ Real Debrid API rd_progress will be triggered every 2mn")
         else:
-            logger.warning("> Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env")
+            logger.warning("! Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env")
 
 
         # C: inotify deamon
@@ -398,3 +399,5 @@ if __name__ == "__main__":
         # server_thread.start()
         run_server()
         #server_thread.join() 
+        
+    sqclose()

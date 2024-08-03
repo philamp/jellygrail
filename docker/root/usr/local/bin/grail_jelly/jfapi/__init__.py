@@ -18,6 +18,26 @@ def jellyfin(path, method='get', **kwargs):
     response.raise_for_status()
     return response
 
+
+def wait_for_jfscan_to_finish():
+    # while libraryrunning dont do anything
+    if jfapikey is not None:
+        try:
+            tasks = jellyfin('ScheduledTasks').json()
+            tasks_name_mapping = {task.get('Key'): task for task in tasks}
+            ref_task_id = tasks_name_mapping.get('RefreshLibrary').get('Id')
+            logger.info("~ Waiting JF library refresh completion ~")
+            while True:
+                task = jellyfin(f'ScheduledTasks/{ref_task_id}').json()
+                if task.get('State') != "Running":
+                    break
+                else:
+                    time.sleep(3) #retry every 3 seconds
+        except Exception as e:
+            logger.error("> JF library refresh completion waiting task failed due to API errors")
+
+
+# maybe deprecated
 def merge_versions():
     if jfapikey is not None:
         tasks = jellyfin('ScheduledTasks').json()

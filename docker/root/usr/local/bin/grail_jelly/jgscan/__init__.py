@@ -2,7 +2,7 @@ from base import *
 from jgscan.jgsql import *
 from jgscan.caching import *
 import requests
-from jfapi import lib_refresh_all, merge_versions
+from jfapi import lib_refresh_all, merge_versions, wait_for_jfscan_to_finish
 from jgscan.arena import *
 import PTN
 #logger = logging.getLogger('jellygrail')
@@ -35,38 +35,35 @@ def get_fastpass_ffprobe(file_path):
 
 
     # todo use sqlite
-    init_database()
+    #init_database()
     # print(get_path_props(file_path[JG_VIRT_SHIFT:]))
     if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[JG_VIRT_SHIFT_FFP:]) if ffpitem[0] is not None]):
-        logger.debug(f"ffprobe from SQLITE data: {file_path}")
-        sqclose()
+        #logger.debug(f"ffprobe from SQLITE data: {file_path}")
+        #sqclose()
         return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
-    sqclose()
+    #sqclose()
 
-    logger.debug(f"ffprobe from MEDIA FILE: {file_path}")
+    logger.debug(f"> ffprobe wrapper fallback on real ffprobe for: {file_path}")
     return get_plain_ffprobe(file_path)
 
 def init_mountpoints():
 
     global dual_endpoints
-    logger.info("Wait for rclone to be ready to ensure all storage endpoints will be found... ")
+    logger.info("~ Waits 10s for remotes refresh to happen ~")
     time.sleep(10)
     for f in os.scandir(MOUNTS_ROOT): 
         if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
-            logger.info(f"> FOUND MOUNTPOINT: {f.name}")
             type = "local" if f.name.startswith("local_") else "remote"
+            logger.info(f"> Found {type} storage: {f.name}")
             for d in os.scandir(f.path):
                 if d.is_dir() and d.name != '@eaDir':
                     dual_endpoints.append(( MOUNTS_ROOT+"/"+f.name+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+f.name+"/"+d.name, type))
-    print(dual_endpoints)
+    #print(dual_endpoints)
     to_watch = [point for (point, _, point_type) in dual_endpoints if point_type == 'local']
 
     return to_watch    
 
 def bdd_install():
-
-    # Initialize the database connection, includes open() ----
-    init_database() 
 
     # Play migrations
     jg_datamodel_migration()
@@ -76,7 +73,7 @@ def bdd_install():
     insert_data("/shows", None, None, None, 'all')
     insert_data("/concerts", None, None, None, 'all')
     sqcommit()
-    sqclose()
+
 
 
 def release_browse(endpoint, releasefolder, rar_item, release_folder_path, storetype):
@@ -88,7 +85,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     # S = tvshow
     # S_DUP = S duplicate workaround when merging
 
-    logger.info(f"  > BROWSING PATH: {endpoint}/{releasefolder}")
+    #logger.info(f"  > BROWSING PATH: {endpoint}/{releasefolder}")
 
     # 0 - init some default values
     multiple_movie_or_disc_present = False
@@ -136,10 +133,10 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         filename_base = get_wo_ext(filename)
                         match = re.search(r'(.+?)\s*((?:s\d{1,2}\.?e\d{1,2})|(?:\b\d{1,2}x\d{1,2}\b)|(?:s\d{1,2}\.\d{1,2})|(?:[ .]e\d{1,2}))\s*(.*?)', filename_base, re.IGNORECASE)
                         if match:
-                            logger.info(f"")
+                            #logger.info(f"")
                             show, season_episode, episode_title = match.groups()
-                            logger.info(f"show is : {show}")
-                            logger.info(f"seaonsepisoide is : {season_episode}")
+                            #logger.info(f"show is : {show}")
+                            #logger.info(f"seaonsepisoide is : {season_episode}")
                             if 'x' in season_episode.lower():  # it's the 02x03 format
                                 season, episode_num = map(str, season_episode.split('x'))
                             elif not 'e' in season_episode.lower() : # it's the S02.03 format
@@ -167,8 +164,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                                 if similarity_score > 94:
                                     show = most_similar_string
-                                    logger.debug(f"      # similarshow check on : {show}")
-                                    logger.debug(f"      # similarshow found is : {most_similar_string} with score {similarity_score}")
+                                    #logger.debug(f"      # similarshow check on : {show}")
+                                    #logger.debug(f"      # similarshow found is : {most_similar_string} with score {similarity_score}")
 
                                     # S_DUP
                                     will_idx_check = True
@@ -178,7 +175,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             else:
                                 present_virtual_folders_shows.append(show)
                             
-                            logger.debug(f"      ## definitive sim show folder : {show}")
+                            #logger.debug(f"      ## definitive sim show folder : {show}")
 
                             # dive S WRITE
 
@@ -333,17 +330,17 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     elif(nbvideos_e > 1):
         multiple_movie_or_disc_present = True
         nomergetype = " - JGxMultiple"
-        logger.info("    -- Multiple videos release with or without extras --")
+        logger.info("    -- Multiple videos release --")
     elif bdmv_present:
-        logger.info("    -- BDMV or DVD Release with or without extras --")
+        logger.info("    -- BDMV or DVD Release --")
     elif season_present:
         logger.info("    -- TV show release --")
     else:
-        logger.info("    -- One video release with our without extras (last possibility) --")
+        logger.info("    -- Single video release (can have extras) --")
 
 
     if stopthere == True:
-        logger.error(f"    - Failed Release: {os.path.join(endpoint, releasefolder)} ; Reasons: {stopreason}")
+        logger.warning(f"    ! Failed Release: {os.path.join(endpoint, releasefolder)} ; Reasons: {stopreason}")
 
     # ---- DIVE S READ + insert + S_DUP idxcheck, unless stopthere is true-----
     if season_present and not stopthere:
@@ -408,8 +405,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                 if similarity_score > 94:
                     title_year = most_similar_string
-                    logger.debug(f"      # similarmovie check on : {title_year}")
-                    logger.debug(f"      # similarmovie found is : {most_similar_string} with score {similarity_score}")
+                    #logger.debug(f"      # similarmovie check on : {title_year}")
+                    #logger.debug(f"      # similarmovie found is : {most_similar_string} with score {similarity_score}")
 
                     # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
                     ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in ls_virtual_folder("/movies/"+title_year)]
@@ -424,7 +421,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     present_virtual_folders.append(title_year)
             else:
                 present_virtual_folders.append(title_year)
-            logger.debug(f"      ## definitive sim movie folder : {title_year}")
+            #logger.debug(f"      ## definitive sim movie folder : {title_year}")
 
         # ----- DIVE E READ + E_DUP check idx + insert
         for item in dive_e_['rootfiles']:
@@ -489,11 +486,11 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
 def scan():
 
-    init_database()
+    #init_database()
 
     #global logger
 
-    logger.debug("... Waiting 10s for any fresh RD file(s) to be available in the rclone mount ...")
+    logger.info("~ Waits 10s for remotes refresh to happen ~") #todo : can be forced ?
     time.sleep(10)
 
 
@@ -510,7 +507,7 @@ def scan():
         for f in os.scandir(src1):
             if f.path not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
-                    logger.info(f"> FOUND NEW RELEASE FOLDER: {f.name}")
+                    logger.info(f"> New item: {f.name}")
                     browse = True
                     endpoint2browse = src1
                     rar_item = None
@@ -518,7 +515,7 @@ def scan():
                         if g.name.lower().endswith('.rar') :
                             rar_item = g.path
                             endpoint2browse = src2
-                            logger.info(f"  > FOUND NEW RAR FILE: {g.name}")
+                            logger.debug(f"  * with RAR file: {g.name}")
                             if storetype == "remote":
                                 for i in range(2):
                                     # cache-heater 0 for RAR files and rar2fs
@@ -548,7 +545,9 @@ def scan():
                         release_browse(endpoint2browse, f.name, rar_item, f.path, storetype)
                         sqcommit()
 
-                elif not '@eaDir' in f.name:
+                elif not '@eaDir' in f.name and not '.DS_Store':
+
+                    logger.info(f"> New standalone item: {f.name}")
 
                     dvprofile = None
                     mediatype = None
@@ -577,8 +576,8 @@ def scan():
 
                             if similarity_score > 94:
                                 title_year = most_similar_string
-                                logger.debug(f"      # similar movie check on : {title_year}")
-                                logger.debug(f"      # similar movie found is : {most_similar_string} with score {similarity_score}")
+                                #logger.debug(f"      # similar movie check on : {title_year}")
+                                #logger.debug(f"      # similar movie found is : {most_similar_string} with score {similarity_score}")
 
                                 # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
                                 ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in ls_virtual_folder("/movies/"+title_year)]
@@ -594,7 +593,7 @@ def scan():
                         else:
                             present_virtual_folders.append(title_year)
 
-                        logger.debug(f"      ## definitive similar movie folder : {title_year}")
+                        #logger.debug(f"      ## definitive similar movie folder : {title_year}")
 
                         (stdout, _, fferr) = get_plain_ffprobe(f.path)
                         if fferr != 0:
@@ -620,18 +619,19 @@ def scan():
                         nomergetype = " - JGxISO"
                     
 
-                    logger.info(f"> FOUND NEW STANDALONE VIDEO FILE: {f.name}")
+                    
                     insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
                     insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
                     sqcommit()
 
     # Close the connection
-    sqclose()
+    #sqclose()
 
     if JF_WANTED:
         # refresh the jellyfin library and merge variants
         lib_refresh_all()
-        merge_versions() # todo remove as it's not reliable anyway
+        wait_for_jfscan_to_finish()
+        #merge_versions() # todo remove as it's not reliable anyway
     else:
         if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
             try:

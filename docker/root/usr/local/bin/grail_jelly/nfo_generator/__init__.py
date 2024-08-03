@@ -70,7 +70,7 @@ def build_jg_nfo_video(nfopath, pathjg, nfotype):
 
 def get_tech_xml_details(pathwoext):
     # build the tech part of the nfo
-    init_database()
+    #init_database()
     if (ff_result := [ffpitem[0] for ffpitem in get_path_props_woext(pathwoext) if ffpitem[0] is not None]):
         info = json.loads(ff_result[0].decode("utf-8"))
 
@@ -138,10 +138,10 @@ def get_tech_xml_details(pathwoext):
                 streamdetails.append(subtitle_element)
 
 
-        sqclose()
+        #sqclose()
         return fileinfo
 
-    sqclose()
+    #sqclose()
     return None
 
 def fetch_nfo(nfopath):
@@ -168,7 +168,7 @@ def fetch_nfo(nfopath):
             nfotype = "bdmv"
     
     elif "video_ts" in nfopath.lower():
-        if os.path.basename(nfopath).lower() == "sideo_ts.nfo":
+        if os.path.basename(nfopath).lower() == "video_ts.nfo":
             nfotype = "dvd"
 
     elif "/movies" in nfopath[:7]:
@@ -205,12 +205,12 @@ def jf_xml_create(item, sdata = None):
 
     if item.get('Type') == 'Movie':
         root = ET.Element("movie")
-        logger.debug("THIS IS A MOVIE")
+        #logger.debug("THIS IS A MOVIE")
     elif item.get('Type') == 'Episode':
         root = ET.Element("episodedetails")
-        logger.debug("THIS IS AN EPISODE")
+        #logger.debug("THIS IS AN EPISODE")
     elif item.get('Type') == 'Series':
-        logger.debug("THIS IS A TVSHOW")
+        #logger.debug("THIS IS A TVSHOW")
         seasons_data = []
         root = ET.Element("tvshow")
         if sdata:
