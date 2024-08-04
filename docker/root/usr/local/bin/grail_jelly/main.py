@@ -226,7 +226,8 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
             httpd.shutdown()
 
 def handle_socket_request(connection, client_address, socket_type):
-    logger.debug(f"~> main/socket | {socket_type} socket OPEN.")
+    if socket_type == "nfopath":
+        logger.debug(f"~> main/socket | {socket_type} socket OPEN.")
     try:
         if socket_type == "ffprobe":
             while True:
@@ -311,6 +312,11 @@ def socket_server_waiting(socket_type):
 if __name__ == "__main__":
 
     full_run = True
+
+    init_database() 
+
+    bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
+
     
     # Thread 0.1 - UNIX Socket (nfo path retriever socket : loop waiting thread) -- multithread requests ready but bindfs is not
     thread_e = threading.Thread(target=socket_server_waiting, args=("nfopath",))
@@ -334,9 +340,6 @@ if __name__ == "__main__":
 
     # ----------------- INITs -----------------------------------------
     # Initialize the database connection, includes open() ----
-    init_database() 
-
-    bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
 
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
@@ -357,6 +360,7 @@ if __name__ == "__main__":
         _scan_instance.run()
 
     # TODO test toremove
+    # only if jf_wanted ..AND kodi wanted ?
     nfo_loop_service()
 
 

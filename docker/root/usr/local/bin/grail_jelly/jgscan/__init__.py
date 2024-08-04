@@ -37,6 +37,10 @@ def get_fastpass_ffprobe(file_path):
     # todo use sqlite
     #init_database()
     # print(get_path_props(file_path[JG_VIRT_SHIFT:]))
+    #logger.debug(get_path_props(file_path[JG_VIRT_SHIFT_FFP:]))
+
+    #logger.debug(file_path[JG_VIRT_SHIFT_FFP:])
+
     if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[JG_VIRT_SHIFT_FFP:]) if ffpitem[0] is not None]):
         #logger.debug(f"ffprobe from SQLITE data: {file_path}")
         #sqclose()

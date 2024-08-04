@@ -19,15 +19,32 @@ from jfconfig.jfsql import *
 # is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
 # WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
+
+# for build_jg_nfo_video()
+NFO2XMLTYPE = {
+    "episodedetails":"episodedetails",
+    "bdmv":"movie",
+    "dvd":"movie",
+    "tvshow":"tvshow",
+    "movie":"movie"
+}
+
+# for get_tech_xml_details()
+AV_KEY_MAPPING = {
+    'codec_name': 'codec',
+    'display_aspect_ratio': 'aspect',
+    'width': 'width',
+    'height': 'height',
+    'channels': 'channels'
+}
+
+T_FORMAT = "%H:%M:%S"
+
+# for fetch_nfo()
+NFO_FALLBACK = "/mounts/filedefaultnfo_readme_p.txt" # put a default path
+
 def build_jg_nfo_video(nfopath, pathjg, nfotype):
 
-    NFO2XMLTYPE = {
-        "episodedetails":"episodedetails",
-        "bdmv":"movie",
-        "dvd":"movie",
-        "tvshow":"tvshow",
-        "movie":"movie"
-    }
 
     root = ET.Element(NFO2XMLTYPE.get(nfotype,"movie")) # ...indeed
     pathwoext = get_wo_ext(nfopath)
@@ -78,15 +95,6 @@ def get_tech_xml_details(pathwoext):
         streamdetails = ET.SubElement(fileinfo, 'streamdetails')
 
         # Mapping of ffprobe keys to desired XML tags
-        AV_KEY_MAPPING = {
-            'codec_name': 'codec',
-            'display_aspect_ratio': 'aspect',
-            'width': 'width',
-            'height': 'height',
-            'channels': 'channels'
-        }
-
-        T_FORMAT = "%H:%M:%S"
         
         # Iterate over streams and add details to 'streamdetails' 
         for stream in info.get('streams', []):
@@ -152,8 +160,6 @@ def fetch_nfo(nfopath):
     # 
     # careful to M_DUP and S_DUP management : no more identical.mkv + identical.mp4
 
-    fallback = "/mounts/filedefaultnfo_readme_p.txt" # put a default path
-
     #logger.debug(f"movies str equal ?:{nfopath}")
     
     path = JFSQ_STORED_NFO + get_wo_ext(nfopath) + ".nfo"
@@ -199,18 +205,18 @@ def fetch_nfo(nfopath):
                     return pathjg
 
     else:
-        return fallback
+        return NFO_FALLBACK
 
 def jf_xml_create(item, sdata = None):
 
     if item.get('Type') == 'Movie':
         root = ET.Element("movie")
-        #logger.debug("THIS IS A MOVIE")
+        logger.debug("THIS IS A MOVIE")
     elif item.get('Type') == 'Episode':
         root = ET.Element("episodedetails")
-        #logger.debug("THIS IS AN EPISODE")
+        logger.debug("THIS IS AN EPISODE")
     elif item.get('Type') == 'Series':
-        #logger.debug("THIS IS A TVSHOW")
+        logger.debug("THIS IS A TVSHOW")
         seasons_data = []
         root = ET.Element("tvshow")
         if sdata:
@@ -243,33 +249,45 @@ def jf_xml_create(item, sdata = None):
     try:
         item_images = jfapi.jellyfin(f'Items/{item["Id"]}/Images').json()
     except Exception as e:
-        logger.critical(f"> Get JF pics failed with error: {e}")
-        return False
-
-    for itmimg in item_images:
-        if itmimg.get('ImageType') == 'Primary':
-            if item.get('Type') == 'Episode':
-                ET.SubElement(root, "thumb", {"aspect": "thumb"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
-            else:
-                ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
-        elif itmimg.get('ImageType') == 'Logo':
-            ET.SubElement(root, "thumb", {"aspect": "clearlogo"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
-        elif itmimg.get('ImageType') == 'Backdrop':
-            ET.SubElement(root, "thumb", {"aspect": "landscape"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
-            ET.SubElement(root, "thumb", {"aspect": "banner"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+        logger.error(f"> Get JF pics failed with error: {e}")
+    else:
+        for itmimg in item_images:
+            if itmimg.get('ImageType') == 'Primary':
+                if item.get('Type') == 'Episode':
+                    ET.SubElement(root, "thumb", {"aspect": "thumb"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                else:
+                    ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+            elif itmimg.get('ImageType') == 'Logo':
+                ET.SubElement(root, "thumb", {"aspect": "clearlogo"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+            elif itmimg.get('ImageType') == 'Backdrop':
+                ET.SubElement(root, "thumb", {"aspect": "landscape"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                ET.SubElement(root, "thumb", {"aspect": "banner"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                ET.SubElement(root, "thumb", {"aspect": "clearart"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
 
     if item.get('Type') == 'Series':
         for season_data in seasons_data:
             try:
                 item_images = jfapi.jellyfin(f'Items/{season_data["suid"]}/Images').json()
             except Exception as e:
-                logger.critical(f"> Get JF pics TVSHOW failed with error: {e}")
-                return False
-            
-            for itmimg in item_images:
-                ET.SubElement(root, "thumb", {"aspect": "poster", "type": "season", "season": str(season_data['sidx']) }).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                logger.error(f"> Get JF pics TVSHOW failed with error: {e}")
+            else:
+                for itmimg in item_images:
+                    ET.SubElement(root, "thumb", {"aspect": "poster", "type": "season", "season": str(season_data['sidx']) }).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
 
 
+    if item.get('Type') in "Movie Episode":
+        if people := item.get('People',[]):
+            for actor in people:
+                actorxml = ET.SubElement(root, "actor")
+                ET.SubElement(actorxml, "name").text = actor.get("Name", "")
+                ET.SubElement(actorxml, "role").text = actor.get("Role", "")
+                try:
+                    item_images = jfapi.jellyfin(f'Items/{actor["Id"]}/Images').json()
+                except Exception as e:
+                    logger.error(f"> Get JF actor pic failed with error: {e}")
+                else:
+                    for itmimg in item_images:
+                        ET.SubElement(actorxml, "thumb").text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
 
 
 
@@ -323,95 +341,118 @@ def jf_xml_create(item, sdata = None):
 
 def nfo_loop_service():
 
+    init_jellyfin_db_ro("/jellygrail/jellyfin/config/data/library.db") # to get collection id which is in JF api but a pain in the ass to fetch :(
+
+    # stops if any dump fails as result won't be consistent anyway
+
     # jf_json_dump to store whole response
     whole_jf_json_dump = None
 
     # get first user, needed to request syncqueue
-    users = jfapi.jellyfin('Users').json()  
-    users_name_mapping = [user.get('Id') for user in users]
-    user_id = users_name_mapping[0]
-
-    init_jellyfin_db_ro("/jellygrail/jellyfin/config/data/library.db") # to get collection id which is not in WS :(
-
-    # get Movies and shows perent lib ID
-    # libraries = jellyfin(f'Items', params = dict(userId = user_id)).json()['Items']
-    # libids = [lib.get('Id') for lib in libraries if libraries in LIB_NAMES]
-
-    # while loop can start here !!!!!!!!!!!!!!!!!!!!!!!!
-
-    # currentqueue
     try:
-        syncqueue = jfapi.jellyfin(f'Jellyfin.Plugin.KodiSyncQueue/{user_id}/GetItems', params = dict(lastUpdateDt=read_jfsqdate_from_file())).json()
+        users = jfapi.jellyfin('Users').json()
     except Exception as e:
-        logger.critical(f"> Get JF sync queue failed with error: {e}")
+        logger.critical(f"!!! getting JF users failed [nfo_loop_service] error: {e}")
+        jfclose_ro()
         return False
-
-    nowdate = datetime.now().isoformat()
-
-    # lists
-    # items_added_and_updated = syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated')
+    else:
+        users_name_mapping = [user.get('Id') for user in users]
+        user_id = users_name_mapping[0]
 
 
-    # loop added and updated
-    if items_added_and_updated := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
-        # refresh ram dumps #todo remove season item type ?
-        # 1/ do all but Series, at its id is dependant on child (seasons) updated or not
-        # kodi has no nfo for seasons
-        s_data = {}
+        # get Movies and shows perent lib ID
+        # libraries = jellyfin(f'Items', params = dict(userId = user_id)).json()['Items']
+        # libids = [lib.get('Id') for lib in libraries if libraries in LIB_NAMES]
 
+        # while loop can start here !!!!!!!!!!!!!!!!!!!!!!!!
+
+        # currentqueue
         try:
-            whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
+            syncqueue = jfapi.jellyfin(f'Jellyfin.Plugin.KodiSyncQueue/{user_id}/GetItems', params = dict(lastUpdateDt=read_jfsqdate_from_file())).json()
         except Exception as e:
-            logger.critical(f"> Get JF lib json dump failed with error: {e}")
+            logger.critical(f"!!! Get JF sync queue failed [nfo_loop_service] error: {e}")
+            jfclose_ro()
             return False
-        
 
-        for item in whole_jf_json_dump:
-            if item.get('Id') in items_added_and_updated:
+        nowdate = datetime.now().isoformat()
 
+        # lists
+        # items_added_and_updated = syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated')
+
+
+        # loop added and updated
+        if items_added_and_updated := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
+            # refresh ram dumps #todo remove season item type ?
+            # 1/ do all but Series, at its id is dependant on child (seasons) updated or not
+            # kodi has no nfo for seasons
+            s_data = {}
+
+            try:
+                whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path,People,ProductionLocations')).json()['Items']
+            except Exception as e:
+                logger.critical(f"!!! Get JF lib json dump failed [nfo_loop_service] error: {e}")
+                jfclose_ro()
+                return False
+            
+
+            for item in whole_jf_json_dump:
+                if item.get('Id') in items_added_and_updated:
+
+                    if(item.get('Type') == 'Season'):
+                        pid = item.get('ParentId')
+                        items_added_and_updated.append(pid)
+
+                    #elif(item.get('Type') in "Movie Episode"): -> done beneath after all dumps calls to avoid any inconsistencies
+                        #jf_xml_create(item)
+
+            #loop the neigboors seasons so that data is complete
+
+            for item in whole_jf_json_dump:
                 if(item.get('Type') == 'Season'):
-                    pid = item.get('ParentId')
-                    items_added_and_updated.append(pid)
-
-                elif(item.get('Type') == 'Movie' or item.get('Type') == 'Episode'):
-                    jf_xml_create(item)
-
-        #loop the neigboors seasons so that data is complete
-
-        for item in whole_jf_json_dump:
-            if(item.get('Type') == 'Season'):
-                if item.get('ParentId') in items_added_and_updated:
-                    pid = item.get('ParentId')
-                    sidx = item.get('IndexNumber')
-                    suid = item.get('Id')
-                    s_data.setdefault(pid, [])
-                    s_data[pid].append({'sidx': sidx, 'suid': suid})
+                    if item.get('ParentId') in items_added_and_updated:
+                        pid = item.get('ParentId')
+                        sidx = item.get('IndexNumber')
+                        suid = item.get('Id')
+                        s_data.setdefault(pid, [])
+                        s_data[pid].append({'sidx': sidx, 'suid': suid})
 
 
-        try:
-            whole_jf_json_dump_s = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Series', Fields = 'ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
-        except Exception as e:
-            logger.critical(f"> Get JF lib json TVSHOW dump failed with error: {e}")
-            return False
-        
-        for item in whole_jf_json_dump_s:
-            if item.get('Id') in items_added_and_updated:
+            try:
+                whole_jf_json_dump_s = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Series', Fields = 'ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
+            except Exception as e:
+                logger.critical(f"!!! Get JF lib json TVSHOW dump failed [nfo_loop_service] error: {e}")
+                jfclose_ro()
+                whole_jf_json_dump = None # to free memory
+                return False
+            
 
-                if(item.get('Type') == 'Series'):
-                    jf_xml_create(item, sdata = s_data)            
+            # if everything went well, it will be consistent so we can continue in xml creation
+            for item in whole_jf_json_dump:
+                if item.get('Id') in items_added_and_updated:
+                    if(item.get('Type') in "Movie Episode"):
+                        jf_xml_create(item)
+
+            for item in whole_jf_json_dump_s:
+                if item.get('Id') in items_added_and_updated:
+                    if(item.get('Type') == 'Series'):
+                        jf_xml_create(item, sdata = s_data)            
 
 
 
-                    # ---- end movie case
+                        # ---- end movie case
 
 
-        # print(whole_jf_json_dump)
-        # loop added
-        # for item in items_added:
+            # print(whole_jf_json_dump)
+            # loop added
+            # for item in items_added:
 
-        logger.info("~> Jellyfin NFOs updated <~")
+
+            whole_jf_json_dump = None # to free memory
+            whole_jf_json_dump_s = None
+            logger.info("~> Jellyfin NFOs updated <~")
 
     jfclose_ro()
+    return True
     # ---- if finished correctly
     # save_jfsqdate_to_file(nowdate) TODO : only if something new
 
