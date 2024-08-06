@@ -275,7 +275,7 @@ def jf_xml_create(item, sdata = None):
                     ET.SubElement(root, "thumb", {"aspect": "poster", "type": "season", "season": str(season_data['sidx']) }).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
 
 
-    if item.get('Type') in "Movie Episode":
+    if item.get('Type') in "Movie Episode Series":
         if people := item.get('People',[]):
             for actor in people:
                 actorxml = ET.SubElement(root, "actor")
@@ -289,8 +289,10 @@ def jf_xml_create(item, sdata = None):
                     for itmimg in item_images:
                         ET.SubElement(actorxml, "thumb").text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
 
-
-
+    if item.get('Type') == "Movie":
+        for prodloc in item.get('ProductionLocations', []):
+            ET.SubElement(root, "country").text = prodloc
+            break
 
 
     #rating
@@ -308,7 +310,7 @@ def jf_xml_create(item, sdata = None):
         ET.SubElement(root, "genre").text = genre.get("Name", "")
     
     # tags
-    if item.get('Type') == 'Movie':
+    if item.get('Type') in "Movie Series":
         for tag in item.get("Tags", []):
             ET.SubElement(root, "tag").text = tag
 
