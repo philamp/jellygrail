@@ -48,6 +48,7 @@ def build_jg_nfo_video(nfopath, pathjg, nfotype):
 
     root = ET.Element(NFO2XMLTYPE.get(nfotype,"movie")) # ...indeed
     pathwoext = get_wo_ext(nfopath)
+    
     title = os.path.basename(pathwoext)
     dirnames = os.path.dirname(pathjg)
 
@@ -64,7 +65,7 @@ def build_jg_nfo_video(nfopath, pathjg, nfotype):
 
 
     #get tech details return et.element -----------
-    if nfotype == "movie" or nfotype == "episodedetails": 
+    if nfotype in "movie episodedetails dvd bdmv":
         if tech_details := get_tech_xml_details(pathwoext):
             root.append(tech_details)
 
@@ -92,6 +93,8 @@ def get_tech_xml_details(pathwoext):
         pathwoext = os.path.dirname(pathwoext) + "/VTS_01_1.VOB"
     elif "bdmv" in pathwoext.lower().split(os.sep):
         pathwoext = os.path.dirname(os.path.dirname(pathwoext))
+    
+    #logger.debug(f"build nfo with pathwoext = {pathwoext}")
 
     if (ff_result := [ffpitem[0] for ffpitem in get_path_props_woext(pathwoext) if ffpitem[0] is not None]):
         info = json.loads(ff_result[0].decode("utf-8"))
@@ -180,7 +183,8 @@ def fetch_nfo(nfopath):
     
     elif "video_ts" in nfopath.lower():
         if os.path.basename(nfopath).lower() == "video_ts.nfo":
-            nfotype = "dvd"
+            return NFO_FALLBACK
+            # nfotype = "dvd" todo test
 
     elif "/movies" in nfopath[:7]:
         nfotype = "movie"
@@ -196,7 +200,7 @@ def fetch_nfo(nfopath):
     # todo switch for others
 
     # ----
-
+    #logger.debug(f"check if jg nfo exist = {pathjg}")
     if nfotype != None:
         if os.path.exists(pathjf):
             return pathjf

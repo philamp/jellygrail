@@ -227,7 +227,7 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
 
 def handle_socket_request(connection, client_address, socket_type):
     if socket_type == "nfopath":
-        logger.debug(f"~> main/socket | {socket_type} socket OPEN.")
+        logger.debug(f"> {socket_type} socket OPEN [handle_socket_request]")
     try:
         if socket_type == "ffprobe":
             while True:
@@ -298,7 +298,7 @@ def socket_server_waiting(socket_type):
 
     # Listen for incoming connections
     server_socket.listen()
-    logger.info(f"main/socket | Waiting for {socket_type} client.")
+    logger.info(f"~ Waiting for {socket_type} client.")
     while True:
         #print(".", end="", flush=True)
         connection, client_address = server_socket.accept() # it waits here

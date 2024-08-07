@@ -26,7 +26,7 @@ PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
 def get_fastpass_ffprobe(file_path):
     # get ffprobe info from sqlite or use ffprobe
 
-    ffprobe_data = None
+    #ffprobe_data = None
     fakestderror = ""
 
     # logger.debug(f"filepath input is {file_path}")
@@ -64,7 +64,7 @@ def init_mountpoints():
             for d in os.scandir(f.path):
                 if d.is_dir() and d.name != '@eaDir':
                     dual_endpoints.append(( MOUNTS_ROOT+"/"+f.name+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+f.name+"/"+d.name, type))
-    print(dual_endpoints)
+    #print(dual_endpoints)
     to_watch = [point for (point, _, point_type) in dual_endpoints if point_type == 'local']
 
     return to_watch    
@@ -206,6 +206,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     # and storetype == 'remote' missing and rar_item ignored means we run ffprobe on mkv even if they're cache-heated with void-unrar
                     # cache-heater 1 for all files but iso
                     # (bitrate, dvprofile) = get_ffprobe(os.path.join(root, filename))
+                    stdout = None
                     (stdout, _, fferr) = get_plain_ffprobe(os.path.join(root, filename))
                     if fferr != 0:
                         stdout = None
@@ -253,23 +254,25 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
                     finally:
                         unmount_iso("/mnt/tmp")
+                    stdout = None
                     if not stopthere:
                         prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
-                        (stdout, _, fferr) = get_plain_ffprobe(prefix + os.path.join(root, filename))
+                        (stdout, _, fferr) = get_plain_ffprobe(prefix+iso_file_path)
+                        if fferr != 0:
+                            stdout = None
+                        
 
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : None})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : stdout})
 
                 # EF non-video files only (BDMV)
                 elif ('BDMV' in os.path.normpath(root).split(os.sep) or 'VIDEO_TS' in os.path.normpath(root).split(os.sep)) and not season_present:
 
-                    nomergetype = " - JGxBluRay"
 
-                    if 'VIDEO_TS' in os.path.normpath(root).split(os.sep):
-                        nomergetype = " - JGxDVD"
 
                     multiple_movie_or_disc_present = True
-                    bdmv_present = True
-                    dive_e_['mediatype'] = '_bdmv'
+                    bdmv_present = True # in the meaning of any disc dvd or bluray
+                    dive_e_['mediatype'] = '_bdmv' # bindfs mediatype not yet refined
+                    nomergetype = " - JGxBluRay"
 
                     ffprobed = None
 
@@ -278,19 +281,23 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             logger.error(f" - FAILURE_direct_read: IO or timeout on bdmv file: {os.path.join(root, filename)}")
                             stopthere = True
                             stopreason += ' >Pre-reading BDMV files failed'
+
+
+
+                    if 'VIDEO_TS' in os.path.normpath(root).split(os.sep): # DVD struct
+                        nomergetype = " - JGxDVD"
+                        if filename.lower() == "vts_01_1.vob": 
+                            (ffprobed, _, fferr) = get_plain_ffprobe(os.path.join(root, filename))
+                            if fferr != 0:
+                                ffprobed = None
+
+                    elif bdmv_ffprobed == None: #bluray struct
+                        (stdout, _, fferr) = get_plain_ffprobe("bluray:"+os.path.join(endpoint, releasefolder))
+                        if fferr != 0:
+                            stdout = None
+                            bdmv_ffprobed = "None" # error code, if it does not work the first time, don't retry and then, later, "None" will be understood as real None
                         else:
-                            if nomergetype == " - JGxDVD" and filename.lower() == "vts_01_1.vob":
-                                (stdout, _, fferr) = get_plain_ffprobe(os.path.join(root, filename))
-                                if fferr != 0:
-                                    stdout = None
-                                ffprobed = stdout
-                            elif bdmv_ffprobed == None:
-                                (stdout, _, fferr) = get_plain_ffprobe("bluray:"+os.path.join(endpoint, releasefolder))
-                                if fferr != 0:
-                                    stdout = None
-                                    bdmv_ffprobed = "None" # error code, if it does not work the first time, don't retry and then, later, "None" will be understood as real None
-                                else:
-                                    bdmv_ffprobed = stdout
+                            bdmv_ffprobed = stdout
 
                     if not stopthere:
                         dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : ffprobed})
@@ -457,7 +464,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
             # EF case --------- can have extras
             if multiple_movie_or_disc_present:
-                ffprobed = item['ffprobed'] if rootfilename.endswith(VIDEO_EXTENSIONS) else None
+                ffprobed = item['ffprobed'] # if rootfilename.lower().endswith(VIDEO_EXTENSIONS + ('.iso', '.vob')) else None # overkill todo remove ?
                 insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
 
             # Esingle case ------------ can have extras but with switch
