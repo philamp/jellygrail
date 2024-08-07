@@ -88,6 +88,11 @@ def build_jg_nfo_video(nfopath, pathjg, nfotype):
 def get_tech_xml_details(pathwoext):
     # build the tech part of the nfo
     #init_database()
+    if "video_ts" in pathwoext.lower().split(os.sep):
+        pathwoext = os.path.dirname(pathwoext) + "/VTS_01_1.VOB"
+    elif "bdmv" in pathwoext.lower().split(os.sep):
+        pathwoext = os.path.dirname(os.path.dirname(pathwoext))
+
     if (ff_result := [ffpitem[0] for ffpitem in get_path_props_woext(pathwoext) if ffpitem[0] is not None]):
         info = json.loads(ff_result[0].decode("utf-8"))
 
@@ -318,23 +323,26 @@ def jf_xml_create(item, sdata = None):
     # save this nfo for all paths in mediasources
     if item.get('Type') != 'Series':
         for mediasource in item.get('MediaSources'):
-            get_wo_ext_out = get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:])
-            if tech_details := get_tech_xml_details(get_wo_ext_out):
-                root.append(tech_details)
-            xml_str = ET.tostring(root, encoding="unicode")
-            pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
+            
+
             if mediasource.get("VideoType") == "BluRay":
+                get_wo_ext_out = mediasource.get('Path')[JG_VIRT_SHIFT:]
                 nfo_full_path = JFSQ_STORED_NFO + mediasource.get('Path')[JG_VIRT_SHIFT:] + "/BDMV/index.nfo.jf"
             elif mediasource.get("VideoType") == "Dvd":
+                get_wo_ext_out = mediasource.get('Path')[JG_VIRT_SHIFT:] + "/VIDEO_TS/VIDEO_TS"
                 nfo_full_path = JFSQ_STORED_NFO + mediasource.get('Path')[JG_VIRT_SHIFT:] + "/VIDEO_TS/VIDEO_TS.nfo.jf"
             else:
+                get_wo_ext_out = get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:])
                 nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + ".nfo.jf"
+
+
+            if tech_details := get_tech_xml_details(get_wo_ext_out):
+                root.append(tech_details)
     else:
-        xml_str = ET.tostring(root, encoding="unicode")
-        pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
         nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(item.get('Path')[JG_VIRT_SHIFT:]) + "/tvshow.nfo.jf"
 
-        
+    xml_str = ET.tostring(root, encoding="unicode")
+    pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
     os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
     with open(nfo_full_path, "w", encoding="utf-8") as file:
         file.write(pretty_xml_str)
@@ -343,7 +351,7 @@ def jf_xml_create(item, sdata = None):
 
 def nfo_loop_service():
 
-    init_jellyfin_db_ro("/jellygrail/jellyfin/config/data/library.db") # to get collection id which is in JF api but a pain in the ass to fetch :(
+    init_jellyfin_db_ro("/jellygrail/jellyfin/config/data/library.db") # to get collection id which is in JF api but a pain to fetch :(
 
     # stops if any dump fails as result won't be consistent anyway
 

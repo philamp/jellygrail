@@ -41,7 +41,9 @@ def get_fastpass_ffprobe(file_path):
 
     #logger.debug(file_path[JG_VIRT_SHIFT_FFP:])
 
-    if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[JG_VIRT_SHIFT_FFP:]) if ffpitem[0] is not None]):
+
+
+    if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[file_path.find("/") + JG_VIRT_SHIFT:]) if ffpitem[0] is not None]):
         #logger.debug(f"ffprobe from SQLITE data: {file_path}")
         #sqclose()
         return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
@@ -62,7 +64,7 @@ def init_mountpoints():
             for d in os.scandir(f.path):
                 if d.is_dir() and d.name != '@eaDir':
                     dual_endpoints.append(( MOUNTS_ROOT+"/"+f.name+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+f.name+"/"+d.name, type))
-    #print(dual_endpoints)
+    print(dual_endpoints)
     to_watch = [point for (point, _, point_type) in dual_endpoints if point_type == 'local']
 
     return to_watch    
@@ -102,6 +104,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     stopreason = ''
     atleastoneextra = False
     nomergetype = ""
+    bdmv_ffprobed = None
 
     # E_DUP duplicate workaround for one-movie releases / RESET idxdup at release level
     idxdupmovset = 1
@@ -189,11 +192,6 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             dive_s_[show][season][episode_num]['rootfilenames'].append(os.path.join(root, filename))
 
 
-
-                
-
-
-
                 # -- END DIVE write S files+folders only
                 # now DIVE write E files (folders later)
                 # now DIVE write S remaining data
@@ -256,6 +254,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     finally:
                         unmount_iso("/mnt/tmp")
                     if not stopthere:
+                        prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
+                        (stdout, _, fferr) = get_plain_ffprobe(prefix + os.path.join(root, filename))
+
                         dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : None})
 
                 # EF non-video files only (BDMV)
@@ -270,14 +271,30 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     bdmv_present = True
                     dive_e_['mediatype'] = '_bdmv'
 
+                    ffprobed = None
+
                     if rar_item == None and storetype == 'remote':
                         if not read_file_with_timeout(os.path.join(root, filename)):
                             logger.error(f" - FAILURE_direct_read: IO or timeout on bdmv file: {os.path.join(root, filename)}")
                             stopthere = True
                             stopreason += ' >Pre-reading BDMV files failed'
+                        else:
+                            if nomergetype == " - JGxDVD" and filename.lower() == "vts_01_1.vob":
+                                (stdout, _, fferr) = get_plain_ffprobe(os.path.join(root, filename))
+                                if fferr != 0:
+                                    stdout = None
+                                ffprobed = stdout
+                            elif bdmv_ffprobed == None:
+                                (stdout, _, fferr) = get_plain_ffprobe("bluray:"+os.path.join(endpoint, releasefolder))
+                                if fferr != 0:
+                                    stdout = None
+                                    bdmv_ffprobed = "None" # error code, if it does not work the first time, don't retry and then, later, "None" will be understood as real None
+                                else:
+                                    bdmv_ffprobed = stdout
+
                     if not stopthere:
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : None})
-                
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : ffprobed})
+
                 # S+E remaining mess
                 else:
                     # S+E all other files cache-heat
@@ -298,12 +315,11 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
         # DIVE folders for S are written upfront
         # DIVE write E folders
-        if not season_present:
-            if not stopthere:
-                for folder in folders:
-                    # E case folder DIVE write:
-                    if not '@eaDir' in os.path.join(root, folder):
-                        dive_e_['rootfoldernames'].append(os.path.join(root, folder))
+        if not season_present and not stopthere:
+            for folder in folders:
+                # E case folder DIVE write:
+                if not '@eaDir' in os.path.join(root, folder):
+                    dive_e_['rootfoldernames'].append(os.path.join(root, folder))
 
     # extras management with 0.3 rule for all E cases
     
@@ -475,8 +491,10 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
         # RELEASE-like BASE FOLDERs including extras subfolder if applies
         # EF folders
+
         if multiple_movie_or_disc_present:
-            insert_data("/movies/"+releasefolder+nomergetype, None, None, None, dive_e_['mediatype'])
+            bdmv_ffprobed = None if bdmv_ffprobed == "None" else bdmv_ffprobed
+            insert_data("/movies/"+releasefolder+nomergetype, None, None, None, dive_e_['mediatype'], bdmv_ffprobed)
             if atleastoneextra:
                 insert_data("/movies/"+releasefolder+nomergetype+"/extras", None, None, None, dive_e_['mediatype'])
 
@@ -549,7 +567,7 @@ def scan():
                         release_browse(endpoint2browse, f.name, rar_item, f.path, storetype)
                         sqcommit()
 
-                elif not '@eaDir' in f.name and not '.DS_Store':
+                elif not '@eaDir' in f.name and not '.DS_Store' in f.name:
 
                     logger.info(f"> New standalone item: {f.name}")
 
@@ -571,69 +589,71 @@ def scan():
                     # GENERIC META FOR Esingle case
                     title_year = clean_string(f"{release_parse['title']}{ytpl(release_parse.get('year'))}")
 
-                    if f.name.lower().endswith(VIDEO_EXTENSIONS):
-                        result = find_most_similar(title_year, present_virtual_folders)
+                    if f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso'):
 
-                        will_idx_check = False
-                        if result is not None:
-                            most_similar_string, similarity_score = result
+                        if f.name.lower().endswith(VIDEO_EXTENSIONS):
+                            result = find_most_similar(title_year, present_virtual_folders)
 
-                            if similarity_score > 94:
-                                title_year = most_similar_string
-                                #logger.debug(f"      # similar movie check on : {title_year}")
-                                #logger.debug(f"      # similar movie found is : {most_similar_string} with score {similarity_score}")
+                            will_idx_check = False
+                            if result is not None:
+                                most_similar_string, similarity_score = result
 
-                                # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
-                                ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in ls_virtual_folder("/movies/"+title_year)]
+                                if similarity_score > 94:
+                                    title_year = most_similar_string
+                                    #logger.debug(f"      # similar movie check on : {title_year}")
+                                    #logger.debug(f"      # similar movie found is : {most_similar_string} with score {similarity_score}")
 
-                                # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry
-                                ls_virtual_folder_a = list(set(ls_virtual_folder_a))
+                                    # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
+                                    ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in ls_virtual_folder("/movies/"+title_year)]
 
-                                # Mdup:
-                                will_idx_check = True
+                                    # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry
+                                    ls_virtual_folder_a = list(set(ls_virtual_folder_a))
 
+                                    # Mdup:
+                                    will_idx_check = True
+
+                                else:
+                                    present_virtual_folders.append(title_year)
                             else:
                                 present_virtual_folders.append(title_year)
-                        else:
-                            present_virtual_folders.append(title_year)
 
-                        #logger.debug(f"      ## definitive similar movie folder : {title_year}")
+                            #logger.debug(f"      ## definitive similar movie folder : {title_year}")
 
-                        (stdout, _, fferr) = get_plain_ffprobe(f.path)
-                        if fferr != 0:
-                            stdout = None
+                            (stdout, _, fferr) = get_plain_ffprobe(f.path)
+                            if fferr != 0:
+                                stdout = None
+                            
+                            (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
+                            metas = f" -{premetastpl} JGx"
+
+                            #(bitrate, dvprofile) = get_ffprobe(f.path)
+                            if(dvprofile):
+                                mediatype = '_dv'
+
+                            # E_DUP:
+                            if(will_idx_check):
+                                for existing_file in ls_virtual_folder_a:
+                                    if title_year+metas+str(idxdupmovset) == existing_file:
+                                        idxdupmovset += 1
+                            metas = metas + str(idxdupmovset)
+                            # E_DUP
+
+                        elif f.name.lower().endswith('.iso'):
+                            mediatype = '_bdmv'
+                            nomergetype = " - JGxISO"
                         
-                        (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
-                        metas = f" -{premetastpl} JGx"
 
-                        #(bitrate, dvprofile) = get_ffprobe(f.path)
-                        if(dvprofile):
-                            mediatype = '_dv'
-
-                        # E_DUP:
-                        if(will_idx_check):
-                            for existing_file in ls_virtual_folder_a:
-                                if title_year+metas+str(idxdupmovset) == existing_file:
-                                    idxdupmovset += 1
-                        metas = metas + str(idxdupmovset)
-                        # E_DUP
-
-                    elif f.name.lower().endswith('.iso'):
-                        mediatype = '_bdmv'
-                        nomergetype = " - JGxISO"
-                    
-
-                    
-                    insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
-                    insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
-                    sqcommit()
+                        
+                        insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
+                        insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
+                        sqcommit()
 
     # Close the connection
     #sqclose()
 
     if JF_WANTED:
         # refresh the jellyfin library and merge variants
-        lib_refresh_all()
+        #lib_refresh_all()
         wait_for_jfscan_to_finish()
         #merge_versions() # todo remove as it's not reliable anyway
     else:
