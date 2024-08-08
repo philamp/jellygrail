@@ -168,7 +168,7 @@ def fetch_nfo(nfopath):
     # 
     # careful to M_DUP and S_DUP management : no more identical.mkv + identical.mp4
 
-    #logger.debug(f"movies str equal ?:{nfopath}")
+    #logger.debug(f"nfo requested ?:{nfopath}")
     
     path = JFSQ_STORED_NFO + get_wo_ext(nfopath) + ".nfo"
     pathjf = path + ".jf"
@@ -183,8 +183,8 @@ def fetch_nfo(nfopath):
     
     elif "video_ts" in nfopath.lower():
         if os.path.basename(nfopath).lower() == "video_ts.nfo":
-            return NFO_FALLBACK
-            # nfotype = "dvd" todo test
+            #return NFO_FALLBACK
+            nfotype = "dvd" #todo test
 
     elif "/movies" in nfopath[:7]:
         nfotype = "movie"
