@@ -165,7 +165,7 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
         read -p $'\nFrom the remote JellyGrail instance, do you want to take the whole content of torrents, including folders ? yes/no (default: yes ; leave empty to keep default):\n> ' whole_content
     fi
 
-    read -p $'\nWhat is KODI player url ?, including protocol\n (leave empty to keep default/current: '"$KODI_PLAYER_URL"$')\n> ' kodi_player
+    read -p $'\nWhat is KODI player url ?, including protocol and port\n(leave empty to keep default/current: '"$KODI_PLAYER_URL"$')\n> ' kodi_player
 
     if [ ! -z "$KODI_PLAYER_URL" ] && [ -z "$kodi_player" ]; then
         kodi_player="$KODI_PLAYER_URL"
@@ -173,6 +173,16 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
 
     if [ ! -z "$kodi_player" ]; then
         sed -i "s|KODI_PLAYER_URL=\"PASTE_KODIPLAYER_URL_HERE\"|KODI_PLAYER_URL=\"$kodi_player\"|" "$SETTINGS_PATH"
+    fi
+
+    read -p $'\nWhat is KODI main url ? (kodi headless url or can be the same as kodi player), including protocol and port\n(leave empty to keep default/current: '"$KODI_MAIN_URL"$')\n> ' kodi_main
+
+    if [ ! -z "$KODI_MAIN_URL" ] && [ -z "$kodi_main" ]; then
+        kodi_main="$KODI_MAIN_URL"
+    fi
+
+    if [ ! -z "$kodi_player" ]; then
+        sed -i "s|KODI_MAIN_URL=\"PASTE_KODIMAIN_URL_HERE\"|KODI_MAIN_URL=\"$kodi_main\"|" "$SETTINGS_PATH"
     fi
 
 

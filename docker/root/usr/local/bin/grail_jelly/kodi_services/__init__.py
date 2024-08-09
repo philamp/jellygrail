@@ -3,8 +3,10 @@ from base.littles import *
 from base.constants import *
 import requests
 
+KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
+
 def refresh_kodi():
-    kodi_url = "http://127.0.0.1:8080/jsonrpc" 
+    kodi_url = f"{KODI_MAIN_URL}/jsonrpc" 
     kodi_username = "kodi"  
     kodi_password = "kodi"  
 
