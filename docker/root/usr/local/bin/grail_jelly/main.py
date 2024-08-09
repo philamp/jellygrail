@@ -10,14 +10,24 @@ import urllib
 import os
 import datetime
 import socket
+import requests
 import struct
 from nfo_generator import nfo_loop_service, fetch_nfo
+from kodi_services import refresh_kodi, send_nfo_to_kodi
+from jfapi import lib_refresh_all, wait_for_jfscan_to_finish # , merge_versions
+
 
 # dotenv for RD API management
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
+
+JF_WANTED = os.getenv('JF_WANTED') != "no"
+
+PLEX_REFRESH_A = os.getenv('PLEX_REFRESH_A')
+PLEX_REFRESH_B = os.getenv('PLEX_REFRESH_B')
+PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
 
 # check if api key is set
 RD_API_SET = os.getenv('RD_APITOKEN') != "PASTE-YOUR-KEY-HERE"
@@ -49,12 +59,35 @@ class RequestHandler(BaseHTTPRequestHandler):
         url_path = urllib.parse.urlparse(self.path).path
 
         if url_path == '/scan':
-            _scan_instance = ScriptRunner.get(scan)
+            _scan_instance = ScriptRunner.get(refresh_all)
+            _scan_instance.resetargs(1)
             _scan_instance.run()
             if _scan_instance.queued_execution:
                 message = "### scan() queued for later ! (Forces a library scan)\n"
             else:
                 message = "### scan() directly executed ! (Forces a library scan)\n"
+            self.standard_headers()
+            self.wfile.write(bytes(message, "utf8"))
+
+        elif url_path == '/mc_scan':
+            _kodirefresh_instance = ScriptRunner.get(refresh_all)
+            _kodirefresh_instance.resetargs(2)
+            _kodirefresh_instance.run()
+            if _kodirefresh_instance.queued_execution:
+                message = "### refresh_mediacenters queued for later ! \n"
+            else:
+                message = "### refresh_mediacenters directly executed ! \n"
+            self.standard_headers()
+            self.wfile.write(bytes(message, "utf8"))
+
+        elif url_path == '/nfo_scan':
+            _nfo_scan = ScriptRunner.get(refresh_all)
+            _nfo_scan.resetargs(4)
+            _nfo_scan.run()
+            if _nfo_scan.queued_execution:
+                message = "### nfo_generation queued for later ! \n"
+            else:
+                message = "### nfo_generation directly executed ! \n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
 
@@ -68,7 +101,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
             if(_rdprog_instance.get_output() == 'PLEASE_SCAN'):
-                _scan_instance = ScriptRunner.get(scan)
+                _scan_instance = ScriptRunner.get(refresh_all)
+                _scan_instance.resetargs(1)
                 _scan_instance.run()
 
         elif url_path == '/remotescan':
@@ -143,7 +177,56 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_error(503, "Client triggered service, not yet available - pile file not yet created on server, please retry in few seconds")
         else:
             self.standard_headers()
-            self.send_error(404, "You cannot ask that, that is foolish and rude")
+            self.send_error(404, "> This is unknown command")
+
+
+
+
+
+def refresh_all(step):
+
+    rd_progress_response = "nothing"
+
+    # step 0 canbe invoked but not yet implemented
+
+    # Step 0
+    if step < 1:
+        rd_progress_response = jg_services.rd_progress()
+    # step 1
+    if step == 1 or rd_progress_response == "PLEASE_SCAN":
+        scan()
+    if step < 3: 
+        # todo if kodi client is specified
+        refresh_kodi()
+    if step < 4:
+        if JF_WANTED:
+            # refresh the jellyfin library and merge variants
+            lib_refresh_all()
+            wait_for_jfscan_to_finish()
+            #merge_versions() # todo remove as it's not reliable anyway
+        else:
+            if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
+                try:
+                    requests.get(PLEX_REFRESH_A, timeout=10)
+                except Exception as e:
+                    logger.error("error with plex refresh")
+            if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
+                try:
+                    requests.get(PLEX_REFRESH_B, timeout=10)
+                except Exception as e:
+                    logger.error("error with plex refresh")
+            if PLEX_REFRESH_C != 'PASTE_C_REFRESH_URL_HERE':
+                try:
+                    requests.get(PLEX_REFRESH_C, timeout=10)
+                except Exception as e:
+                    logger.error("error with plex refresh")
+    if step < 5:
+        nfo_loop_service()
+    if step < 6:
+        send_nfo_to_kodi()
+     
+
+
 
 
 def run_server(server_class=HTTPServer, handler_class=RequestHandler, port=6502):
@@ -168,7 +251,8 @@ class EventHandler(pyinotify.ProcessEvent):
     def inotify_run(self):
         logger.debug("inotify handler will call /scan in 30 minutes")
         time.sleep(1800) # todo to improve
-        _scan_instance = ScriptRunner.get(scan)
+        _scan_instance = ScriptRunner.get(refresh_all)
+        _scan_instance.resetargs(1)
         _scan_instance.run()
 
 # ---- included cron
@@ -182,7 +266,8 @@ def periodic_trigger(seconds=800):
         _rdprog_instance.run()
         if(_rdprog_instance.get_output() == 'PLEASE_SCAN'):
             # logger.info("periodic trigger is working")
-            _scan_instance = ScriptRunner.get(scan)
+            _scan_instance = ScriptRunner.get(refresh_all)
+            _scan_instance.resetargs(1)
             _scan_instance.run()
 
 def periodic_trigger_rs(seconds=350):
@@ -348,15 +433,15 @@ if __name__ == "__main__":
     if JF_WANTED:
         jf_config_result = jfconfig()
         if jf_config_result == "FIRST_RUN":
-            _scan_instance = ScriptRunner.get(scan)
-            _scan_instance.daemon = True 
+            _scan_instance = ScriptRunner.get(refresh_all)
+            _scan_instance.resetargs(1)
             _scan_instance.run()
         elif jf_config_result == "ZERO-RUN":
             logger.info(f"JellyGrail will now shutdown for restart in deamon mode, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
             full_run = False
     else:
-        _scan_instance = ScriptRunner.get(scan)
-        _scan_instance.daemon = True 
+        _scan_instance = ScriptRunner.get(refresh_all)
+        _scan_instance.resetargs(1)
         _scan_instance.run()
 
     # TODO test toremove

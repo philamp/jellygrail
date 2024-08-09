@@ -165,7 +165,15 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
         read -p $'\nFrom the remote JellyGrail instance, do you want to take the whole content of torrents, including folders ? yes/no (default: yes ; leave empty to keep default):\n> ' whole_content
     fi
 
+    read -p $'\nWhat is KODI player url ?, including protocol\n (leave empty to keep default/current: '"$KODI_PLAYER_URL"$')\n> ' kodi_player
 
+    if [ ! -z "$KODI_PLAYER_URL" ] && [ -z "$kodi_player" ]; then
+        kodi_player="$KODI_PLAYER_URL"
+    fi
+
+    if [ ! -z "$kodi_player" ]; then
+        sed -i "s|KODI_PLAYER_URL=\"PASTE_KODIPLAYER_URL_HERE\"|KODI_PLAYER_URL=\"$kodi_player\"|" "$SETTINGS_PATH"
+    fi
 
 
     read -p $'\nDo you want to use integrated Jellyfin ? \nyes/no (leave empty to keep default/current: '"$JF_WANTED"$')\n> ' jf_wanted

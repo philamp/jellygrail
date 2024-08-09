@@ -2,7 +2,6 @@ from base import *
 from jgscan.jgsql import *
 from jgscan.caching import *
 import requests
-from jfapi import lib_refresh_all, merge_versions, wait_for_jfscan_to_finish
 from jgscan.arena import *
 import PTN
 #logger = logging.getLogger('jellygrail')
@@ -17,11 +16,7 @@ present_virtual_folders_shows = []
 
 dual_endpoints = []
 
-JF_WANTED = os.getenv('JF_WANTED') != "no"
 
-PLEX_REFRESH_A = os.getenv('PLEX_REFRESH_A')
-PLEX_REFRESH_B = os.getenv('PLEX_REFRESH_B')
-PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
 
 def get_fastpass_ffprobe(file_path):
     # get ffprobe info from sqlite or use ffprobe
@@ -574,7 +569,7 @@ def scan():
                         release_browse(endpoint2browse, f.name, rar_item, f.path, storetype)
                         sqcommit()
 
-                elif not '@eaDir' in f.name and not '.DS_Store' in f.name:
+                elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
 
                     logger.info(f"> New standalone item: {f.name}")
 
@@ -596,86 +591,64 @@ def scan():
                     # GENERIC META FOR Esingle case
                     title_year = clean_string(f"{release_parse['title']}{ytpl(release_parse.get('year'))}")
 
-                    if f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso'):
+                    if f.name.lower().endswith(VIDEO_EXTENSIONS):
+                        result = find_most_similar(title_year, present_virtual_folders)
 
-                        if f.name.lower().endswith(VIDEO_EXTENSIONS):
-                            result = find_most_similar(title_year, present_virtual_folders)
+                        will_idx_check = False
+                        if result is not None:
+                            most_similar_string, similarity_score = result
 
-                            will_idx_check = False
-                            if result is not None:
-                                most_similar_string, similarity_score = result
+                            if similarity_score > 94:
+                                title_year = most_similar_string
+                                #logger.debug(f"      # similar movie check on : {title_year}")
+                                #logger.debug(f"      # similar movie found is : {most_similar_string} with score {similarity_score}")
 
-                                if similarity_score > 94:
-                                    title_year = most_similar_string
-                                    #logger.debug(f"      # similar movie check on : {title_year}")
-                                    #logger.debug(f"      # similar movie found is : {most_similar_string} with score {similarity_score}")
+                                # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
+                                ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in ls_virtual_folder("/movies/"+title_year)]
 
-                                    # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
-                                    ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in ls_virtual_folder("/movies/"+title_year)]
+                                # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry
+                                ls_virtual_folder_a = list(set(ls_virtual_folder_a))
 
-                                    # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry
-                                    ls_virtual_folder_a = list(set(ls_virtual_folder_a))
+                                # Mdup:
+                                will_idx_check = True
 
-                                    # Mdup:
-                                    will_idx_check = True
-
-                                else:
-                                    present_virtual_folders.append(title_year)
                             else:
                                 present_virtual_folders.append(title_year)
+                        else:
+                            present_virtual_folders.append(title_year)
 
-                            #logger.debug(f"      ## definitive similar movie folder : {title_year}")
+                        #logger.debug(f"      ## definitive similar movie folder : {title_year}")
 
-                            (stdout, _, fferr) = get_plain_ffprobe(f.path)
-                            if fferr != 0:
-                                stdout = None
-                            
-                            (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
-                            metas = f" -{premetastpl} JGx"
-
-                            #(bitrate, dvprofile) = get_ffprobe(f.path)
-                            if(dvprofile):
-                                mediatype = '_dv'
-
-                            # E_DUP:
-                            if(will_idx_check):
-                                for existing_file in ls_virtual_folder_a:
-                                    if title_year+metas+str(idxdupmovset) == existing_file:
-                                        idxdupmovset += 1
-                            metas = metas + str(idxdupmovset)
-                            # E_DUP
-
-                        elif f.name.lower().endswith('.iso'):
-                            mediatype = '_bdmv'
-                            nomergetype = " - JGxISO"
+                        (stdout, _, fferr) = get_plain_ffprobe(f.path)
+                        if fferr != 0:
+                            stdout = None
                         
+                        (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
+                        metas = f" -{premetastpl} JGx"
 
-                        
-                        insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
-                        insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
-                        sqcommit()
+                        #(bitrate, dvprofile) = get_ffprobe(f.path)
+                        if(dvprofile):
+                            mediatype = '_dv'
+
+                        # E_DUP:
+                        if(will_idx_check):
+                            for existing_file in ls_virtual_folder_a:
+                                if title_year+metas+str(idxdupmovset) == existing_file:
+                                    idxdupmovset += 1
+                        metas = metas + str(idxdupmovset)
+                        # E_DUP
+
+                    elif f.name.lower().endswith('.iso'):
+                        mediatype = '_bdmv'
+                        nomergetype = " - JGxISO"
+                    
+
+                    
+                    insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
+                    insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
+                    sqcommit()
 
     # Close the connection
     #sqclose()
 
-    if JF_WANTED:
-        # refresh the jellyfin library and merge variants
-        #lib_refresh_all()
-        wait_for_jfscan_to_finish()
-        #merge_versions() # todo remove as it's not reliable anyway
-    else:
-        if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
-            try:
-                requests.get(PLEX_REFRESH_A, timeout=10)
-            except Exception as e:
-                logger.error("error with plex refresh")
-        if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
-            try:
-                requests.get(PLEX_REFRESH_B, timeout=10)
-            except Exception as e:
-                logger.error("error with plex refresh")
-        if PLEX_REFRESH_C != 'PASTE_C_REFRESH_URL_HERE':
-            try:
-                requests.get(PLEX_REFRESH_C, timeout=10)
-            except Exception as e:
-                logger.error("error with plex refresh")
+
