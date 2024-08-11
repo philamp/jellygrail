@@ -3,9 +3,8 @@
 # Update package information and install MariaDB server
 apt update
 apt install -y mariadb-server
-
 sed -i 's/^port\s*=.*/port = 6503/' /etc/mysql/mariadb.conf.d/50-server.cnf
-
+service mariadbd start
 # Secure MariaDB installation (automated with the specified answers)
 mysql_secure_installation <<EOF
 
@@ -24,5 +23,5 @@ GRANT ALL PRIVILEGES ON *.* TO 'kodi'@'%' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 EXIT;
 EOF
-
+service mariadbd stop
 echo "MariaDB installation and kodi user setup complete."
