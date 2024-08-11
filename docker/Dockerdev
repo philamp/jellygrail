@@ -190,9 +190,14 @@ EXPOSE 8085
 
 # expose adb if needed
 # EXPOSE 5037
+# expose ssh for development
+# EXPOSE 23
 
 # expose 6502 jelly_update script
 EXPOSE 6502
+
+# expose mariadbd
+EXPOSE 6503
 
 # overwrite run jellyfin main original process as CMD instead of entrypoint
 ENTRYPOINT ["/init"]
