@@ -28,6 +28,7 @@ def jfconfig():
             logger.debug(f"Waiting for Jellyfin to be available: try {iwait} ...")
         else:
             proceedinjf = True
+            logger.info("> Jellyfin server is started")
             break
         time.sleep(3)
 
