@@ -31,7 +31,7 @@ RUN ./rclone version
 
 # ---RCLONE EXPORT END----
 
-FROM jellyfin/jellyfin
+FROM jellyfin/jellyfin:10.9.9
 
 # Docker build runtime vars (ARG) and env vars
 ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
