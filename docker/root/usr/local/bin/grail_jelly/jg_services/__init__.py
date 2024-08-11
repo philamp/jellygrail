@@ -321,13 +321,14 @@ def getrdincrement(incr):
         pile_key, cur_pile = file_to_array(PILE_FILE)
         return json.dumps({'hashes': cur_pile[incr:], 'lastid': len(cur_pile), 'pilekey': int(pile_key)}).encode()
     else:
+        rd_progress()
         # it forces this sever to call rd_progress at least once
-        service_rdprog_instance = ScriptRunner.get(rd_progress)
-        service_rdprog_instance.run()
-        if(service_rdprog_instance.get_output() != 'phony'):
+        # service_rdprog_instance = ScriptRunner.get(rd_progress)
+        # service_rdprog_instance.run()
+        # if(service_rdprog_instance.get_output() != 'phony'):
             # logger.info("periodic trigger is working")
             # we are forced to consume output from this funciton to avoid disjoined calls to output queue
-            logger.warning(f"> force rd_progress (should happen once) [getrdincrement]")
+            # logger.warning(f"> force rd_progress (should happen once) [getrdincrement]")
         return ""
 
 

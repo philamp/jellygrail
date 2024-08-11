@@ -1,2 +1,0 @@
-#!/command/execlineb -P
-python3 /usr/local/bin/grail_jelly/main.py

@@ -1,4 +1,4 @@
 #!/command/execlineb -P
 redirfd -w 1 /dev/null
 redirfd -w 2 /dev/null
-nginx -g "daemon off;"
+mariadbd

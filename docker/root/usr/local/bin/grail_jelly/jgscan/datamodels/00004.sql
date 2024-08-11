@@ -1,1 +1,0 @@
-ALTER TABLE main_mapping ADD COLUMN nfosent INTEGER;
