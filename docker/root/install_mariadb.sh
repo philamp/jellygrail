@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Update package information and install MariaDB server
-apt update
-apt install -y mariadb-server
+apt-get update
+apt-get install -y mariadb-server
 sed -i 's/^port\s*=.*/port = 6503/' /etc/mysql/mariadb.conf.d/50-server.cnf
 service mariadbd start
 # Secure MariaDB installation (automated with the specified answers)
