@@ -3,7 +3,8 @@
 # Update package information and install MariaDB server
 apt-get update
 apt-get install -y mariadb-server
-sed -i 's/^port\s*=.*/port = 6503/' /etc/mysql/mariadb.conf.d/50-server.cnf
+sudo sed -i '/^\[mysqld\]/a port = 6503' /etc/mysql/mariadb.conf.d/50-server.cnf
+sudo sed -i 's/^bind-address\s*=.*/bind-address = 0.0.0.0/' /etc/mysql/mariadb.conf.d/50-server.cnf
 service mariadb start
 # Secure MariaDB installation (automated with the specified answers)
 mysql_secure_installation <<EOF
