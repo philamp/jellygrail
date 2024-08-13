@@ -21,7 +21,7 @@ def init_jellyfin_db_ro(db_path):
     try:
         # Using URI to specify the database in read-only mode
         uri = f"file:{db_path}?mode=ro&nolock=1"
-        connjf_ro = sqlite3.connect(uri, uri=True, timeout=5)
+        connjf_ro = sqlite3.connect(uri, uri=True, timeout=5, check_same_thread=False)
         cursor = connjf_ro.cursor()
         #cursor.execute('PRAGMA journal_mode=WAL;')
 

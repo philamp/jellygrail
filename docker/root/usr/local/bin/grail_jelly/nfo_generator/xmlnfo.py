@@ -29,8 +29,11 @@ AV_KEY_MAPPING = {
 
 T_FORMAT = "%H:%M:%S"
 
+# init_jellyfin_db_ro("/jellygrail/jellyfin/config/data/library.db") todo toremove
+
 def build_jg_nfo_video(nfopath, pathjg, nfotype):
 
+     # to get collection id which is in JF api but a pain to fetch :(
 
     root = ET.Element(NFO2XMLTYPE.get(nfotype,"movie")) # ...indeed
     pathwoext = get_wo_ext(nfopath)
@@ -67,6 +70,7 @@ def build_jg_nfo_video(nfopath, pathjg, nfotype):
         with open(pathjg, "w", encoding="utf-8") as file:
             file.write(pretty_xml_str)
     except Exception as e:
+
         return False
 
     return True
@@ -174,12 +178,14 @@ def jf_xml_create(item, sdata = None):
     ET.SubElement(root, "runtime").text = str(ticks_to_minutes(item.get("RunTimeTicks", 60)))
 
     # fetch collectiondata from sqlite db
+    '''
     if item.get('Type') == 'Movie':
         if (itemdata_array := [itemdata[0] for itemdata in fetch_item_data(item["Id"]) if itemdata[0] is not None]):
             itemjsondb = json.loads(itemdata_array[0])
             if tmdb_collection := itemjsondb.get("TmdbCollectionName", None):
                 setxml = ET.SubElement(root, "set")
                 ET.SubElement(setxml, "name").text = tmdb_collection
+    '''
 
     # nbseasons total in lib
     # nbepisodes total in lib TODO

@@ -80,10 +80,9 @@ def fetch_nfo(nfopath):
 
 def nfo_loop_service():
 
-    init_jellyfin_db_ro("/jellygrail/jellyfin/config/data/library.db") # to get collection id which is in JF api but a pain to fetch :(
 
     # stops if any dump fails as result won't be consistent anyway
-
+    #logger.debug("Scan thread selected is nfo generator")
     # jf_json_dump to store whole response
     whole_jf_json_dump = None
 
@@ -92,7 +91,7 @@ def nfo_loop_service():
         users = jfapi.jellyfin('Users').json()
     except Exception as e:
         logger.critical(f"!!! getting JF users failed [nfo_loop_service] error: {e}")
-        jfclose_ro()
+        #jfclose_ro()
         return False
     else:
         users_name_mapping = [user.get('Id') for user in users]
@@ -107,10 +106,11 @@ def nfo_loop_service():
 
         # currentqueue
         try:
+            #logger.debug("goes through kodisync queue")
             syncqueue = jfapi.jellyfin(f'Jellyfin.Plugin.KodiSyncQueue/{user_id}/GetItems', params = dict(lastUpdateDt=read_jfsqdate_from_file())).json()
         except Exception as e:
             logger.critical(f"!!! Get JF sync queue failed [nfo_loop_service] error: {e}")
-            jfclose_ro()
+            #jfclose_ro()
             return False
 
         nowdate = datetime.now().isoformat()
@@ -130,7 +130,7 @@ def nfo_loop_service():
                 whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path,People,ProductionLocations')).json()['Items']
             except Exception as e:
                 logger.critical(f"!!! Get JF lib json dump failed [nfo_loop_service] error: {e}")
-                jfclose_ro()
+                #jfclose_ro()
                 return False
             
 
@@ -160,7 +160,7 @@ def nfo_loop_service():
                 whole_jf_json_dump_s = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Series', Fields = 'ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
             except Exception as e:
                 logger.critical(f"!!! Get JF lib json TVSHOW dump failed [nfo_loop_service] error: {e}")
-                jfclose_ro()
+                #jfclose_ro()
                 whole_jf_json_dump = None # to free memory
                 return False
             
@@ -190,7 +190,7 @@ def nfo_loop_service():
             whole_jf_json_dump_s = None
             logger.info("~> Jellyfin NFOs updated <~")
 
-    jfclose_ro()
+    #jfclose_ro()
     save_jfsqdate_to_file(nowdate)
     return True
     # ---- if finished correctly

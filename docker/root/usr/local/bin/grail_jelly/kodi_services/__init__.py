@@ -1,6 +1,7 @@
 from base import *
 from base.littles import *
 from base.constants import *
+from kodi_services.sqlkodi import test
 import requests
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
@@ -63,4 +64,10 @@ def refresh_kodi():
         return False
 
 def send_nfo_to_kodi():
+
+    # select all media items in kodi 
+    # browse nfos
+        # find corresponding video path (maping between kodi and filesystem)
+    test()
+
     return

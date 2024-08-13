@@ -91,6 +91,17 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
 
+        elif url_path == '/nfo_send':
+            _nfo_send = ScriptRunner.get(refresh_all)
+            _nfo_send.resetargs(5)
+            _nfo_send.run()
+            if _nfo_send.queued_execution:
+                message = "### nfo_send queued for later ! \n"
+            else:
+                message = "### nfo_send directly executed ! \n"
+            self.standard_headers()
+            self.wfile.write(bytes(message, "utf8"))
+
         elif url_path == '/rd_progress':
             _rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
             _rdprog_instance.run()
@@ -446,7 +457,7 @@ if __name__ == "__main__":
 
     # TODO test toremove
     # only if jf_wanted ..AND kodi wanted ?
-    nfo_loop_service()
+    #nfo_loop_service()
 
 
     if full_run == True:
