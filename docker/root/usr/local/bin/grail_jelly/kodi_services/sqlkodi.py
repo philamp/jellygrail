@@ -22,8 +22,6 @@ def fetch_media_id(path):
     # Récupération des résultats
     return result
 
-
-
 def mariadb_close():
     # Fermeture du curseur et de la connexion
     #todo  put on shutdown
