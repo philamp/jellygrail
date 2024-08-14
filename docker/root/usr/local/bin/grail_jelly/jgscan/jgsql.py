@@ -24,7 +24,6 @@ def sqrollback():
 def set_current_version(version):
     # Mise à jour de la version dans la base de données
     global conn
-    cursor = conn.cursor()
     conn.execute('DELETE FROM schema_version')
     conn.execute('INSERT INTO schema_version (version) VALUES (?)', (version,))
 
@@ -42,7 +41,6 @@ def get_current_version():
 
 def apply_migration(migration_file):
     global conn
-    cursor = conn.cursor()
     with open(migration_file, 'r') as file:
         sql = file.read()
     try:
@@ -59,7 +57,6 @@ def apply_migration(migration_file):
 
 def jg_datamodel_migration():
     global conn
-    cursor = conn.cursor()
 
     # look for the current version if possible
     incr = get_current_version()

@@ -12,14 +12,17 @@ import datetime
 import socket
 import requests
 import struct
+
+# dotenv for RD API management
+from dotenv import load_dotenv
+load_dotenv('/jellygrail/config/settings.env')
+
 from nfo_generator import nfo_loop_service, fetch_nfo
 from kodi_services import refresh_kodi, send_nfo_to_kodi
 from jfapi import lib_refresh_all, wait_for_jfscan_to_finish # , merge_versions
 
 
-# dotenv for RD API management
-from dotenv import load_dotenv
-load_dotenv('/jellygrail/config/settings.env')
+
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
