@@ -85,7 +85,7 @@ def send_nfo_to_kodi():
                 elif filename.lower() == "tvshow.nfo":
                     logger.debug("tv show nfo")
                 else:
-                    tofetch = urllib.parse.quote(get_wo_ext(os.path.basename(filename)))
+                    tofetch = urllib.parse.quote(get_wo_ext(get_wo_ext(os.path.basename(filename))))
                     logger.debug(f"kodi db fetching : {tofetch}")
                     results = [line[0] for line in fetch_media_id(tofetch)] # todo refine to have full path
                     idres = results[0]

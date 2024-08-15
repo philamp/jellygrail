@@ -5,6 +5,7 @@ import requests
 from jg_services.jelly_rdapi import RD
 from datetime import datetime
 from script_runner import ScriptRunner
+from requests.exceptions import HTTPError
 RD = RD()
 # plug to same logging instance as main
 #logger = logging.getLogger('jellygrail')
@@ -226,8 +227,9 @@ def remoteScan():
     # take data from remote RD account
     # if no local data, take it (we have to compare later on)
 
-# compare with rdump not pile
-    
+    # compare with rdump not pile
+
+    # todo : add wait until select files is available
 
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
          # -> ok but if remotescan is called a lot ... lot of backups....
@@ -272,6 +274,7 @@ def remoteScan():
                 whole_batch_taken = True
                 for item in push_to_rd_hashes:
                     try:
+                        ## item = 'bf5e32ae2d6c63e0b8ceb7d0c9d7a397ab8b6cd1'
                         # RD calls below !! caution !!
                         #logger.debug(f"  * Adding RD Hash from remote: {item} ...")
                         returned = RD.torrents.add_magnet(item).json()
@@ -286,14 +289,17 @@ def remoteScan():
                             RD.torrents.select_files(returned.get('id'), get_string)
                         else:
                             RD.torrents.select_files(returned.get('id'), 'all')
-
+                    except HTTPError as http_err:
+                        if http_err.response.status_code == 403:
+                            logger.warning("...! Hash is not accepeted by RD.")
+                            continue
                     except Exception as e:
-                        logger.error(f"  - ...An Error has occured on pushing hash to RD (+cancellation of whole batch +manual increment, will be retried next iteration anyway) : {e}")
+                        logger.error(f"...!! An Error has occured on pushing hash to RD (whole batch cancelled but retried next time) : {e}")
                         # this makes so that any RD action that is not complete stops the full batch, however if the failed action is a "select_files" it won't treat it next time so it does not completely fix the issue of select_files on hold # TODO
                         whole_batch_taken = False
                         break
                     else:
-                        logger.info(f"  * RD Hash {item} added from remote [remoteScan]")
+                        logger.info(f"...* RD Hash {item} added from remote [remoteScan]")
                         cur_incr += 1
                 if whole_batch_taken:
                     # whole batch taken so we can save the real increment given by server
