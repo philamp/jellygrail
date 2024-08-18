@@ -640,9 +640,27 @@ def scan():
 
                     elif f.name.lower().endswith('.iso'):
                         mediatype = '_bdmv'
-                        nomergetype = " - JGxISO"
-                    
 
+                        # cache-heater 0bis for all iso files if storing is remote
+                        # done here because a RAR can store an ISO
+                        # if storetype == 'remote': # change : read them even if not remote to know if its a dvd or bluray
+                        nomergetype = " - JGxBluRay"
+                        iso_file_path = f.path
+
+                        try:
+                            mount_iso(iso_file_path, "/mnt/tmp")
+                            if read_small_files("/mnt/tmp"):
+                                nomergetype = " - JGxDVD"
+                        except Exception as e:
+                            logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
+                        else:
+                            stdout = None
+                            prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
+                            (stdout, _, fferr) = get_plain_ffprobe(prefix+iso_file_path)
+                            if fferr != 0:
+                                stdout = None
+                        finally:
+                            unmount_iso("/mnt/tmp")
                     
                     insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
                     insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)

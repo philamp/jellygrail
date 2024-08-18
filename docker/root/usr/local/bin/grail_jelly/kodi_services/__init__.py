@@ -50,11 +50,11 @@ def refresh_kodi():
     except Exception as e:
         logger.error("!! Kodi refreshed failed [refresh_kodi]")
         return False
-
-    if response.status_code == 200:
-        logger.debug("> Kodi lib refreshed [refresh_kodi]")
     else:
-        logger.warning(f"! Error on kodi lib refresh: {response.status_code}")
+        if response.status_code == 200:
+            logger.debug("> Kodi lib refreshed [refresh_kodi]")
+        else:
+            logger.warning(f"! Error on kodi lib refresh: {response.status_code}")
 
     try:
         notification_response = requests.post(
@@ -77,19 +77,28 @@ def send_nfo_to_kodi():
     for root, folders, files in os.walk(JFSQ_STORED_NFO):
         for filename in files:
             idres = None
+            tabletofetch = "movie"
             if filename.lower().endswith(('.nfo.jf')):
-                if filename.lower() == "video_ts.nfo":
-                    logger.debug("dvd nfo")
-                elif filename.lower() == "index.nfo":
-                    logger.debug("bluray nfo")
-                elif filename.lower() == "tvshow.nfo":
-                    logger.debug("tv show nfo")
+                if filename.lower() == "video_ts.nfo.jf":
+                    tofetch = urllib.parse.quote(os.path.basename(os.path.dirname(os.path.dirname(filename))), safe="()")
+                elif filename.lower() == "index.nfo.jf":
+                    tofetch = urllib.parse.quote(os.path.basename(os.path.dirname(os.path.dirname(filename))), safe="()")
+                elif filename.lower() == "tvshow.nfo.jf":
+                    tofetch = urllib.parse.quote(os.path.basename(os.path.dirname(filename)), safe="()")
+                    tabletofetch = "tvshow"
                 else:
-                    tofetch = urllib.parse.quote(get_wo_ext(get_wo_ext(os.path.basename(filename))))
-                    logger.debug(f"kodi db fetching : {tofetch}")
-                    results = [line[0] for line in fetch_media_id(tofetch)] # todo refine to have full path
+                    tofetch = urllib.parse.quote(get_wo_ext(get_wo_ext(os.path.basename(filename))), safe="()[]{}!$&'()*+,;=:@") # put full path without like ?
+
+
+
+                tofetch = tofetch.replace("%", r"\%") # todo check ?
+                logger.debug(f"---kodi db fetching : {root}/{filename}")
+                if results := [line[0] for line in fetch_media_id(tofetch)]:
                     idres = results[0]
-                    logger.debug(f"corresponding media id is {idres}")
+                    #logger.debug(f"{tofetch} corresponding media id is {idres}")
+                else:
+                    logger.warning(f"   ---- > {tofetch} has NO correspondance")
+                
 
 
             if idres:
@@ -113,12 +122,12 @@ def send_nfo_to_kodi():
 
                 except Exception as e:
                     logger.error("!! Nfo refresh failed [refresh_kodi]")
-                    return False
-
-                if response.status_code == 200:
-                    logger.debug("> Nfo refresh ok [refresh_kodi]")
+                    # todo stop at the first sent failed ?
                 else:
-                    logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
+                    if response.status_code == 200:
+                        logger.debug("> Nfo refresh ok [refresh_kodi]")
+                    else:
+                        logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
 
 
 

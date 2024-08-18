@@ -152,8 +152,11 @@ def read_small_files(src_folder):
         for file in files:
             file_path = os.path.join(root, file)
 
-            if file.endswith(".vob"):
+            logger.debug(f"filename is {file}")
+
+            if file.endswith(".vob") or file.endswith(".VOB"):
                 isdvd = True
+                logger.debug("found a vob")
             
             # if os.path.getsize(file_path) <= max_size_bytes: -> removed to read all files including > 34000000 but read_file_with_timeout will only take the 34000000 first bytes
             if not read_file_with_timeout(file_path):

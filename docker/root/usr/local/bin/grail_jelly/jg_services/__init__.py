@@ -197,7 +197,10 @@ def restoreitem(filename, token):
                                         RD.torrents.select_files(returned.get('id'), get_string)
                                     else:
                                         RD.torrents.select_files(returned.get('id'), 'all')
-
+                                except HTTPError as http_err:
+                                    if http_err.response.status_code == 403:
+                                        logger.warning(f"...! Hash {item} is not accepted by RD.")
+                                        continue
                                 except Exception as e:
                                     logger.error(f"  - ...An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry) : {e}")
                                     return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry)"
@@ -291,7 +294,7 @@ def remoteScan():
                             RD.torrents.select_files(returned.get('id'), 'all')
                     except HTTPError as http_err:
                         if http_err.response.status_code == 403:
-                            logger.warning("...! Hash is not accepeted by RD.")
+                            logger.warning(f"...! Hash {item} is not accepted by RD.")
                             continue
                     except Exception as e:
                         logger.error(f"...!! An Error has occured on pushing hash to RD (whole batch cancelled but retried next time) : {e}")
