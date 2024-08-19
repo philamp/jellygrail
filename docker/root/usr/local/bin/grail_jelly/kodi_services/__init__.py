@@ -71,72 +71,61 @@ def refresh_kodi():
 
 def send_nfo_to_kodi():
 
-    # select all media items in kodi
-
     # browse nfos
     for root, folders, files in os.walk(JFSQ_STORED_NFO):
         for filename in files:
-            idres = None
-            tabletofetch = "movie"
+            tofetch = os.path.basename(root)
             if filename.lower().endswith(('.nfo.jf')):
-                if filename.lower() == "video_ts.nfo.jf":
-                    tofetch = urllib.parse.quote(os.path.basename(os.path.dirname(os.path.dirname(filename))), safe="()")
-                elif filename.lower() == "index.nfo.jf":
-                    tofetch = urllib.parse.quote(os.path.basename(os.path.dirname(os.path.dirname(filename))), safe="()")
+                if filename.lower() == "video_ts.nfo.jf" or filename.lower() == "index.nfo.jf":
+                    tofetch = os.path.basename(os.path.dirname(root))
+                    tabletofetch = "movie_view"
+                    idtofetch = "idMovie"
                 elif filename.lower() == "tvshow.nfo.jf":
-                    tofetch = urllib.parse.quote(os.path.basename(os.path.dirname(filename)), safe="()")
-                    tabletofetch = "tvshow"
+                    tabletofetch = "tvshow_view"
+                    idtofetch = "idShow"
+                elif "/shows" == root[JFSQ_STORED_NFO_SHIFT:JFSQ_STORED_NFO_SHIFT+6]:
+                    tabletofetch = "episode_view"
+                    idtofetch = "idEpisode"
+                    # put full path without like ?
                 else:
-                    tofetch = urllib.parse.quote(get_wo_ext(get_wo_ext(os.path.basename(filename))), safe="()[]{}!$&'()*+,;=:@") # put full path without like ?
+                    idtofetch = "idMovie"
+                    tabletofetch = "movie_view"
 
-
-
-                tofetch = tofetch.replace("%", r"\%") # todo check ?
+                tofetch = urllib.parse.quote(tofetch, safe=SAFE)
+                tofetch = tofetch.replace("%", r"\%")
                 logger.debug(f"---kodi db fetching : {root}/{filename}")
-                if results := [line[0] for line in fetch_media_id(tofetch)]:
-                    idres = results[0]
-                    #logger.debug(f"{tofetch} corresponding media id is {idres}")
+                if results := [line[0] for line in fetch_media_id(tofetch, tabletofetch, idtofetch)]:
+                    for result in results:
+                        refresh_payload = json.dumps({
+                            "jsonrpc": "2.0",
+                            "method": "VideoLibrary.Refresh",
+                            "params": {
+                                "movieid": result
+                            },
+                            "id": "1"
+                        })
+
+                        try:
+                            response = requests.post(
+                                kodi_url,
+                                headers=headers,
+                                data=refresh_payload,
+                                auth=(kodi_username, kodi_password),
+                                timeout=5
+                            )
+
+                        except Exception as e:
+                            logger.error("!! Nfo refresh failed [refresh_kodi]")
+                            # todo stop at the first sent failed ?
+                        else:
+                            if response.status_code == 200:
+                                logger.debug(f"> Nfo refresh ok on id item {result} [refresh_kodi]")
+                            else:
+                                logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
+
                 else:
                     logger.warning(f"   ---- > {tofetch} has NO correspondance")
                 
-
-
-            if idres:
-                refresh_payload = json.dumps({
-                    "jsonrpc": "2.0",
-                    "method": "VideoLibrary.Refresh",
-                    "params": {
-                        "movieid": idres
-                    },
-                    "id": "1"
-                })
-
-                try:
-                    response = requests.post(
-                        kodi_url,
-                        headers=headers,
-                        data=refresh_payload,
-                        auth=(kodi_username, kodi_password),
-                        timeout=5
-                    )
-
-                except Exception as e:
-                    logger.error("!! Nfo refresh failed [refresh_kodi]")
-                    # todo stop at the first sent failed ?
-                else:
-                    if response.status_code == 200:
-                        logger.debug("> Nfo refresh ok [refresh_kodi]")
-                    else:
-                        logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
-
-
-
-
-                
-            
-
-
-
 
         # find corresponding video path (maping between kodi and filesystem)
 

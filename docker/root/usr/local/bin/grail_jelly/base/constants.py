@@ -21,6 +21,10 @@ JFSQ_LAST_REQUEST = "/jellygrail/data/jf_sync_queue_last_request.txt"
 
 # folder to store nfos
 JFSQ_STORED_NFO = "/jellygrail/data/nfos"
+JFSQ_STORED_NFO_SHIFT = len(JFSQ_STORED_NFO)
+
+#should not be urlencoded
+SAFE="()[]{}!$&'()*+,;=:@"
 
 # rd local dump cron-backups folder
 RDUMP_BACKUP_FOLDER = '/jellygrail/data/backup'

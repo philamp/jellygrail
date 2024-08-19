@@ -9,14 +9,15 @@ conn = mysql.connector.connect(
     port=6503
 )
 
-def fetch_media_id(path):
+def fetch_media_id(path, tabletofetch, idtofetch):
     # Création d'un curseur pour exécuter des requêtes SQL
     cursor = conn.cursor()
 
     like_param = f"%{path}%"
 
     # Exécution d'une requête
-    cursor.execute("SELECT idMovie FROM movie WHERE c22 like %s", (like_param,))
+    cursor.execute(f"SELECT {idtofetch} FROM {tabletofetch} WHERE strPath like %s", (like_param,))
+
     result = cursor.fetchall()
     cursor.close() 
     # Récupération des résultats
