@@ -18,11 +18,11 @@ from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
 
 from nfo_generator import nfo_loop_service, fetch_nfo
-from kodi_services import refresh_kodi, send_nfo_to_kodi
+from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive
 from jfapi import lib_refresh_all, wait_for_jfscan_to_finish # , merge_versions
 
 
-
+retrier = False
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
@@ -91,6 +91,16 @@ class RequestHandler(BaseHTTPRequestHandler):
                 message = "### nfo_generation queued for later ! \n"
             else:
                 message = "### nfo_generation directly executed ! \n"
+            self.standard_headers()
+            self.wfile.write(bytes(message, "utf8"))
+
+        elif url_path == '/kodi_alive':
+            _kodi_alive = ScriptRunner.get(is_kodi_alive)
+            _kodi_alive.run()
+            if _kodi_alive.queued_execution:
+                message = "### kodi alive queued for later ! \n"
+            else:
+                message = "### kodi alive directly executed ! \n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
 
@@ -196,22 +206,26 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
 
-
 def refresh_all(step):
 
-    rd_progress_response = "nothing"
+    #rd_progress_response = "nothing"
 
     # step 0 canbe invoked but not yet implemented
 
     # Step 0
-    if step < 1:
-        rd_progress_response = jg_services.rd_progress()
+    #if step < 1:
+        #rd_progress_response = jg_services.rd_progress()
     # step 1
-    if step == 1 or rd_progress_response == "PLEASE_SCAN":
+    global retrier
+    preretrier = retrier
+
+    if step == 1: # or rd_progress_response == "PLEASE_SCAN":
         scan()
     if step < 3: 
         # todo if kodi client is specified
-        refresh_kodi()
+        if preretrier == False:
+            if not refresh_kodi():
+                preretrier = True
     if step < 4:
         if JF_WANTED:
             # refresh the jellyfin library and merge variants
@@ -236,10 +250,10 @@ def refresh_all(step):
                     logger.error("error with plex refresh")
     if step < 5:
         nfo_loop_service()
-    if step < 6:
+    if step < 6 and preretrier == False:
         send_nfo_to_kodi()
      
-
+    retrier = preretrier
 
 
 

@@ -17,6 +17,30 @@ headers = {
 }
 
 
+def is_kodi_alive():
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "JSONRPC.Ping",
+        "id": 1
+    }
+
+    try:
+        response = requests.post(kodi_url, json=payload, headers=headers)
+
+        logger.debug(f"kodi responded with {response.status_code}")
+
+        if response.status_code == 401:
+            logger.debug("Kodi is alive and responsive.")
+            return True
+        else:
+            logger.debug("Kodi responded, but the result was unexpected.")
+            return False
+    except requests.exceptions.RequestException as e:
+        #logger.debug(f"Failed to connect to Kodi: {e}")
+        return False
+
+
+
 def refresh_kodi():
 
     logger.debug(f"kodi url is: {KODI_MAIN_URL}")
@@ -72,35 +96,48 @@ def refresh_kodi():
 def send_nfo_to_kodi():
 
     # browse nfos
+    previous_root = ""
     for root, folders, files in os.walk(JFSQ_STORED_NFO):
         for filename in files:
             tofetch = os.path.basename(root)
             if filename.lower().endswith(('.nfo.jf')):
+                if root == previous_root: #nfo refresh is on parent folder basis (root), so no need to trigger upon next nfo files found in same folder
+                    continue
+                previous_root = root
                 if filename.lower() == "video_ts.nfo.jf" or filename.lower() == "index.nfo.jf":
                     tofetch = os.path.basename(os.path.dirname(root))
                     tabletofetch = "movie_view"
                     idtofetch = "idMovie"
+                    reftype = "Movie"
+                    typeid = "movieid"
                 elif filename.lower() == "tvshow.nfo.jf":
                     tabletofetch = "tvshow_view"
                     idtofetch = "idShow"
+                    reftype = "TVShow"
+                    typeid = "tvshowid"
                 elif "/shows" == root[JFSQ_STORED_NFO_SHIFT:JFSQ_STORED_NFO_SHIFT+6]:
                     tabletofetch = "episode_view"
                     idtofetch = "idEpisode"
+                    reftype = "Episode"
+                    typeid = "episodeid"
                     # put full path without like ?
                 else:
                     idtofetch = "idMovie"
                     tabletofetch = "movie_view"
+                    reftype = "Movie"
+                    typeid = "movieid"
 
                 tofetch = urllib.parse.quote(tofetch, safe=SAFE)
                 tofetch = tofetch.replace("%", r"\%")
                 logger.debug(f"---kodi db fetching : {root}/{filename}")
                 if results := [line[0] for line in fetch_media_id(tofetch, tabletofetch, idtofetch)]:
                     for result in results:
+                        time.sleep(1)
                         refresh_payload = json.dumps({
                             "jsonrpc": "2.0",
-                            "method": "VideoLibrary.Refresh",
+                            "method": f"VideoLibrary.Refresh{reftype}",
                             "params": {
-                                "movieid": result
+                                f"{typeid}": result
                             },
                             "id": "1"
                         })

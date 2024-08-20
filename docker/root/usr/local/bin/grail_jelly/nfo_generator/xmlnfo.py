@@ -8,6 +8,8 @@ import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from jgscan.jgsql import *
 from jfconfig.jfsql import *
+import urllib.parse
+import requests
 
 # for build_jg_nfo_video()
 NFO2XMLTYPE = {
@@ -232,7 +234,7 @@ def jf_xml_create(item, sdata = None):
                     logger.error(f"> Get JF actor pic failed with error: {e}")
                 else:
                     for itmimg in item_images:
-                        ET.SubElement(actorxml, "thumb").text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                        ET.SubElement(actorxml, "thumb").text = f"http://[HOST_PORT]/pics{urllib.parse.quote(itmimg.get('Path')[JF_MD_SHIFT:], safe=SAFE)}"
 
     if item.get('Type') == "Movie":
         for prodloc in item.get('ProductionLocations', []):
@@ -249,7 +251,41 @@ def jf_xml_create(item, sdata = None):
     # movie db keys vals
     for key, val in item.get("ProviderIds", {}).items():
         ET.SubElement(root, "uniqueid", {"type": key.lower()}).text = val
-    
+        if key.lower() == "tmdbcollection":
+            logger.debug(f"REMOTE SERACH TMDBCOLLECTION {val}")
+            payload = {
+                "SearchInfo": {
+                    "ProviderIds": {
+                        "Tmdb": f"{val}"
+                    }
+                }
+            }
+
+            try:
+                collec_items = jfapi.jellyfin(f'Items/RemoteSearch/BoxSet', json=payload, method='post').json()
+            except Exception as e:
+                logger.error(f"!! Get JF collection failed with error: {e}")
+            else:
+                for c_item in collec_items:
+                    if setname := c_item.get("Name", None):
+                        setxml = ET.SubElement(root, "set")
+                        ET.SubElement(setxml, "name").text = setname
+                        # ET.SubElement(root, "collectionimage").text = setname
+                        folderstorepath = JF_METADATA_ROOT+"/collections"
+                        filestorepath = folderstorepath+"/"+setname+".jpg"
+                        if not os.path.exists(filestorepath):
+                            os.makedirs(folderstorepath, exist_ok=True)
+                            try:
+                                response = requests.get(c_item.get("ImageUrl", None), stream=True)
+                                response.raise_for_status()
+                            except Exception as e:
+                                logger.debug(f"dling colleciton image {val} failed with error {e}")
+                            else:
+                                with open(filestorepath, 'wb') as file:
+                                    for chunk in response.iter_content(chunk_size=8192):
+                                        file.write(chunk)
+
+
     # genres
     for genre in item.get("GenreItems", []):
         ET.SubElement(root, "genre").text = genre.get("Name", "")

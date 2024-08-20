@@ -4,8 +4,6 @@ from base.constants import *
 import requests
 from jg_services.jelly_rdapi import RD
 from datetime import datetime
-from script_runner import ScriptRunner
-from requests.exceptions import HTTPError
 RD = RD()
 # plug to same logging instance as main
 #logger = logging.getLogger('jellygrail')
@@ -197,7 +195,7 @@ def restoreitem(filename, token):
                                         RD.torrents.select_files(returned.get('id'), get_string)
                                     else:
                                         RD.torrents.select_files(returned.get('id'), 'all')
-                                except HTTPError as http_err:
+                                except requests.exceptions.HTTPError as http_err:
                                     if http_err.response.status_code == 403:
                                         logger.warning(f"...! Hash {item} is not accepted by RD.")
                                         continue
@@ -292,7 +290,7 @@ def remoteScan():
                             RD.torrents.select_files(returned.get('id'), get_string)
                         else:
                             RD.torrents.select_files(returned.get('id'), 'all')
-                    except HTTPError as http_err:
+                    except requests.exceptions.HTTPError as http_err:
                         if http_err.response.status_code == 403:
                             logger.warning(f"...! Hash {item} is not accepted by RD.")
                             continue
