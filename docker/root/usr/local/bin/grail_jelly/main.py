@@ -22,8 +22,6 @@ from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive
 from jfapi import lib_refresh_all, wait_for_jfscan_to_finish # , merge_versions
 
 
-retrier = False
-
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
 JF_WANTED = os.getenv('JF_WANTED') != "no"
@@ -204,10 +202,20 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.send_error(404, "> This is unknown command")
 
 
+def is_kodi_alive_loop():
 
+    while True:
+        logger.debug("retrier loop is waiting for kodi")
+        if is_kodi_alive():
+            _refreshkodi_thread = ScriptRunner.get(refresh_all)
+            _refreshkodi_thread.resetargs(8) 
+            _refreshkodi_thread.run()
+            break
+        time.sleep(2)
 
 def refresh_all(step):
 
+    # todo implement if wanted modules (kodi etc)
     #rd_progress_response = "nothing"
 
     # step 0 canbe invoked but not yet implemented
@@ -216,16 +224,14 @@ def refresh_all(step):
     #if step < 1:
         #rd_progress_response = jg_services.rd_progress()
     # step 1
-    global retrier
-    preretrier = retrier
+    retry_later = False
 
     if step == 1: # or rd_progress_response == "PLEASE_SCAN":
         scan()
-    if step < 3: 
-        # todo if kodi client is specified
-        if preretrier == False:
-            if not refresh_kodi():
-                preretrier = True
+    if step < 3 or step == 8: 
+        if not refresh_kodi():
+            retry_later = True
+            #todo should wait for kodi to finish otherwise ? or nfo send can detect ?
     if step < 4:
         if JF_WANTED:
             # refresh the jellyfin library and merge variants
@@ -250,10 +256,19 @@ def refresh_all(step):
                     logger.error("error with plex refresh")
     if step < 5:
         nfo_loop_service()
-    if step < 6 and preretrier == False:
-        send_nfo_to_kodi()
+
+    if (step < 6 or step == 8) and retry_later == False:
+        if not send_nfo_to_kodi():
+            retry_later = True
+
+    if (step < 7 or step == 8) and retry_later == False:
+        print("todo here chirurgic kodi db edits")
      
-    retrier = preretrier
+    if retry_later == True:
+        _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
+        _is_kodi_alive_loop_thread.run()
+        # launch the jobs that tests kodi alive in loop
+            # this will then launch a new instance of refresh all wth special behavior
 
 
 

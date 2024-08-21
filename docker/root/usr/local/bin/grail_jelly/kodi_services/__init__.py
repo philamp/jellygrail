@@ -77,6 +77,7 @@ def refresh_kodi():
     else:
         if response.status_code == 200:
             logger.debug("> Kodi lib refreshed [refresh_kodi]")
+            
         else:
             logger.warning(f"! Error on kodi lib refresh: {response.status_code}")
 
@@ -92,8 +93,13 @@ def refresh_kodi():
     except Exception as e:
         logger.error(f"!! Kodi message failed with: {e}")
         return False
+    
+    return True
 
 def send_nfo_to_kodi():
+
+    if not is_kodi_alive():
+        return False
 
     # browse nfos
     previous_root = ""
@@ -130,40 +136,41 @@ def send_nfo_to_kodi():
                 tofetch = urllib.parse.quote(tofetch, safe=SAFE)
                 tofetch = tofetch.replace("%", r"\%")
                 logger.debug(f"---kodi db fetching : {root}/{filename}")
-                if results := [line[0] for line in fetch_media_id(tofetch, tabletofetch, idtofetch)]:
-                    for result in results:
-                        time.sleep(1)
-                        refresh_payload = json.dumps({
-                            "jsonrpc": "2.0",
-                            "method": f"VideoLibrary.Refresh{reftype}",
-                            "params": {
-                                f"{typeid}": result
-                            },
-                            "id": "1"
-                        })
+                # todo : if a retreieved media item has a non jellygrail provider id, it means it is not needed to refresh it
+                if results := [(line[0],line[1]) for line in fetch_media_id(tofetch, tabletofetch, idtofetch)]:
+                    for (result, uidtype) in results:
+                        if uidtype == 'jellygrail':
+                            time.sleep(1)
+                            refresh_payload = json.dumps({
+                                "jsonrpc": "2.0",
+                                "method": f"VideoLibrary.Refresh{reftype}",
+                                "params": {
+                                    f"{typeid}": result
+                                },
+                                "id": "1"
+                            })
 
-                        try:
-                            response = requests.post(
-                                kodi_url,
-                                headers=headers,
-                                data=refresh_payload,
-                                auth=(kodi_username, kodi_password),
-                                timeout=5
-                            )
+                            try:
+                                response = requests.post(
+                                    kodi_url,
+                                    headers=headers,
+                                    data=refresh_payload,
+                                    auth=(kodi_username, kodi_password),
+                                    timeout=5
+                                )
 
-                        except Exception as e:
-                            logger.error("!! Nfo refresh failed [refresh_kodi]")
-                            # todo stop at the first sent failed ?
-                        else:
-                            if response.status_code == 200:
-                                logger.debug(f"> Nfo refresh ok on id item {result} [refresh_kodi]")
+                            except Exception as e:
+                                logger.error("!! Nfo refresh failed [refresh_kodi]")
+                                # todo stop at the first sent failed ?
                             else:
-                                logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
+                                if response.status_code == 200:
+                                    logger.debug(f"> Nfo refresh ok on id item {result} [refresh_kodi]")
+                                else:
+                                    logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
 
                 else:
                     logger.warning(f"   ---- > {tofetch} has NO correspondance")
                 
 
         # find corresponding video path (maping between kodi and filesystem)
-
-    return
+    return True

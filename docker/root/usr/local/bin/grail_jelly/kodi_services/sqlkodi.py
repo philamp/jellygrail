@@ -16,7 +16,7 @@ def fetch_media_id(path, tabletofetch, idtofetch):
     like_param = f"%{path}%"
 
     # Exécution d'une requête
-    cursor.execute(f"SELECT {idtofetch} FROM {tabletofetch} WHERE strPath like %s", (like_param,))
+    cursor.execute(f"SELECT ttf.{idtofetch}, MIN(uid.type) as type FROM {tabletofetch} ttf LEFT JOIN uniqueid uid on uid.media_id = ttf.{idtofetch} WHERE strPath like %s GROUP BY ttf.{idtofetch}", (like_param,))
 
     result = cursor.fetchall()
     cursor.close() 
