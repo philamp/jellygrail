@@ -65,14 +65,14 @@ def fetch_nfo(nfopath):
     if nfotype != None:
         if os.path.exists(pathjf):
             return pathjf
+        
+        if os.path.exists(pathjg):
+            return pathjg
         else:
-            if os.path.exists(pathjg):
+            # build the jg simple nfo ....
+            # logger.debug(f"pathjg that will be written is: {pathjg}")
+            if build_jg_nfo_video(nfopath, pathjg, nfotype):
                 return pathjg
-            else:
-                # build the jg simple nfo ....
-                # logger.debug(f"pathjg that will be written is: {pathjg}")
-                if build_jg_nfo_video(nfopath, pathjg, nfotype):
-                    return pathjg
 
     else:
         return NFO_FALLBACK

@@ -314,17 +314,31 @@ def jf_xml_create(item, is_updated, sdata = None):
             if tech_details := get_tech_xml_details(get_wo_ext_out):
                 root.append(tech_details)
 
-            xml_str = ET.tostring(root, encoding="unicode")
-            pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
-            os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
-            with open(nfo_full_path, "w", encoding="utf-8") as file:
-                file.write(pretty_xml_str)
+            write_to_disk(root, nfo_full_path, is_updated)
 
     else:
         nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(item.get('Path')[JG_VIRT_SHIFT:]) + "/tvshow.nfo.jf"
 
-        xml_str = ET.tostring(root, encoding="unicode")
-        pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
-        os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
-        with open(nfo_full_path, "w", encoding="utf-8") as file:
-            file.write(pretty_xml_str)
+        write_to_disk(root, nfo_full_path, is_updated)
+
+def write_to_disk(root, nfo_full_path, is_updated):
+
+    if is_updated:
+        nfo_full_path_towrite = nfo_full_path + ".updated"
+    else:
+        nfo_full_path_towrite = nfo_full_path
+
+    xml_str = ET.tostring(root, encoding="unicode")
+    pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
+    os.makedirs(os.path.dirname(nfo_full_path_towrite), exist_ok = True)
+    with open(nfo_full_path_towrite, "w", encoding="utf-8") as file:
+        file.write(pretty_xml_str)
+
+    # try to remove a .done file
+    nfo_full_path_todelete = nfo_full_path + ".done"
+    try:
+        os.remove(nfo_full_path_todelete)
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        logger.debug(f"An error occurred while deleting the file: {e}")
