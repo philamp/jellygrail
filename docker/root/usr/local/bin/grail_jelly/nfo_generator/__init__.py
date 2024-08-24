@@ -120,10 +120,11 @@ def nfo_loop_service():
 
 
         # loop added and updated
-        if items_added_and_updated := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
+        if items_added_and_updated_pre := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
             # refresh ram dumps #todo remove season item type ?
             # 1/ do all but Series, at its id is dependant on child (seasons) updated or not
             # kodi has no nfo for seasons
+            items_added_and_updated = [(item_id, item_id in syncqueue.get('ItemsUpdated')) for item_id in items_added_and_updated_pre]
             s_data = {}
 
             try:
@@ -133,13 +134,12 @@ def nfo_loop_service():
                 #jfclose_ro()
                 return False
             
-
             for item in whole_jf_json_dump:
-                if item.get('Id') in items_added_and_updated:
-
-                    if(item.get('Type') == 'Season'):
-                        pid = item.get('ParentId')
-                        items_added_and_updated.append(pid)
+                for item_id, is_updated in items_added_and_updated:
+                    if item.get('Id') == item_id:
+                        if(item.get('Type') == 'Season'):
+                            pid = item.get('ParentId')
+                            items_added_and_updated.append((pid, is_updated))
 
                     #elif(item.get('Type') in "Movie Episode"): -> done beneath after all dumps calls to avoid any inconsistencies
                         #jf_xml_create(item)
@@ -148,7 +148,7 @@ def nfo_loop_service():
 
             for item in whole_jf_json_dump:
                 if(item.get('Type') == 'Season'):
-                    if item.get('ParentId') in items_added_and_updated:
+                    if any(pid == item.get('ParentId') for pid, _ in items_added_and_updated):
                         pid = item.get('ParentId')
                         sidx = item.get('IndexNumber')
                         suid = item.get('Id')
@@ -167,14 +167,16 @@ def nfo_loop_service():
 
             # if everything went well, it will be consistent so we can continue in xml creation
             for item in whole_jf_json_dump:
-                if item.get('Id') in items_added_and_updated:
-                    if(item.get('Type') in "Movie Episode"):
-                        jf_xml_create(item)
+                for item_id, is_updated in items_added_and_updated:
+                    if item.get('Id') == item_id:
+                        if(item.get('Type') in "Movie Episode"):
+                            jf_xml_create(item, is_updated)
 
             for item in whole_jf_json_dump_s:
-                if item.get('Id') in items_added_and_updated:
-                    if(item.get('Type') == 'Series'):
-                        jf_xml_create(item, sdata = s_data)            
+                for item_id, is_updated in items_added_and_updated:
+                    if item.get('Id') == item_id:
+                        if(item.get('Type') == 'Series'):
+                            jf_xml_create(item, is_updated, sdata = s_data)            
 
 
 

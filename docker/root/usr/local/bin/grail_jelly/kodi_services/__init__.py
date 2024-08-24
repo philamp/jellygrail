@@ -161,12 +161,13 @@ def send_nfo_to_kodi():
 
                             except Exception as e:
                                 logger.error("!! Nfo refresh failed [refresh_kodi]")
-                                # todo stop at the first sent failed ?
+                                return False
                             else:
                                 if response.status_code == 200:
                                     logger.debug(f"> Nfo refresh ok on id item {result} [refresh_kodi]")
                                 else:
                                     logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
+                                    return False
 
                 else:
                     logger.warning(f"   ---- > {tofetch} has NO correspondance")

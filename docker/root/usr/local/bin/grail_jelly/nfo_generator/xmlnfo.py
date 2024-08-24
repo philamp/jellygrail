@@ -152,7 +152,7 @@ def get_tech_xml_details(pathwoext):
     #sqclose()
     return None
 
-def jf_xml_create(item, sdata = None):
+def jf_xml_create(item, is_updated, sdata = None):
 
     if item.get('Type') == 'Movie':
         root = ET.Element("movie")

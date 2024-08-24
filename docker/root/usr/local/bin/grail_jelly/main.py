@@ -204,9 +204,10 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 def is_kodi_alive_loop():
 
+    logger.debug("retrier loop is waiting for kodi...")
     while True:
-        logger.debug("retrier loop is waiting for kodi")
         if is_kodi_alive():
+            logger.debug("> kodi alive")
             _refreshkodi_thread = ScriptRunner.get(refresh_all)
             _refreshkodi_thread.resetargs(8) 
             _refreshkodi_thread.run()
