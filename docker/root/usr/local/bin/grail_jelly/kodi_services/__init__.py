@@ -169,24 +169,13 @@ def send_nfo_to_kodi():
                             else:
                                 if response.status_code == 200:
                                     logger.debug(f"> Nfo refresh ok on id item {result} [refresh_kodi]")
-                                    # as we are on linux, we can then rename the file even if it's being accessed by another process
-                                    # rename to .done will ensure that this file won't be sent to kodi again
-                                    try:
-                                        if os.path.exists(filename):
-                                            if filename.endswith('.updated'):
-                                                new_name = filename[:-8] + '.done'
-                                            else:
-                                                new_name = filename+".done"
-                                            os.rename(filename, new_name)
-                                        else:
-                                            logger.critical(f"!!! file (to rename to .done) does not exist (theorically impossible) [send_nfo_to_kodi]")
-                                    except Exception as e:
-                                        logger.debug(f"!! An error occured on renaming .nfo.jf to .nfo.jf.done : {e}")
 
-
+                                    rename_to_done(filename)
                                 else:
                                     logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
                                     return False
+                        else:
+                            rename_to_done(filename) # - case where nfo was already taken through another way than nfo refresher
 
                 else:
                     logger.warning(f"   ---- > {tofetch} has NO correspondance")
@@ -194,3 +183,18 @@ def send_nfo_to_kodi():
 
         # find corresponding video path (maping between kodi and filesystem)
     return True
+
+def rename_to_done(filename):
+    # as we are on linux, we can then rename the file even if it's being accessed by another process
+    # rename to .done will ensure that this file won't be sent to kodi again
+    try:
+        if os.path.exists(filename):
+            if filename.endswith('.updated'):
+                new_name = filename[:-8] + '.done'
+            else:
+                new_name = filename+".done"
+            os.rename(filename, new_name)
+        else:
+            logger.critical(f"!!! file (to rename to .done) does not exist (theorically impossible) [send_nfo_to_kodi]")
+    except Exception as e:
+        logger.debug(f"!! An error occured on renaming .nfo.jf to .nfo.jf.done : {e}")

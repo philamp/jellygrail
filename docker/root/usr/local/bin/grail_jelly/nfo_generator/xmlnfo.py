@@ -322,7 +322,7 @@ def jf_xml_create(item, is_updated, sdata = None):
         write_to_disk(root, nfo_full_path, is_updated)
 
 def write_to_disk(root, nfo_full_path, is_updated):
-
+    
     if is_updated:
         nfo_full_path_towrite = nfo_full_path + ".updated"
     else:

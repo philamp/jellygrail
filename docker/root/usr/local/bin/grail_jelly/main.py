@@ -226,10 +226,11 @@ def refresh_all(step):
         #rd_progress_response = jg_services.rd_progress()
     # step 1
     retry_later = False
+    toomany = False
 
     if step == 1: # or rd_progress_response == "PLEASE_SCAN":
         scan()
-    if step < 3 or step == 8: 
+    if (step < 3 or step == 8) and not toomany: 
         if not refresh_kodi():
             retry_later = True
             #todo should wait for kodi to finish otherwise ? or nfo send can detect ?
@@ -255,15 +256,23 @@ def refresh_all(step):
                     requests.get(PLEX_REFRESH_C, timeout=10)
                 except Exception as e:
                     logger.error("error with plex refresh")
+
     if step < 5:
-        nfo_loop_service()
+        if not nfo_loop_service():
+            step = 9 # bypass the rest
+            # ping externally before trigerring ?
+            # script runner should check before ressting args: if queued true and current args < new args, keep current args (logic)
+
+    # if toomany, kodi refresh is done after jellyfin 
+    if toomany:
+        if not refresh_kodi():
+            retry_later = True
 
     if (step < 6 or step == 8) and retry_later == False:
         if not send_nfo_to_kodi():
             retry_later = True
-
-    if (step < 7 or step == 8) and retry_later == False:
         print("todo here chirurgic kodi db edits")
+
      
     if retry_later == True:
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
