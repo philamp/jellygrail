@@ -22,6 +22,10 @@ class ScriptRunnerSub:
 
     def resetargs(self, *args, **kwargs):
         #self.func = func
+        if (self.func.__name__ == "refresh_all"):
+            if self.queued_execution == True and self.args[0] < args[0]: #if the queud execution has set stronger refresh_all call (with lower step value than requested), don't change the step value
+                logger.debug(". refresh_all requested with higher step value, won't be applied")
+                return
         self.args = args
         self.kwargs = kwargs
 
@@ -43,7 +47,7 @@ class ScriptRunnerSub:
             if self.func:
                 self.manytimes += 1
                 # TODO: pass it to debug when ok
-                #logger.info(f"> THREAD: {self.func.__name__} | TIMES CALLED (since last restart): {self.manytimes}")
+                logger.debug(f"~> THREAD {self.func.__name__} part{self.args[0]} triggered")
                 result = self.func(*self.args, **self.kwargs)
                 if result is not None:
                     self.output_queue.put(result)
@@ -54,7 +58,7 @@ class ScriptRunnerSub:
         finally:
             # async bahavior parameters management post-set
             # TODO: pass it to debug when ok
-            logger.info(f"~> THREAD {self.func.__name__} COMPLETED [{self.manytimes}] <~")
+            logger.info(f"~> THREAD {self.func.__name__} part{self.args[0]} COMPLETED [{self.manytimes}] <~")
             self.is_running = False
             if self.queued_execution:
                 self.queued_execution = False # set it to False ASAP right after flag was interrogated

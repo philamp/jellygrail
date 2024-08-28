@@ -4,11 +4,14 @@ from base.constants import *
 from kodi_services.sqlkodi import fetch_media_id
 import requests
 import urllib.parse
+import websocket
+import threading
 
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
-kodi_url = f"http://{KODI_MAIN_URL}/jsonrpc" 
+kodi_url = f"http://{KODI_MAIN_URL}/jsonrpc"
+kodi_ws_url = f"ws://{KODI_MAIN_URL}/jsonrpc"
 kodi_username = "kodi"  
 kodi_password = "kodi"
 
@@ -16,6 +19,7 @@ headers = {
     'Content-Type': 'application/json',
 }
 
+is_scanning = False
 
 def is_kodi_alive():
     payload = {
@@ -39,9 +43,43 @@ def is_kodi_alive():
         #logger.debug(f"Failed to connect to Kodi: {e}")
         return False
 
+def on_message(ws, message):
+    global is_scanning
+    data = json.loads(message)
 
+    # Look for the scan start and finish events
+    if "method" in data:
+        if data["method"] == "VideoLibrary.OnScanFinished":
+            is_scanning = False
+            logger.debug(". Library scan has finished.")
+
+def on_error(ws, error):
+    logger.error(f"!! WebSocket error: {error} [kodi_services]")
+
+def on_close(ws, close_status_code, close_msg):
+    logger.debug(". WebSocket connection closed. [kodi_services]")
+
+def on_open(ws):
+    logger.debug(". WebSocket connection opened. Waiting for library scan events... [kodi_services]")
 
 def refresh_kodi():
+
+    if not is_kodi_alive():
+        return False
+
+    global is_scanning
+    is_scanning = True
+
+    ws = websocket.WebSocketApp(kodi_ws_url,
+                                on_message=on_message,
+                                on_error=on_error,
+                                on_close=on_close)
+
+    # Run the WebSocket in a separate thread to allow for graceful shutdown
+    wst = threading.Thread(target=ws.run_forever)
+    wst.daemon = True
+    wst.start()
+
 
     logger.debug(f"kodi url is: {KODI_MAIN_URL}")
 
@@ -94,6 +132,12 @@ def refresh_kodi():
         logger.error(f"!! Kodi message failed with: {e}")
         return False
     
+    while True:
+        if is_scanning == False or not is_kodi_alive():
+            break
+        time.sleep(2)
+    
+    ws.close()
     return True
 
 def send_nfo_to_kodi():

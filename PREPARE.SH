@@ -157,8 +157,8 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
     # Prompt the user for the API key
     echo ""
     read -p $'\nPlease enter your Real-Debrid API key (leave empty to keep default/current: '"$RD_APITOKEN"$' ):\n> ' api_key
-    read -p $'\nPlease enter the remote JellyGrail instance location, including protocol (ex: http://10.6.0.1:6502 ; leave empty to keep default/current: '"$REMOTE_RDUMP_BASE_LOCATION"$' ):\n> ' remote_loc
-    read -p $'\nPlease enter this docker webdav host:port as seen by an external device on the network, excluding protocol \n(ex: your-nas-ip:8085 ; leave empty to keep default/current: '"$WEBDAV_LAN_HOST"$' ):\n> ' webdav_lan
+    read -p $'\nPlease enter the remote JellyGrail instance base URL, including protocol (ex: http://10.6.0.1:6502 ; leave empty to keep default/current: '"$REMOTE_RDUMP_BASE_LOCATION"$' ):\n> ' remote_loc
+    read -p $'\nPlease enter this docker webdav host:port as seen by an external device on the network, host + port, without protocol prefix ! \n(ex: your-nas-ip:8085 ; leave empty to keep default/current: '"$WEBDAV_LAN_HOST"$' ):\n> ' webdav_lan
 
     if [ ! -z "$remote_loc" ]; then
         read -p $'\nPlease enter the default increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists BUT applies if the remote has changed a lot \n(leave empty to keep default/current: '"$DEFAULT_INCR"$' ):\n> ' default_incr
@@ -175,7 +175,7 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
         sed -i "s|KODI_PLAYER_URL=\"PASTE_KODIPLAYER_URL_HERE\"|KODI_PLAYER_URL=\"$kodi_player\"|" "$SETTINGS_PATH"
     fi
 
-    read -p $'\nWhat is KODI main url ? (kodi headless url or can be the same as kodi player), including protocol and port\n(leave empty to keep default/current: '"$KODI_MAIN_URL"$')\n> ' kodi_main
+    read -p $'\nWhat is KODI main url ? (kodi headless url or can be the same as kodi player), host + port (usually 8080), without protocol prefix! \n(leave empty to keep default/current: '"$KODI_MAIN_URL"$')\n> ' kodi_main
 
     if [ ! -z "$KODI_MAIN_URL" ] && [ -z "$kodi_main" ]; then
         kodi_main="$KODI_MAIN_URL"

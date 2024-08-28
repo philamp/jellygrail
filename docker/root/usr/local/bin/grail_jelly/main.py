@@ -12,6 +12,7 @@ import datetime
 import socket
 import requests
 import struct
+from kodi_services.sqlkodi import mariadb_close
 
 # dotenv for RD API management
 from dotenv import load_dotenv
@@ -21,6 +22,7 @@ from nfo_generator import nfo_loop_service, fetch_nfo
 from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive
 from jfapi import lib_refresh_all, wait_for_jfscan_to_finish # , merge_versions
 
+KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
@@ -230,11 +232,15 @@ def refresh_all(step):
 
     if step == 1: # or rd_progress_response == "PLEASE_SCAN":
         scan()
-    if (step < 3 or step == 8) and not toomany: 
-        if not refresh_kodi():
-            retry_later = True
-            #todo should wait for kodi to finish otherwise ? or nfo send can detect ?
+        logger.debug("refresh_all PART 1 : scan")
+    if (step < 3 or step == 8) and not toomany:
+        if KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE":
+            logger.debug("refresh_all PART 2 : refresh kodi incremental mode")
+            if not refresh_kodi():
+                retry_later = True
+                #todo should wait for kodi to finish otherwise ? or nfo send can detect ?
     if step < 4:
+        logger.debug("refresh_all PART 3 : refresh jf or plex")
         if JF_WANTED:
             # refresh the jellyfin library and merge variants
             lib_refresh_all()
@@ -258,20 +264,26 @@ def refresh_all(step):
                     logger.error("error with plex refresh")
 
     if step < 5:
-        if not nfo_loop_service():
-            step = 9 # bypass the rest
-            # ping externally before trigerring ?
-            # script runner should check before ressting args: if queued true and current args < new args, keep current args (logic)
+        if JF_WANTED:
+            logger.debug("refresh_all PART 4 : refresh nfo (with jf)")
+            if not nfo_loop_service():
+                step = 9 # bypass the rest
+                # ping externally before trigerring ?
+                # script runner should check before ressting args: if queued true and current args < new args, keep current args (logic)
 
     # if toomany, kodi refresh is done after jellyfin 
     if toomany:
-        if not refresh_kodi():
-            retry_later = True
+        if KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE":
+            logger.debug("refresh_all PART 2 : refresh kodi batch mode")
+            if not refresh_kodi():
+                retry_later = True
 
     if (step < 6 or step == 8) and retry_later == False:
-        if not send_nfo_to_kodi():
-            retry_later = True
-        print("todo here chirurgic kodi db edits")
+        if KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE":
+            logger.debug("refresh_all PART 5 : send new nfos to kodi")
+            if not send_nfo_to_kodi():
+                retry_later = True
+            logger.debug("todo here chirurgic kodi db edits")
 
      
     if retry_later == True:
@@ -328,6 +340,13 @@ def periodic_trigger_rs(seconds=350):
     while True:
         time.sleep(seconds)
         _rs_instance.run()
+
+def periodic_trigger_nfo_gen(seconds=70):
+    _nfogen_instance = ScriptRunner.get(refresh_all)
+    while True:
+        time.sleep(seconds)
+        _nfogen_instance.resetargs(4)
+        _nfogen_instance.run()
 
 def inotify_deamon(to_watch):
     # ----- inotify 
@@ -451,7 +470,7 @@ if __name__ == "__main__":
 
     full_run = True
 
-    init_database() 
+    init_database()
 
     bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
 
@@ -484,18 +503,15 @@ if __name__ == "__main__":
 
     # Config JF before starting threads and server threads, trigger a first scan if it's first use (rd_progress potentially does it as well but RD may not be used TODO fix with regular scan as well)        
     if JF_WANTED:
-        jf_config_result = jfconfig()
-        if jf_config_result == "FIRST_RUN":
-            _scan_instance = ScriptRunner.get(refresh_all)
-            _scan_instance.resetargs(1)
-            _scan_instance.run()
-        elif jf_config_result == "ZERO-RUN":
+        #jf_config_result = jfconfig()
+        # if jf_config_result == "FIRST_RUN":
+            # _scan_instance = ScriptRunner.get(refresh_all)
+            # _scan_instance.resetargs(1)
+            # _scan_instance.run()
+        if jfconfig() == "ZERO-RUN":
             logger.info(f"JellyGrail will now shutdown for restart in deamon mode, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
             full_run = False
-    else:
-        _scan_instance = ScriptRunner.get(refresh_all)
-        _scan_instance.resetargs(1)
-        _scan_instance.run()
+
 
     # TODO test toremove
     # only if jf_wanted ..AND kodi wanted ?
@@ -503,10 +519,16 @@ if __name__ == "__main__":
 
 
     if full_run == True:
-        # ------------------- threads A + Ars, B, C, D  -----------------------
+        # ------------------- threads A + Ars, B, C, D, E  -----------------------
         
-        if RD_API_SET:
+        # thread E
+        if JF_WANTED:
+            thread_e = threading.Thread(target=periodic_trigger_nfo_gen)
+            thread_e.daemon = True  # 
+            thread_e.start()
 
+
+        if RD_API_SET:
             # A: rd_progress called automatically every 2mn
             thread_a = threading.Thread(target=periodic_trigger)
             thread_a.daemon = True  # 
@@ -535,6 +557,12 @@ if __name__ == "__main__":
         thread_b.daemon = True  # exits when parent thread exits
         thread_b.start()
 
+        # restart scan
+        logger.info("> Daily scan triggered")
+        _scan_instance = ScriptRunner.get(refresh_all)
+        _scan_instance.resetargs(1)
+        _scan_instance.run()
+
         # D: server thread
         # server_thread = threading.Thread(target=run_server)
         # server_thread.daemon = False
@@ -543,3 +571,4 @@ if __name__ == "__main__":
         #server_thread.join() 
         
     sqclose()
+    mariadb_close()
