@@ -322,9 +322,12 @@ def jf_xml_create(item, is_updated, sdata = None):
         write_to_disk(root, nfo_full_path, is_updated)
 
 def write_to_disk(root, nfo_full_path, is_updated):
+
+    files_to_delete = []
     
     if is_updated:
         nfo_full_path_towrite = nfo_full_path + ".updated"
+        files_to_delete.append(nfo_full_path) # if a previous not "updated" variant is here, delete it
     else:
         nfo_full_path_towrite = nfo_full_path
 
@@ -334,11 +337,12 @@ def write_to_disk(root, nfo_full_path, is_updated):
     with open(nfo_full_path_towrite, "w", encoding="utf-8") as file:
         file.write(pretty_xml_str)
 
-    # try to remove a .done file
-    nfo_full_path_todelete = nfo_full_path + ".done"
-    try:
-        os.remove(nfo_full_path_todelete)
-    except FileNotFoundError:
-        pass
-    except Exception as e:
-        logger.debug(f"An error occurred while deleting the file: {e}")
+    # try to remove a .done file anyway
+    files_to_delete.append(nfo_full_path + ".done")
+    for file_to_del in files_to_delete:
+        try:
+            os.remove(file_to_del)
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            logger.debug(f"An error occurred while deleting the file: {e}")

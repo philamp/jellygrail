@@ -48,7 +48,7 @@ class ScriptRunnerSub:
                 self.manytimes += 1
                 # TODO: pass it to debug when ok
                 if self.func.__name__ == "refresh_all" and len(self.args):
-                    logger.debug(f"~> THREAD {self.func.__name__} step {self.args[0]} triggered")
+                    logger.debug(f"~> THREAD {self.func.__name__} triggered @ step {self.args[0]}")
                 else:
                     logger.debug(f"~> THREAD {self.func.__name__} triggered")
                 result = self.func(*self.args, **self.kwargs)
@@ -62,7 +62,7 @@ class ScriptRunnerSub:
             # async bahavior parameters management post-set
             # TODO: pass it to debug when ok
             if self.func.__name__ == "refresh_all" and len(self.args):
-                logger.info(f"~> THREAD {self.func.__name__} step {self.args[0]} COMPLETED [{self.manytimes}] <~")
+                logger.info(f"~> THREAD {self.func.__name__} @ step {self.args[0]} COMPLETED [{self.manytimes}] <~")
             else:
                 logger.info(f"~> THREAD {self.func.__name__} COMPLETED [{self.manytimes}] <~")
             self.is_running = False

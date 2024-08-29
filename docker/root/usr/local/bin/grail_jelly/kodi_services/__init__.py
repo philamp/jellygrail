@@ -10,8 +10,8 @@ import threading
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
-kodi_url = f"http://{KODI_MAIN_URL}/jsonrpc"
-kodi_ws_url = f"ws://{KODI_MAIN_URL}/jsonrpc"
+kodi_url = f"http://{KODI_MAIN_URL}:8080/jsonrpc"
+kodi_ws_url = f"ws://kodi:kodi@{KODI_MAIN_URL}:9090/jsonrpc"
 kodi_username = "kodi"  
 kodi_password = "kodi"
 
@@ -53,13 +53,16 @@ def on_message(ws, message):
             is_scanning = False
 
 def on_error(ws, error):
+    global is_scanning
     logger.error(f"!! WebSocket error: {error} [kodi_services]")
+    is_scanning = False #Assume scanning is finished but then TODO : send NFO later
 
 def on_close(ws, close_status_code, close_msg):
     logger.debug(". WebSocket connection closed. [kodi_services]")
 
 def on_open(ws):
     logger.debug(". WebSocket connection opened. Waiting for library scan events... [kodi_services]")
+
 
 def refresh_kodi():
 
@@ -109,11 +112,11 @@ def refresh_kodi():
         )
 
     except Exception as e:
-        logger.error("!! Kodi refreshed failed [refresh_kodi]")
+        logger.error("!! Kodi refreshing trigger failed [refresh_kodi]")
         return False
     else:
         if response.status_code == 200:
-            logger.debug("> Kodi lib refreshed [refresh_kodi]")
+            logger.debug("~ Kodi lib refreshing... [refresh_kodi]")
             
         else:
             logger.warning(f"! Error on kodi lib refresh: {response.status_code}")
@@ -144,6 +147,8 @@ def send_nfo_to_kodi():
 
     if not is_kodi_alive():
         return False
+    
+    files_to_rename = []
 
     # browse nfos
     previous_root = ""
@@ -214,18 +219,27 @@ def send_nfo_to_kodi():
                                 if response.status_code == 200:
                                     logger.debug(f"> Nfo refresh ok on id item {result} [refresh_kodi]")
 
-                                    rename_to_done(root + "/" + filename)
+                                    #rename_to_done(root + "/" + filename)
+                                    files_to_rename.append(root + "/" + filename)
                                 else:
                                     logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
                                     return False
                         else:
-                            rename_to_done(root + "/" + filename) # - case where nfo was already taken through another way than nfo refresher
+                            #rename_to_done(root + "/" + filename) # - case where nfo was already taken through another way than nfo refresher
+                            files_to_rename.append(root + "/" + filename)
 
                 else:
                     logger.warning(f"   ---- > {tofetch} has NO correspondance")
                 
 
         # find corresponding video path (maping between kodi and filesystem)
+
+
+    for file_to_mv in files_to_rename:
+        rename_to_done(file_to_mv)
+        # todo : if 1 error is raised, return false
+
+
     return True
 
 def rename_to_done(filepath):

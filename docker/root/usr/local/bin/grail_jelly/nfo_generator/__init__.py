@@ -65,10 +65,10 @@ def fetch_nfo(nfopath):
     # ----
     #logger.debug(f"check if jg nfo exist = {pathjg}")
     if nfotype != None:
-        if os.path.exists(pathjf):
-            return pathjf
-        elif os.path.exists(pathjf_updated):
+        if os.path.exists(pathjf_updated):
             return pathjf_updated
+        elif os.path.exists(pathjf):
+            return pathjf
         elif os.path.exists(pathjf_done):
             return pathjf_done
         

@@ -239,7 +239,7 @@ def refresh_all(step):
             logger.debug("refresh_all PART 2 : refresh kodi incremental mode")
             if not refresh_kodi():
                 retry_later = True
-                #todo should wait for kodi to finish otherwise ? or nfo send can detect ?
+
     if step < 4:
         logger.debug("refresh_all PART 3 : refresh jf or plex")
         if JF_WANTED:

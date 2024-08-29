@@ -7,3 +7,4 @@ thefuzz
 colorlog
 pyinotify
 python-dotenv
+websocket-client
