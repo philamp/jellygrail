@@ -12,15 +12,11 @@ import datetime
 import socket
 import requests
 import struct
-from kodi_services.sqlkodi import mariadb_close
+
 
 # dotenv for RD API management
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
-
-from nfo_generator import nfo_loop_service, fetch_nfo
-from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive
-from jfapi import lib_refresh_all, wait_for_jfscan_to_finish # , merge_versions
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
@@ -41,6 +37,10 @@ socket_started = False
 from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
 from jfconfig import jfconfig
 from jgscan.jgsql import init_database, sqclose
+from nfo_generator import nfo_loop_service, fetch_nfo
+from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive
+from kodi_services.sqlkodi import mariadb_close
+from jfapi import lib_refresh_all, wait_for_jfscan_to_finish # , merge_versions
 
 import jg_services
 
@@ -231,7 +231,8 @@ def refresh_all(step):
     toomany = False
 
     if step == 1: # or rd_progress_response == "PLEASE_SCAN":
-        scan()
+        if scan() > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
+            toomany = True
         logger.debug("refresh_all PART 1 : scan")
     if (step < 3 or step == 8) and not toomany:
         if KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE":

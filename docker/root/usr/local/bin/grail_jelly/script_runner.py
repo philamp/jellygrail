@@ -47,7 +47,10 @@ class ScriptRunnerSub:
             if self.func:
                 self.manytimes += 1
                 # TODO: pass it to debug when ok
-                logger.debug(f"~> THREAD {self.func.__name__} part{self.args[0]} triggered")
+                if self.func.__name__ == "refresh_all" and len(self.args):
+                    logger.debug(f"~> THREAD {self.func.__name__} step {self.args[0]} triggered")
+                else:
+                    logger.debug(f"~> THREAD {self.func.__name__} triggered")
                 result = self.func(*self.args, **self.kwargs)
                 if result is not None:
                     self.output_queue.put(result)
@@ -58,7 +61,10 @@ class ScriptRunnerSub:
         finally:
             # async bahavior parameters management post-set
             # TODO: pass it to debug when ok
-            logger.info(f"~> THREAD {self.func.__name__} part{self.args[0]} COMPLETED [{self.manytimes}] <~")
+            if self.func.__name__ == "refresh_all" and len(self.args):
+                logger.info(f"~> THREAD {self.func.__name__} step {self.args[0]} COMPLETED [{self.manytimes}] <~")
+            else:
+                logger.info(f"~> THREAD {self.func.__name__} COMPLETED [{self.manytimes}] <~")
             self.is_running = False
             if self.queued_execution:
                 self.queued_execution = False # set it to False ASAP right after flag was interrogated

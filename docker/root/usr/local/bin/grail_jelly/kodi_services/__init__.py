@@ -40,7 +40,7 @@ def is_kodi_alive():
             logger.debug("Kodi responded, but the result was unexpected.")
             return False
     except requests.exceptions.RequestException as e:
-        #logger.debug(f"Failed to connect to Kodi: {e}")
+        logger.debug(f"Failed to connect to Kodi: {e}")
         return False
 
 def on_message(ws, message):
@@ -51,7 +51,6 @@ def on_message(ws, message):
     if "method" in data:
         if data["method"] == "VideoLibrary.OnScanFinished":
             is_scanning = False
-            logger.debug(". Library scan has finished.")
 
 def on_error(ws, error):
     logger.error(f"!! WebSocket error: {error} [kodi_services]")
@@ -134,6 +133,7 @@ def refresh_kodi():
     
     while True:
         if is_scanning == False or not is_kodi_alive():
+            logger.debug(". Library scan has finished.")
             break
         time.sleep(2)
     
@@ -214,12 +214,12 @@ def send_nfo_to_kodi():
                                 if response.status_code == 200:
                                     logger.debug(f"> Nfo refresh ok on id item {result} [refresh_kodi]")
 
-                                    rename_to_done(filename)
+                                    rename_to_done(root + "/" + filename)
                                 else:
                                     logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
                                     return False
                         else:
-                            rename_to_done(filename) # - case where nfo was already taken through another way than nfo refresher
+                            rename_to_done(root + "/" + filename) # - case where nfo was already taken through another way than nfo refresher
 
                 else:
                     logger.warning(f"   ---- > {tofetch} has NO correspondance")
@@ -228,16 +228,16 @@ def send_nfo_to_kodi():
         # find corresponding video path (maping between kodi and filesystem)
     return True
 
-def rename_to_done(filename):
+def rename_to_done(filepath):
     # as we are on linux, we can then rename the file even if it's being accessed by another process
     # rename to .done will ensure that this file won't be sent to kodi again
     try:
-        if os.path.exists(filename):
-            if filename.endswith('.updated'):
-                new_name = filename[:-8] + '.done'
+        if os.path.exists(filepath):
+            if filepath.endswith('.updated'):
+                new_name = filepath[:-8] + '.done'
             else:
-                new_name = filename+".done"
-            os.rename(filename, new_name)
+                new_name = filepath+".done"
+            os.rename(filepath, new_name)
         else:
             logger.critical(f"!!! file (to rename to .done) does not exist (theorically impossible) [send_nfo_to_kodi]")
     except Exception as e:
