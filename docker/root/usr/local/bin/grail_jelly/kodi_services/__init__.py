@@ -152,16 +152,21 @@ def send_nfo_to_kodi():
 
     # browse nfos
     previous_root = ""
-    for root, folders, files in os.walk(JFSQ_STORED_NFO):
+    for root, _, files in os.walk(JFSQ_STORED_NFO):
+
+        #nfo refresh is on parent folder basis (root), if there is at least one nfo with ".updated" in this folder it will refresh all neigboors in same folder
+        updated = False
         for filename in files:
-            updated = False
+            if filename.lower().endswith('.nfo.jf.updated'):
+                updated = True
+
+        for filename in files:
             tofetch = os.path.basename(root)
             if filename.lower().endswith(('.nfo.jf', '.nfo.jf.updated')):
                 if root == previous_root: #nfo refresh is on parent folder basis (root), so no need to trigger upon next nfo files found in same folder
+                    files_to_rename.append(root + "/" + filename)
                     continue
                 previous_root = root
-                if filename.lower().endswith('.nfo.jf.updated'):
-                    updated = True
                 # very small chance that a movie or episode contains those strings but theorically we should test substring with endswith()
                 if "video_ts.nfo.jf" in filename.lower() or "index.nfo.jf" in filename.lower(): 
                     tofetch = os.path.basename(os.path.dirname(root))
@@ -229,12 +234,12 @@ def send_nfo_to_kodi():
                             files_to_rename.append(root + "/" + filename)
 
                 else:
-                    logger.warning(f"   ---- > {tofetch} has NO correspondance")
+                    logger.warning(f"   ---- > {tofetch} has NO correspondance (corresponding video file is maybe deleted)")
                 
 
         # find corresponding video path (maping between kodi and filesystem)
 
-
+    files_to_rename = list(set(files_to_rename))
     for file_to_mv in files_to_rename:
         rename_to_done(file_to_mv)
         # todo : if 1 error is raised, return false

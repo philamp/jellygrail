@@ -48,9 +48,9 @@ class ScriptRunnerSub:
                 self.manytimes += 1
                 # TODO: pass it to debug when ok
                 if self.func.__name__ == "refresh_all" and len(self.args):
-                    logger.debug(f"~> THREAD {self.func.__name__} triggered @ step {self.args[0]}")
+                    logger.debug(f"~ THREAD {self.func.__name__} triggered @ step {self.args[0]} ~")
                 else:
-                    logger.debug(f"~> THREAD {self.func.__name__} triggered")
+                    logger.debug(f"~ THREAD {self.func.__name__} triggered ~")
                 result = self.func(*self.args, **self.kwargs)
                 if result is not None:
                     self.output_queue.put(result)

@@ -359,6 +359,7 @@ def inotify_deamon(to_watch):
         wm.add_watch(item2watch, pyinotify.ALL_EVENTS, rec=True, auto_add=True)
         logger.debug(f"~ inotify_deamon | Monitoring : {item2watch}")
 
+    logger.info("~ inotify monitoring started [inotify_deamon] ~")
     # Event handler
     event_handler = EventHandler()
 
