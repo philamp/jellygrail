@@ -38,9 +38,9 @@ from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
 from jfconfig import jfconfig
 from jgscan.jgsql import init_database, sqclose
 from nfo_generator import nfo_loop_service, fetch_nfo
-from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive
+from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive, merge_kodi_versions
 from kodi_services.sqlkodi import mariadb_close
-from jfapi import lib_refresh_all, wait_for_jfscan_to_finish # , merge_versions
+from jfapi import lib_refresh_all, wait_for_jfscan_to_finish
 
 import jg_services
 
@@ -206,10 +206,10 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 def is_kodi_alive_loop():
 
-    logger.debug("retrier loop is waiting for kodi...")
+    logger.info("~ Kodi retrier loop ~")
     while True:
         if is_kodi_alive():
-            logger.debug("> kodi alive")
+            logger.info("~> Kodi alive, proceed with library and NFO refresh <~")
             _refreshkodi_thread = ScriptRunner.get(refresh_all)
             _refreshkodi_thread.resetargs(8) 
             _refreshkodi_thread.run()
@@ -233,15 +233,15 @@ def refresh_all(step):
     if step == 1: # or rd_progress_response == "PLEASE_SCAN":
         if scan() > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             toomany = True
-        logger.debug("refresh_all PART 1 : scan")
+        logger.debug(". refresh_all PART 1 : scan")
     if (step < 3 or step == 8) and not toomany:
         if KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE":
-            logger.debug("refresh_all PART 2 : refresh kodi incremental mode")
+            logger.debug(". refresh_all PART 2 : refresh kodi incremental mode")
             if not refresh_kodi():
                 retry_later = True
 
     if step < 4:
-        logger.debug("refresh_all PART 3 : refresh jf or plex")
+        logger.debug(". refresh_all PART 3 : refresh jf or plex")
         if JF_WANTED:
             # refresh the jellyfin library and merge variants
             lib_refresh_all()
@@ -266,7 +266,7 @@ def refresh_all(step):
 
     if step < 5:
         if JF_WANTED:
-            logger.debug("refresh_all PART 4 : refresh nfo (with jf)")
+            logger.debug(". refresh_all PART 4 : refresh nfo (with jf)")
             if not nfo_loop_service():
                 step = 9 # bypass the rest
                 # ping externally before trigerring ?
@@ -275,16 +275,17 @@ def refresh_all(step):
     # if toomany, kodi refresh is done after jellyfin 
     if toomany:
         if KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE":
-            logger.debug("refresh_all PART 2 : refresh kodi batch mode")
+            logger.debug(". refresh_all PART 2 : refresh kodi batch mode")
             if not refresh_kodi():
                 retry_later = True
 
     if (step < 6 or step == 8) and retry_later == False:
         if KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE":
-            logger.debug("refresh_all PART 5 : send new nfos to kodi")
+            logger.debug(". refresh_all PART 5 : send new nfos to kodi")
             if not send_nfo_to_kodi():
                 retry_later = True
-            logger.debug("todo here chirurgic kodi db edits")
+            else:
+                merge_kodi_versions()
 
      
     if retry_later == True:

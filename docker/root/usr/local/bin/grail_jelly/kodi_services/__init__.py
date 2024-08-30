@@ -1,7 +1,7 @@
 from base import *
 from base.littles import *
 from base.constants import *
-from kodi_services.sqlkodi import fetch_media_id
+from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid
 import requests
 import urllib.parse
 import websocket
@@ -54,14 +54,14 @@ def on_message(ws, message):
 
 def on_error(ws, error):
     global is_scanning
-    logger.error(f"!! WebSocket error: {error} [kodi_services]")
+    logger.error(f"!! WebSocket error: {error}, please enable 'Allow remote control from applications on other systems' via Kodi UI in Settings/Services/Control [kodi_services]")
     is_scanning = False #Assume scanning is finished but then TODO : send NFO later
 
 def on_close(ws, close_status_code, close_msg):
     logger.debug(". WebSocket connection closed. [kodi_services]")
 
 def on_open(ws):
-    logger.debug(". WebSocket connection opened. Waiting for library scan events... [kodi_services]")
+    logger.info("~ WebSocket waiting for Kodi scan to be finished [kodi_services] ~")
 
 
 def refresh_kodi():
@@ -95,8 +95,8 @@ def refresh_kodi():
         "jsonrpc": "2.0",
         "method": "GUI.ShowNotification",
         "params": {
-            "title": "Jellygrail msg.",
-            "message": "Kodi scan triggered by Jellygrail.",
+            "title": "JG library refresh",
+            "message": "Kodi library refresh triggered by Jellygrail",
             "displaytime": 3000  # Temps d'affichage en millisecondes (ici 5 secondes)
         },
         "id": "2"
@@ -131,12 +131,12 @@ def refresh_kodi():
         )
         notification_response.raise_for_status()
     except Exception as e:
-        logger.error(f"!! Kodi message failed with: {e}")
+        logger.debug(f"!! Kodi message failed with: {e}")
         return False
     
     while True:
         if is_scanning == False or not is_kodi_alive():
-            logger.debug(". Library scan has finished.")
+            logger.info("~> Kodi Library scan has finished <~")
             break
         time.sleep(2)
     
@@ -145,8 +145,46 @@ def refresh_kodi():
 
 def send_nfo_to_kodi():
 
+
     if not is_kodi_alive():
         return False
+    
+    '''
+    start_notification_payload = json.dumps({
+        "jsonrpc": "2.0",
+        "method": "GUI.ShowNotification",
+        "params": {
+            "title": "JG NFO refresh",
+            "message": "Kodi metadata refresh from NFOs triggered by Jellygrail",
+            "displaytime": 3000  # Temps d'affichage en millisecondes (ici 5 secondes)
+        },
+        "id": "2"
+    })
+
+    finish_notification_payload = json.dumps({
+        "jsonrpc": "2.0",
+        "method": "GUI.ShowNotification",
+        "params": {
+            "title": "JG NFO refresh COMPLETED",
+            "message": "Kodi metadata refresh from NFOs has COMPLETED",
+            "displaytime": 3000  # Temps d'affichage en millisecondes (ici 5 secondes)
+        },
+        "id": "2"
+    })
+
+    try:
+        notification_response = requests.post(
+            kodi_url,
+            headers=headers,
+            data=start_notification_payload,
+            auth=(kodi_username, kodi_password),
+            timeout=5
+        )
+        notification_response.raise_for_status()
+    except Exception as e:
+        logger.debug(f"!! Kodi message failed with: {e}")
+        return False
+    '''
     
     files_to_rename = []
 
@@ -193,7 +231,7 @@ def send_nfo_to_kodi():
 
                 tofetch = urllib.parse.quote(tofetch, safe=SAFE)
                 tofetch = tofetch.replace("%", r"\%")
-                logger.debug(f"---kodi db fetching : {root}/{filename}")
+                logger.debug(f". Kodi mysqldb fetching : {root}/{filename}")
                 # todo : if a retreieved media item has a non jellygrail provider id, it means it is not needed to refresh it
                 if results := [(line[0],line[1]) for line in fetch_media_id(tofetch, tabletofetch, idtofetch)]:
                     for (result, uidtype) in results:
@@ -234,7 +272,7 @@ def send_nfo_to_kodi():
                             files_to_rename.append(root + "/" + filename)
 
                 else:
-                    logger.warning(f"   ---- > {tofetch} has NO correspondance (corresponding video file is maybe deleted)")
+                    logger.warning(f"! {tofetch} has no kodi db correspondance (corresponding video file maybe deleted or Kodi hasn't scanned this item yet)") #todo : bindfs should also delete the corresponding nfo files when main file deleted
                 
 
         # find corresponding video path (maping between kodi and filesystem)
@@ -242,8 +280,21 @@ def send_nfo_to_kodi():
     files_to_rename = list(set(files_to_rename))
     for file_to_mv in files_to_rename:
         rename_to_done(file_to_mv)
-        # todo : if 1 error is raised, return false
 
+    '''
+    try:
+        notification_response = requests.post(
+            kodi_url,
+            headers=headers,
+            data=finish_notification_payload,
+            auth=(kodi_username, kodi_password),
+            timeout=5
+        )
+        notification_response.raise_for_status()
+    except Exception as e:
+        logger.debug(f"!! Kodi message failed with: {e}")
+        return False
+    '''
 
     return True
 
@@ -261,3 +312,72 @@ def rename_to_done(filepath):
             logger.critical(f"!!! file (to rename to .done) does not exist (theorically impossible) [send_nfo_to_kodi]")
     except Exception as e:
         logger.debug(f"!! An error occured on renaming .nfo.jf to .nfo.jf.done : {e}")
+
+def merge_kodi_versions():
+
+    results = [(row[0],row[1],row[2],row[3],row[4],row[5]) for row in video_versions()]
+
+    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR) in results:
+        #find the incr smallest version
+        i=0
+        currlowest=200
+        idfiles = [int(num) for num in idfilesR.split("¨")]
+        strpaths = strpathsR.split("¨")
+        strfilenames = strfilenamesR.split("¨")
+        isdefaults = [int(num) for num in isdefaultsR.split("¨")]
+        idmedias = [int(num) for num in idmediasR.split("¨")]
+        videoversiontuple = []  ### todo later in second sprint
+        idtokeep = None ###
+        strpathtokeep = None ###
+        imediatokeep = None ###
+        for strfilename in strfilenames:
+            decoded_filename = urllib.parse.unquote(strfilename)
+            match = re.search(r'-\s*(.*?)\s*JGx', decoded_filename)
+            if match:
+                extracted_text = match.group(1)
+                videoversiontuple.append((idfiles[i], extracted_text))
+                matchb = re.search(r'(\d+)Mbps', extracted_text)
+                if matchb:
+                    mbps_value = int(matchb.group(1))
+                    if mbps_value < currlowest:
+                        currlowest = mbps_value
+                        idtokeep = idfiles[i]
+                        strpathtokeep = strpaths[i]
+            else:
+                videoversiontuple.append((idfiles[i], "Standard Edition"))
+
+
+            if imediatokeep == None and isdefaults[i] == 1:
+                imediatokeep = idmedias[i]
+    
+            i += 1
+
+        # if did not find any way to find the lowest value, we keep the first ones, will be set to the kept media
+        if idtokeep == None:
+            idtokeep = idfiles[0]
+            strpathtokeep = strpaths[0]
+
+
+        if imediatokeep != None:
+            # proceed to link videoverion to the kept mediaid
+            for idfile in idfiles:
+                link_vv_to_kept_mediaid(idfile, imediatokeep)
+
+            # proceed to set idfile and strpath to the mediaid we keep
+            define_kept_mediaid(idtokeep, strpathtokeep, imediatokeep)
+
+            # proceed to delete all mediaid but the one we keep
+            for idmedia in idmedias:
+                if idmedia != imediatokeep:
+                    delete_other_mediaid(idmedia)
+
+        
+
+    return True
+
+def fix_kodi_glitches():
+
+    # look for release folders being mediatype _bdmv
+
+
+    return
