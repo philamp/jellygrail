@@ -40,7 +40,7 @@ if [ -f "$SETTINGS_PATH" ]; then
         fi
         read -p $'\nWould you like to DELETE your current virtual-renaming database ? Read this version release note ('"$VERSION"$') to know if it\'s recommanded (yes/no):\n>' dbdelyesno
         if [ $dbdelyesno = "yes" ]; then
-            cp ./jellygrail/.bindfs_jelly.db ./jellygrail/bindfs_jelly.$(db.date +"%Y%m%d-%H%M%S").backup
+            cp ./jellygrail/.bindfs_jelly.db ./jellygrail/bindfs_jelly.db.$(date +"%Y%m%d-%H%M%S").backup
             rm ./jellygrail/.bindfs_jelly.db
             echo "A datestamped backup has been created in ./jellygrail folder."
         fi
