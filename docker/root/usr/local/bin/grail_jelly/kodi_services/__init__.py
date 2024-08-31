@@ -1,7 +1,7 @@
 from base import *
 from base.littles import *
 from base.constants import *
-from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid
+from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype
 import requests
 import urllib.parse
 import websocket
@@ -55,7 +55,7 @@ def on_message(ws, message):
 def on_error(ws, error):
     global is_scanning
     logger.error(f"!! WebSocket error: {error}, please enable 'Allow remote control from applications on other systems' via Kodi UI in Settings/Services/Control [kodi_services]")
-    is_scanning = False #Assume scanning is finished but then TODO : send NFO later
+    is_scanning = False #Assume scanning is finished but then TODO : send NFO later if websocket can't work
 
 def on_close(ws, close_status_code, close_msg):
     logger.debug(". WebSocket connection closed. [kodi_services]")
@@ -146,7 +146,7 @@ def refresh_kodi():
 def send_nfo_to_kodi():
 
 
-    if not is_kodi_alive():
+    if not is_kodi_alive() or not kodi_mysql_init_and_verify():
         return False
     
     '''
@@ -232,7 +232,6 @@ def send_nfo_to_kodi():
                 tofetch = urllib.parse.quote(tofetch, safe=SAFE)
                 tofetch = tofetch.replace("%", r"\%")
                 logger.debug(f". Kodi mysqldb fetching : {root}/{filename}")
-                # todo : if a retreieved media item has a non jellygrail provider id, it means it is not needed to refresh it
                 if results := [(line[0],line[1]) for line in fetch_media_id(tofetch, tabletofetch, idtofetch)]:
                     for (result, uidtype) in results:
                         if uidtype == 'jellygrail' or updated == True:
@@ -314,6 +313,9 @@ def rename_to_done(filepath):
         logger.debug(f"!! An error occured on renaming .nfo.jf to .nfo.jf.done : {e}")
 
 def merge_kodi_versions():
+    # todo , merge only when needed, in the meantime, the step4 periodic trigger is set to higher value to avoid to many sql queries for nothing
+    if not kodi_mysql_init_and_verify:
+        return False
 
     results = [(row[0],row[1],row[2],row[3],row[4],row[5]) for row in video_versions()]
 
@@ -326,10 +328,10 @@ def merge_kodi_versions():
         strfilenames = strfilenamesR.split("¨")
         isdefaults = [int(num) for num in isdefaultsR.split("¨")]
         idmedias = [int(num) for num in idmediasR.split("¨")]
-        videoversiontuple = []  ### todo later in second sprint
-        idtokeep = None ###
-        strpathtokeep = None ###
-        imediatokeep = None ###
+        videoversiontuple = []
+        idtokeep = None
+        strpathtokeep = None
+        imediatokeep = None
         for strfilename in strfilenames:
             decoded_filename = urllib.parse.unquote(strfilename)
             match = re.search(r'-\s*(.*?)\s*JGx', decoded_filename)
@@ -344,7 +346,7 @@ def merge_kodi_versions():
                         idtokeep = idfiles[i]
                         strpathtokeep = strpaths[i]
             else:
-                videoversiontuple.append((idfiles[i], "Standard Edition"))
+                videoversiontuple.append((idfiles[i], "Iso Edition"))
 
 
             if imediatokeep == None and isdefaults[i] == 1:
@@ -360,8 +362,14 @@ def merge_kodi_versions():
 
         if imediatokeep != None:
             # proceed to link videoverion to the kept mediaid
-            for idfile in idfiles:
-                link_vv_to_kept_mediaid(idfile, imediatokeep)
+            for idfile, versionlabel in videoversiontuple:
+
+                # check if extracted text exists in db
+                if new_id := check_if_vvtype_exists(versionlabel):
+                    pass
+                else:
+                    new_id = insert_new_vvtype(versionlabel)
+                link_vv_to_kept_mediaid(idfile, imediatokeep, new_id)
 
             # proceed to set idfile and strpath to the mediaid we keep
             define_kept_mediaid(idtokeep, strpathtokeep, imediatokeep)
@@ -375,9 +383,20 @@ def merge_kodi_versions():
 
     return True
 
+
+
+def fix_bad_merges():
+
+    # todo look for currently merged items in kodi db (path and filename). 
+    # look for their nfo.jf.updated / nfo.jf.done / nfo.jf loaded in xml 
+    # if their tmdb id is different -> remove the videoversion linked to the failed id and then trigger fix_kodi_glitches (because both issues can exist at the same time) and it will trigger a new scan
+
+
+    return
+
 def fix_kodi_glitches():
 
-    # look for release folders being mediatype _bdmv
+    # todo look for release folders being mediatype _bdmv, if they're not in kodi db, change the last_updated date to current unix timestamp
 
 
     return

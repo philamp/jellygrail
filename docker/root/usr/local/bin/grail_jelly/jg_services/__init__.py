@@ -230,7 +230,7 @@ def remoteScan():
 
     # compare with rdump not pile
 
-    # todo : add wait until select files is available
+    # todo : add wait until select files is available (mitigated by regular retry)
 
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
          # -> ok but if remotescan is called a lot ... lot of backups....

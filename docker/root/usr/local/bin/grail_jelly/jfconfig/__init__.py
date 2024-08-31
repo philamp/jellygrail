@@ -17,7 +17,7 @@ def jfconfig():
     proceedinjf = None
 
     iwait = 0
-    while iwait < 2:
+    while iwait < 20:
         iwait += 1
         try:
             if not urllib.request.urlopen('http://localhost:8096/health').read() == b'Healthy':
@@ -47,8 +47,6 @@ def jfconfig():
             if len(array) > 0:
                 
                 jfapi.jfapikey = array[0]
-                #jfapi.jfapikey = '485a44ec487bdda1084514eb403c5fa3' #TODO remove
-                # logger.info(f"> retrieved API key is {jfapikey}")
                 logger.info(f"> retrieved Jellyfin API key is ***")
             
             else:
@@ -106,7 +104,7 @@ def jfconfig():
             logger.warning("> IMPORTANT: Jellyfin Additional plugins are installed and unefficient tasks are disabled, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
 
             return "ZERO-RUN"
-            # thanks to --restart unless-stopped, drawback: it will restart in a loop if it does not find 3 declared repos (todo: find a more resilient way to test it)
+            # thanks to --restart unless-stopped, drawback: it will restart in a loop if it does not find 2 declared repos (todo: find a more resilient way to test it)
             # jfapi.jellyfin(f'System/Shutdown', method='post')
 
 

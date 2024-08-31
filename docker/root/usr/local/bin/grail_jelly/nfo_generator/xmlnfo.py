@@ -31,7 +31,6 @@ AV_KEY_MAPPING = {
 
 T_FORMAT = "%H:%M:%S"
 
-# init_jellyfin_db_ro("/jellygrail/jellyfin/config/data/library.db") todo toremove
 
 def build_jg_nfo_video(nfopath, pathjg, nfotype):
 
@@ -171,7 +170,7 @@ def jf_xml_create(item, is_updated, sdata = None):
         ET.SubElement(root, "showtitle").text = item.get('SeriesName', "")
     
     ET.SubElement(root, "title").text = item.get("Name", "")
-    ET.SubElement(root, "premiered").text = str(item.get("ProductionYear", ""))
+    ET.SubElement(root, "premiered").text = str(item.get("PremiereDate", ""))[:10]
     ET.SubElement(root, "plot").text = item.get("Overview", "")
     ET.SubElement(root, "originaltitle").text = item.get("OriginalTitle", "")
 

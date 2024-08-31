@@ -46,7 +46,6 @@ class ScriptRunnerSub:
         try:
             if self.func:
                 self.manytimes += 1
-                # TODO: pass it to debug when ok
                 if self.func.__name__ == "refresh_all" and len(self.args):
                     logger.debug(f"~ THREAD {self.func.__name__} triggered @ step {self.args[0]} ~")
                 else:
@@ -60,7 +59,6 @@ class ScriptRunnerSub:
             logger.critical(f"> Error occurred in thread: {self.func.__name__}; error is: {e}", exc_info=True)
         finally:
             # async bahavior parameters management post-set
-            # TODO: pass it to debug when ok
             if self.func.__name__ == "refresh_all" and len(self.args):
                 logger.info(f"~> THREAD {self.func.__name__} @ step {self.args[0]} COMPLETED [{self.manytimes}] <~")
             else:

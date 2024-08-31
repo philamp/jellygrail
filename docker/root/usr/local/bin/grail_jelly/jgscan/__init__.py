@@ -21,28 +21,15 @@ dual_endpoints = []
 def get_fastpass_ffprobe(file_path):
     # get ffprobe info from sqlite or use ffprobe
 
-    #ffprobe_data = None
+
     fakestderror = ""
-
-    # logger.debug(f"filepath input is {file_path}")
-
-    # logger.debug(f"filepath requested to sqlite is {file_path[JG_VIRT_SHIFT_FFP:]}")
-
-
-    # todo use sqlite
-    #init_database()
-    # print(get_path_props(file_path[JG_VIRT_SHIFT:]))
-    #logger.debug(get_path_props(file_path[JG_VIRT_SHIFT_FFP:]))
-
-    #logger.debug(file_path[JG_VIRT_SHIFT_FFP:])
-
 
 
     if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[file_path.find("/") + JG_VIRT_SHIFT:]) if ffpitem[0] is not None]):
         #logger.debug(f"ffprobe from SQLITE data: {file_path}")
-        #sqclose()
+
         return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
-    #sqclose()
+
 
     logger.debug(f"> ffprobe wrapper fallback on real ffprobe for: {file_path}")
     return get_plain_ffprobe(file_path)
@@ -459,7 +446,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
             # EF case --------- can have extras
             if multiple_movie_or_disc_present:
-                ffprobed = item['ffprobed'] # if rootfilename.lower().endswith(VIDEO_EXTENSIONS + ('.iso', '.vob')) else None # overkill todo remove ?
+                ffprobed = item['ffprobed']
                 insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
 
             # Esingle case ------------ can have extras but with switch

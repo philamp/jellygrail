@@ -46,8 +46,7 @@ def fetch_nfo(nfopath):
     
     elif "video_ts" in nfopath.lower():
         if os.path.basename(nfopath).lower() == "video_ts.nfo":
-            #return NFO_FALLBACK
-            nfotype = "dvd" #todo test
+            nfotype = "dvd" 
 
     elif "/movies" in nfopath[:7]:
         nfotype = "movie"
@@ -60,10 +59,7 @@ def fetch_nfo(nfopath):
     elif "/shows" in nfopath[:6]:
         nfotype = "episodedetails"
 
-    # todo switch for others
 
-    # ----
-    #logger.debug(f"check if jg nfo exist = {pathjg}")
     if nfotype != None:
         if os.path.exists(pathjf_updated):
             return pathjf_updated
@@ -127,8 +123,6 @@ def nfo_loop_service():
 
     # loop added and updated
     if items_added_and_updated_pre := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
-        # refresh ram dumps #todo remove season item type ?
-        # 1/ do all but Series, at its id is dependant on child (seasons) updated or not
         # kodi has no nfo for seasons
         items_added_and_updated = [(item_id, item_id in syncqueue.get('ItemsUpdated')) for item_id in items_added_and_updated_pre]
         s_data = {}

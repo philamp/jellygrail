@@ -40,3 +40,12 @@ RDINCR_FILE = '/jellygrail/data/rd_incr.txt'
 
 # remote rd pile key
 REMOTE_PILE_KEY_FILE = '/jellygrail/data/remote_pile_key.txt'
+
+# kodi mysql config
+KODI_MYSQL_CONFIG = {
+    'host' : 'localhost',
+    'user' : 'kodi',
+    'password' : 'kodi',
+    'database' : 'kodi_video131',
+    'port' : 6503
+}
