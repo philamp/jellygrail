@@ -182,7 +182,7 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
         kodi_main="$KODI_MAIN_URL"
     fi
 
-    if [ ! -z "$kodi_player" ]; then
+    if [ ! -z "$kodi_main" ]; then
         sed -i "s|KODI_MAIN_URL=\"PASTE_KODIMAIN_URL_HERE\"|KODI_MAIN_URL=\"$kodi_main\"|" "$SETTINGS_PATH"
     fi
 
