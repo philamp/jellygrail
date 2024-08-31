@@ -341,7 +341,7 @@ def periodic_trigger_rs(seconds=350):
         time.sleep(seconds)
         _rs_instance.run()
 
-def periodic_trigger_nfo_gen(seconds=70):
+def periodic_trigger_nfo_gen(seconds=800):
     _nfogen_instance = ScriptRunner.get(refresh_all)
     while True:
         time.sleep(seconds)

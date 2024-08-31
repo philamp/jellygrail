@@ -8,12 +8,12 @@ logger = logging.getLogger('jellygrail')
 def get_plain_ffprobe(file_path):
     # this is plain ffprobe command call returning each part in separated vars, 
     # not decoding stdout !!
-    # migrating to 8000000 analyse duration also
+    # migrating to 6000000 analyse duration also
     try:
         command = [
             "ffprober", 
             "-v", "error",  # Hide logging
-            "-analyzeduration", '8000000',
+            "-analyzeduration", '6000000',
             "-print_format", "json",
             "-show_streams",
             "-show_format",
