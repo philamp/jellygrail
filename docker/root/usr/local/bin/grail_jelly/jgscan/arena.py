@@ -31,53 +31,54 @@ def parse_ffprobe(stdout, filepathnotice):
     audiotpla = ""
     audiotplb = ""
     _dvprofile = None
-    try:
-        info = json.loads(stdout.decode("utf-8"))
-
-        for stream in info.get('streams', []):
-            if codec_name := stream.get('codec_name'):
-                if stream.get('codec_type') == "video" and codec_name != "mjpeg" and codec_name != "png":
-                    if stream.get('color_transfer') == "smpte2084":
-                        hdrtpl = " hdr10"
-                    else:
-                        hdrtpl = f" sdr{get_bit_depth(stream.get('pix_fmt', 'yuv420p'))}"
-
-                    if hdrtpl == " sdr8" or codec_name not in "h264 hevc":
-                        codectpl = f" {codec_name}"
-                                
-                    if( sideinfo := stream.get('side_data_list') ):
-                        if(_dvprofile := sideinfo[0].get('dv_profile')):
-                            hdrtpl = f" DVp{_dvprofile}"
-
-                    if resx := stream.get('width'):
-                        if resy := stream.get('height'):
-                            if resx/resy >= 16/9:
-                                resolutiontpl = f" {str(round(resx * 9/16))}p"
-                            else:
-                                resolutiontpl = f" {str(resy)}p"
-
-                elif codec_name in ['eac3', 'mlp']:
-                    channel_layout = stream.get('channel_layout')
-                # eac3 (Enhanced AC-3) is often used for Atmos
-                # mlp (Meridian Lossless Packing) is used for TrueHD (which can carry Atmos)
-                    if ('atmos' in (stream.get('tags') or {}).get('title', '').lower()) or (codec_name == 'eac3' and channel_layout and '7.1' in channel_layout) or (codec_name == 'mlp' and channel_layout and 'object_based' in channel_layout):
-                        audiotpla = " Atmos"
-
-                elif codec_name in ['dts', 'dts_hd']:
-                    dtitle = (stream.get('tags') or {}).get('title', '').lower()
-                # Additional check in the 'title' metadata if available
-                    if 'dts:x' in dtitle or 'dtsx' in dtitle:
-                        audiotplb = " DTSx"
-
-
-
-        if(info.get('format')):
-            if bitrate := info.get("format").get("bit_rate"):
-                bitrate = str(round(int(info.get("format").get("bit_rate")) / 1000000))
-                bitratetpl = f" {bitrate}Mbps"
-
-    except (KeyError, IndexError, json.JSONDecodeError):
-        logger.error(f"jgscan/caching | Fail to extract stream details on {filepathnotice}")
+    if stdout is not None:
+        try:
+            info = json.loads(stdout.decode("utf-8"))
+    
+            for stream in info.get('streams', []):
+                if codec_name := stream.get('codec_name'):
+                    if stream.get('codec_type') == "video" and codec_name != "mjpeg" and codec_name != "png":
+                        if stream.get('color_transfer') == "smpte2084":
+                            hdrtpl = " hdr10"
+                        else:
+                            hdrtpl = f" sdr{get_bit_depth(stream.get('pix_fmt', 'yuv420p'))}"
+    
+                        if hdrtpl == " sdr8" or codec_name not in "h264 hevc":
+                            codectpl = f" {codec_name}"
+                                    
+                        if( sideinfo := stream.get('side_data_list') ):
+                            if(_dvprofile := sideinfo[0].get('dv_profile')):
+                                hdrtpl = f" DVp{_dvprofile}"
+    
+                        if resx := stream.get('width'):
+                            if resy := stream.get('height'):
+                                if resx/resy >= 16/9:
+                                    resolutiontpl = f" {str(round(resx * 9/16))}p"
+                                else:
+                                    resolutiontpl = f" {str(resy)}p"
+    
+                    elif codec_name in ['eac3', 'mlp']:
+                        channel_layout = stream.get('channel_layout')
+                    # eac3 (Enhanced AC-3) is often used for Atmos
+                    # mlp (Meridian Lossless Packing) is used for TrueHD (which can carry Atmos)
+                        if ('atmos' in (stream.get('tags') or {}).get('title', '').lower()) or (codec_name == 'eac3' and channel_layout and '7.1' in channel_layout) or (codec_name == 'mlp' and channel_layout and 'object_based' in channel_layout):
+                            audiotpla = " Atmos"
+    
+                    elif codec_name in ['dts', 'dts_hd']:
+                        dtitle = (stream.get('tags') or {}).get('title', '').lower()
+                    # Additional check in the 'title' metadata if available
+                        if 'dts:x' in dtitle or 'dtsx' in dtitle:
+                            audiotplb = " DTSx"
+    
+    
+    
+            if(info.get('format')):
+                if bitrate := info.get("format").get("bit_rate"):
+                    bitrate = str(round(int(info.get("format").get("bit_rate")) / 1000000))
+                    bitratetpl = f" {bitrate}Mbps"
+    
+        except (KeyError, IndexError, json.JSONDecodeError):
+            logger.error(f"jgscan/caching | Fail to extract stream details on {filepathnotice}")
 
 
     return (f"{bitratetpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile)

@@ -1,4 +1,5 @@
 import mysql.connector
+from mysql.connector import errorcode
 from base import *
 from base.constants import *
 
