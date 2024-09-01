@@ -32,7 +32,7 @@ def wait_for_jfscan_to_finish():
                 if task.get('State') != "Running":
                     break
                 else:
-                    time.sleep(3) #retry every 3 seconds
+                    time.sleep(10) #retry every 10 seconds #todo, jellyfin is overloaded, but fix it later in a more clever way
         except Exception as e:
             logger.error("> JF library refresh completion waiting task failed due to API errors")
 

@@ -534,9 +534,9 @@ def scan():
                                     unrar_result = unrar_to_void(g.path)
                                     if not unrar_result == "OK":
                                         if unrar_result == "ERROR_IO":
-                                            logger.error(f" - IO Error on first try, waits 10 minutes and retry ... {g.path}")
+                                            logger.error(f" - IO Error on first try, waits 5s and retry ... {g.path}")
                                             if i == 0:
-                                                time.sleep(604)
+                                                time.sleep(5)
                                             if i == 1:
                                                 logger.error(f" - FAILURE_unrar : IO Error on second try {g.path}")
                                                 browse = False

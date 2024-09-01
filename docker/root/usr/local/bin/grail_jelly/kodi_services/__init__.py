@@ -58,7 +58,7 @@ def on_error(ws, error):
     is_scanning = False #Assume scanning is finished but then TODO : send NFO later if websocket can't work
 
 def on_close(ws, close_status_code, close_msg):
-    logger.debug(". WebSocket connection closed. [kodi_services]")
+    logger.info("> WebSocket connection closed. [kodi_services]")
 
 def on_open(ws):
     logger.info("~ WebSocket waiting for Kodi scan to be finished [kodi_services] ~")
@@ -116,7 +116,7 @@ def refresh_kodi():
         return False
     else:
         if response.status_code == 200:
-            logger.debug("~ Kodi lib refreshing... [refresh_kodi]")
+            logger.info("~ Kodi lib refreshing... [refresh_kodi]")
             
         else:
             logger.warning(f"! Error on kodi lib refresh: {response.status_code}")
@@ -332,53 +332,61 @@ def merge_kodi_versions():
         idtokeep = None
         strpathtokeep = None
         imediatokeep = None
-        for strfilename in strfilenames:
-            decoded_filename = urllib.parse.unquote(strfilename)
-            match = re.search(r'-\s*(.*?)\s*JGx', decoded_filename)
-            if match:
-                extracted_text = match.group(1)
-                videoversiontuple.append((idfiles[i], extracted_text))
-                matchb = re.search(r'(\d+)Mbps', extracted_text)
-                if matchb:
-                    mbps_value = int(matchb.group(1))
-                    if mbps_value < currlowest:
-                        currlowest = mbps_value
-                        idtokeep = idfiles[i]
-                        strpathtokeep = strpaths[i]
-            else:
-                videoversiontuple.append((idfiles[i], "Iso Edition"))
-
-
-            if imediatokeep == None and isdefaults[i] == 1:
-                imediatokeep = idmedias[i]
-    
-            i += 1
-
-        # if did not find any way to find the lowest value, we keep the first ones, will be set to the kept media
-        if idtokeep == None:
-            idtokeep = idfiles[0]
-            strpathtokeep = strpaths[0]
-
-
-        if imediatokeep != None:
-            # proceed to link videoverion to the kept mediaid
-            for idfile, versionlabel in videoversiontuple:
-
-                # check if extracted text exists in db
-                if new_id := check_if_vvtype_exists(versionlabel):
-                    pass
+        if idfiles and strpaths and idmedias:
+            for strfilename in strfilenames:
+                decoded_filename = urllib.parse.unquote(strfilename)
+                match = re.search(r'-\s*(.*?)\s*JGx', decoded_filename)
+                if match:
+                    extracted_text = match.group(1)
+                    videoversiontuple.append((idfiles[i], extracted_text))
+                    matchb = re.search(r'(\d+)Mbps', extracted_text)
+                    if matchb:
+                        mbps_value = int(matchb.group(1))
+                        if mbps_value < currlowest:
+                            currlowest = mbps_value
+                            idtokeep = idfiles[i]
+                            strpathtokeep = strpaths[i]
                 else:
-                    new_id = insert_new_vvtype(versionlabel)
-                link_vv_to_kept_mediaid(idfile, imediatokeep, new_id)
+                    videoversiontuple.append((idfiles[i], "Iso Edition"))
 
-            # proceed to set idfile and strpath to the mediaid we keep
-            define_kept_mediaid(idtokeep, strpathtokeep, imediatokeep)
 
-            # proceed to delete all mediaid but the one we keep
-            for idmedia in idmedias:
-                if idmedia != imediatokeep:
-                    delete_other_mediaid(idmedia)
+                if imediatokeep == None and isdefaults[i] == 1:
+                    imediatokeep = idmedias[i]
+        
+                i += 1
 
+            # if did not find any way to find the lowest value, we keep the first ones, will be set to the kept media
+            if idtokeep == None:
+                idtokeep = idfiles[0]
+                strpathtokeep = strpaths[0]
+
+
+            if imediatokeep != None:
+                # proceed to link videoverion to the kept mediaid
+                for idfile, versionlabel in videoversiontuple:
+
+                    # check if extracted text exists in db
+                    if new_id := check_if_vvtype_exists(versionlabel):
+                        pass
+                    else:
+                        new_id = insert_new_vvtype(versionlabel)
+
+                    if new_id != None:
+                        link_vv_to_kept_mediaid(idfile, imediatokeep, new_id)
+                    else:
+                        logger.error("new_id is none, thos should not happen")
+
+                # proceed to set idfile and strpath to the mediaid we keep
+                define_kept_mediaid(idtokeep, strpathtokeep, imediatokeep)
+
+                # proceed to delete all mediaid but the one we keep
+                for idmedia in idmedias:
+                    if idmedia != imediatokeep:
+                        delete_other_mediaid(idmedia)
+            else:
+                logger.error("imediatokeep is none, this should not happen")
+        else:
+            logger.error("vv main request gone wrong, this should not happen")
         
 
     return True

@@ -120,6 +120,28 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
 
+        elif url_path == '/nfo_merge':
+            _nfo_merge = ScriptRunner.get(refresh_all)
+            _nfo_merge.resetargs(6)
+            _nfo_merge.run()
+            if _nfo_merge.queued_execution:
+                message = "### nfo_merge queued for later ! \n"
+            else:
+                message = "### nfo_merge directly executed ! \n"
+            self.standard_headers()
+            self.wfile.write(bytes(message, "utf8"))
+
+        elif url_path == '/kodi_scan':
+            _kodi_scan = ScriptRunner.get(refresh_all)
+            _kodi_scan.resetargs(56)
+            _kodi_scan.run()
+            if _kodi_scan.queued_execution:
+                message = "### _kodi_scan queued for later ! \n"
+            else:
+                message = "### _kodi_scan directly executed ! \n"
+            self.standard_headers()
+            self.wfile.write(bytes(message, "utf8"))
+
         elif url_path == '/rd_progress':
             _rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
             _rdprog_instance.run()
@@ -227,6 +249,12 @@ def refresh_all(step):
     retry_later = False
     toomany = False
 
+    # todo: before finding a real good solution, temp fixes:
+    # 1 ==2 : kodi refresh scan should be done by device
+    # nfo_send and merging should be done manually and separately
+    # =5: nfo_send can be done only if kodi device is alive (nfo_send)
+    # =6: merging can be done if kodi off or not working in db (nfo_merge)
+
     if step == 1: # or rd_progress_response == "PLEASE_SCAN":
         if scan() > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             toomany = True
@@ -234,7 +262,8 @@ def refresh_all(step):
     if (step < 3 or step == 8) and not toomany:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             logger.debug(". refresh_all PART 2 : refresh kodi incremental mode")
-            if not refresh_kodi():
+            # todo remove temp fix
+            if 1==2 and not refresh_kodi():
                 retry_later = True
 
     if step < 4:
@@ -272,21 +301,35 @@ def refresh_all(step):
     if toomany:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             logger.debug(". refresh_all PART 2 shifted : refresh kodi shifted because in toomany mode")
-            if not refresh_kodi():
+            # todo remove temp fix
+            if 1==2 and not refresh_kodi():
                 retry_later = True
 
-    if (step < 6 or step == 8) and retry_later == False:
+    # todo remove temp fix to remove below ( = 5 instead of < 6)
+    if (step == 5 or step == 8) and retry_later == False:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") and JF_WANTED:
             logger.debug(". refresh_all PART 5 : send new nfos to kodi")
             if not send_nfo_to_kodi():
-                retry_later = True
+                retry_later = True if 1 == 2 else False # todo remove temp fix
+        '''
             else:
                 merge_kodi_versions()
         else:
             # since merging can be done without jellyfin or kodi rpc access
             merge_kodi_versions()
+        '''
+    # todo remove temp fix
+    if (step == 6 or step == 8) and retry_later == False:
+        if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") and JF_WANTED:
+            merge_kodi_versions()
 
-    if retry_later == True and kodi_mysql_init_and_verify():
+    # TODO big temp 
+    if (step == 56):
+        if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
+            refresh_kodi()
+    
+
+    if 1==2 and retry_later == True and kodi_mysql_init_and_verify():
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
         _is_kodi_alive_loop_thread.run()
         # launch the jobs that tests kodi alive in loop
