@@ -87,6 +87,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     atleastoneextra = False
     nomergetype = ""
     bdmv_ffprobed = None
+    jgxmultiple_parses = []
 
     # E_DUP duplicate workaround for one-movie releases / RESET idxdup at release level
     idxdupmovset = 1
@@ -98,7 +99,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     dive_s_ = {}
 
     # Multi Dim Array for E DIVE V2
-    dive_e_ = {'rootfiles': [], 'rootfoldernames': [], 'mediatype' : None}
+    dive_e_ = {'rootfiles': [], 'rootfoldernames': [], 'mediatype' : None, 'single_premetas': None}
 
     # make the present_virtual_folders_* global so that we can write in them on the fly (list of release folders)
     global present_virtual_folders
@@ -206,7 +207,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                     else:
 
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': f" -{premetastpl} JGx", 'ffprobed' : stdout})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'ffprobed' : stdout, 'premetas': f" -{premetastpl} JGx"})
+                        
+                        dive_e_['single_premetas'] = f" -{premetastpl} JGx"
 
                         if(dvprofile):
                             dive_e_['mediatype'] = '_dv'
@@ -244,7 +247,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             stdout = None
                         
 
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : stdout})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'ffprobed' : stdout})
 
                 # EF non-video files only (BDMV)
                 elif ('BDMV' in os.path.normpath(root).split(os.sep) or 'VIDEO_TS' in os.path.normpath(root).split(os.sep)) and not season_present:
@@ -282,7 +285,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             bdmv_ffprobed = stdout
 
                     if not stopthere:
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : ffprobed})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'ffprobed' : ffprobed})
 
                 # S+E remaining mess
                 else:
@@ -295,7 +298,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             stopreason += ' >Pre-reading non-video files failed'
                     # E 
                     if not season_present and not stopthere:
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'premetas': "", 'ffprobed' : None})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'ffprobed' : None})
 
             elif ('BDMV' not in os.path.normpath(root).split(os.sep) and filename.lower().endswith(('.m2ts'))):
                 stopreason += ' >m2ts outside its BDMV structure (verify ALL_FILES_INCLUDING_STRUCTURE in settings.env)'
@@ -446,14 +449,29 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
             # EF case --------- can have extras
             if multiple_movie_or_disc_present:
+                
+
+
                 ffprobed = item['ffprobed']
-                insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
+                if not item['as_if_vroot'].endswith('extras') and dive_e_['mediatype'] != "_bdmv" and rootfilename.lower().endswith(VIDEO_EXTENSIONS):
+                    jgxmultiple_parse_res = PTN.parse(get_wo_ext(os.path.basename(rootfilename)))
+                    # GENERIC META FOR EF case (new!)
+                    jgxmultiple_parse = clean_string(f"{jgxmultiple_parse_res['title']}{ytpl(jgxmultiple_parse_res.get('year'))}")+item['premetas']
+
+                    for existing_file in jgxmultiple_parses:
+                        if jgxmultiple_parse+str(idxdupmovset) in jgxmultiple_parses:
+                            idxdupmovset += idxdupmovset+1
+                    jgxmultiple_parse += str(idxdupmovset)
+                    jgxmultiple_parses.append(jgxmultiple_parse)
+                    insert_data("/movies/"+releasefolder+nomergetype+"/"+jgxmultiple_parse+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
+                else:
+                    insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
 
             # Esingle case ------------ can have extras but with switch
             elif rootfilename.lower().endswith(ALLOWED_EXTENSIONS):
 
                 # E_DUP:
-                metas = f"{item['premetas']}" #deleted {relmetas}here
+                metas = dive_e_['single_premetas'] #deleted {relmetas}here
                 if(will_idx_check):
                     if(idxdupmovset == 1):
                         for existing_file in ls_virtual_folder_a:
@@ -472,7 +490,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                     one_movie_present = True
 
-        # folders for EF case
+        # rootfolders for EF case
         for rootfoldername in dive_e_['rootfoldernames']:
             if multiple_movie_or_disc_present:
                 insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(rootfoldername, os.path.join(endpoint, releasefolder)), None, release_folder_path, rar_item, dive_e_['mediatype'])

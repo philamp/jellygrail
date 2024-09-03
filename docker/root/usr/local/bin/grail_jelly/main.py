@@ -526,7 +526,11 @@ if __name__ == "__main__":
         waitloop += 1
         time.sleep(1)
         if(waitloop > 30):
-            logger.critical("!!! BindFS is not connecting to socket, BindFS service is probably not working properly thus JellyGrail won't start ... ")
+            logger.critical("!!! BindFS is not connecting to socket, BindFS service is probably not working properly thus JellyGrail will try a restart")
+        if(waitloop > 32):
+            # this is a workaround if docker logs contains : s6-sudoc: fatal: unable to get exit status from server: Operation timed out, docker restarts and usually works after. Weird error. Seems related to the way socket is instanciated
+            full_run = False
+            break
 
     # ----------------- INITs -----------------------------------------
     # Initialize the database connection, includes open() ----

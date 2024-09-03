@@ -114,6 +114,7 @@ def ls_virtual_folder(folder_path):
     global conn
     cursor = conn.cursor()
     cursor.execute("SELECT depdec(virtual_fullpath) FROM main_mapping WHERE virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
+    # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite sollation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
     return cursor.fetchall()
 
 def get_path_props(path):
