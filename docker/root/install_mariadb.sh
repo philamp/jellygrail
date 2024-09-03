@@ -7,8 +7,8 @@ if [ ! -f "./mariadb_installed" ]; then
   # sed -i 's/^bind-address\s*=.*/bind-address = 0.0.0.0/' /etc/mysql/mariadb.conf.d/50-server.cnf
   # service mariadb start
   # Secure MariaDB installation (automated with the specified answers)
-  
   # Log in to MariaDB as root using Unix socket authentication and set up the kodi user
+  
   mysql -u root <<EOF
 CREATE USER 'kodi'@'%' IDENTIFIED BY 'kodi';
 GRANT ALL PRIVILEGES ON *.* TO 'kodi'@'%' WITH GRANT OPTION;
