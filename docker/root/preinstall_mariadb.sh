@@ -7,4 +7,5 @@ y
 y
 y
 y
+EOF
 service mariadb stop
