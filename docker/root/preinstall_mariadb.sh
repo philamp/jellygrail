@@ -14,4 +14,4 @@ y
 y
 EOF
 
-service mariadb stop
+rm -f /var/lib/mysql/aria_log_control
