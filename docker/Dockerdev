@@ -115,9 +115,9 @@ COPY root/kodi_addons.sh /kodi_addons.sh
 RUN chmod +x /kodi_addons.sh
 
 # run mariadb install and conf
-COPY root/install_mariadb.sh /install_mariadb.sh
-RUN chmod +x /install_mariadb.sh
-RUN /bin/bash install_mariadb.sh
+# COPY root/install_mariadb.sh /install_mariadb.sh
+# RUN chmod +x /install_mariadb.sh
+# RUN /bin/bash install_mariadb.sh
 
 # copy conf and s6 scripts from repo
 # COPY rclone.conf /root/.config/rclone/
