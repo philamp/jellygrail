@@ -7,13 +7,16 @@ if [ ! -f "./mariadb_installed" ]; then
   # sed -i 's/^bind-address\s*=.*/bind-address = 0.0.0.0/' /etc/mysql/mariadb.conf.d/50-server.cnf
   # service mariadb start
   # Secure MariaDB installation (automated with the specified answers)
-  mysql_secure_installation <<EOF
-y
-n
-y
-y
-y
-y
+  mysql -u root <<EOF
+-- Remove anonymous users
+DELETE FROM mysql.user WHERE User='';
+-- Disallow root login remotely
+UPDATE mysql.user SET Host='localhost' WHERE User='root' AND Host='%';
+-- Remove test database and access to it
+DROP DATABASE IF EXISTS test;
+DELETE FROM mysql.db WHERE Db='test' OR Db='test_%';
+-- Reload privilege tables
+FLUSH PRIVILEGES;
 EOF
   
   # Log in to MariaDB as root using Unix socket authentication and set up the kodi user
