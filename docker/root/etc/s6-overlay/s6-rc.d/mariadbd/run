@@ -1,4 +1,5 @@
 #!/command/execlineb -P
+s6-setuidgid mysql
 redirfd -w 1 /dev/null
 redirfd -w 2 /dev/null
-mariadbd --user=root
+mariadbd
