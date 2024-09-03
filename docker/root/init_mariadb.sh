@@ -2,5 +2,4 @@
 if [ ! -d /var/lib/mysql/mysql ]; then
   echo "Initializing MariaDB data directory..."
   mariadb-install-db --user=mysql --datadir=/var/lib/mysql
-  rm -f /var/lib/mysql/aria_log_control
 fi
