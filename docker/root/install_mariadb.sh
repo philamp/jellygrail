@@ -8,23 +8,23 @@ if [ ! -f "./mariadb_installed" ]; then
   # service mariadb start
   # Secure MariaDB installation (automated with the specified answers)
   mysql_secure_installation <<EOF
-  
-  y
-  n
-  y
-  y
-  y
-  y
-  EOF
+y
+n
+y
+y
+y
+y
+EOF
   
   # Log in to MariaDB as root using Unix socket authentication and set up the kodi user
   mysql -u root <<EOF
-  CREATE USER 'kodi'@'%' IDENTIFIED BY 'kodi';
-  GRANT ALL PRIVILEGES ON *.* TO 'kodi'@'%' WITH GRANT OPTION;
-  FLUSH PRIVILEGES;
-  EXIT;
-  EOF
+CREATE USER 'kodi'@'%' IDENTIFIED BY 'kodi';
+GRANT ALL PRIVILEGES ON *.* TO 'kodi'@'%' WITH GRANT OPTION;
+FLUSH PRIVILEGES;
+EXIT;
+EOF
+
   # service mariadb stop
-  echo "Secure  install and Kodi user setup complete."
+  echo "Secure install and Kodi user setup complete."
   touch ./mariadb_installed
 fi
