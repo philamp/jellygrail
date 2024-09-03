@@ -117,6 +117,9 @@ RUN chmod +x /kodi_addons.sh
 # run mariadb install and start once
 RUN apt-get install -y mariadb-server
 COPY root/50-server.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
+COPY root/preinstall_mariadb.sh /preinstall_mariadb.sh
+RUN chmod +x /preinstall_mariadb.sh
+RUN /bin/bash preinstall_mariadb.sh
 
 # COPY root/install_mariadb.sh /install_mariadb.sh
 # RUN chmod +x /install_mariadb.sh
