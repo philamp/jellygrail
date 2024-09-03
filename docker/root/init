@@ -130,6 +130,11 @@ for dir_path in /mounts/*; do
   esac
 done
 
+if [ ! -d /var/lib/mysql/mysql ]; then
+  echo "Initializing MariaDB data directory..."
+  mariadb-install-db --user=mysql --datadir=/var/lib/mysql
+fi
+
 # this part triggers only if /root/devmode folder is found, it's for devleopment purposes only
 if [ -d "/root/devmode" ]; then
   apt install openssh-server libsqlite3-dev sqlite3 cmake -y
