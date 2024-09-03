@@ -2,4 +2,4 @@
 s6-setuidgid mysql
 redirfd -w 1 /dev/null
 redirfd -w 2 /dev/null
-mariadbd
+mariadbd --datadir=/var/lib/mysql
