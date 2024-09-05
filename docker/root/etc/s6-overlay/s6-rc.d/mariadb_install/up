@@ -1,2 +1,0 @@
-#!/command/execlineb -P
-/bin/bash /install_mariadb.sh
