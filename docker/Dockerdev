@@ -114,12 +114,6 @@ RUN chmod ugo+rx /usr/bin/rclone-linux && \
 COPY root/kodi_addons.sh /kodi_addons.sh
 RUN chmod +x /kodi_addons.sh
 
-# run mariadb install and conf
-COPY root/50-server.cnf /50-server.cnf
-COPY root/preinstall_mariadb.sh /preinstall_mariadb.sh
-RUN chmod +x /preinstall_mariadb.sh
-RUN /bin/bash preinstall_mariadb.sh
-
 # copy conf and s6 scripts from repo
 # COPY rclone.conf /root/.config/rclone/
 COPY root/requirements.txt /requirements.txt
