@@ -1,4 +1,14 @@
 #!/usr/bin/execlineb -P
+# Run MariaDB as the mysql user
 s6-setuidgid mysql
-foreground { /usr/bin/mysql_install_db --user=mysql --datadir=/var/lib/mysql }
+
+# Check if /var/lib/mysql is empty
+if { s6-test -z { ls -A /var/lib/mysql } }
+    foreground { echo "/var/lib/mysql is empty. Initializing the database..." }
+    foreground { /usr/bin/mysql_install_db --user=mysql --datadir=/var/lib/mysql }
+    foreground { echo "Database initialized." }
+else
+    foreground { echo "/var/lib/mysql is already populated." }
+
+# Start MariaDB in the foreground
 /usr/sbin/mariadbd --datadir=/var/lib/mysql
