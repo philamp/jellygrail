@@ -1,4 +1,4 @@
 #!/usr/bin/execlineb -P
 s6-setuidgid mysql
 foreground { /usr/bin/mysql_install_db --user=mysql --datadir=/var/lib/mysql }
-foreground { /usr/bin/mysqld_safe --datadir=/var/lib/mysql }
+/usr/sbin/mariadbd --datadir=/var/lib/mysql
