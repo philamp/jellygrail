@@ -1,15 +1,20 @@
 #!/bin/bash
 
-# Attendre que le serveur MariaDB soit prêt
+# Wait for MariaDB to be ready
 until mysqladmin ping -h localhost --silent; do
-    echo "En attente de MariaDB..."
+    echo "Waiting for MariaDB..."
     sleep 2
 done
 
-# Créer l'utilisateur kodi avec accès depuis toutes les IP
-mysql -u root -e "CREATE USER IF NOT EXISTS 'kodi'@'%' IDENTIFIED BY 'kodi';"
-mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'kodi'@'%' WITH GRANT OPTION;"
-mysql -u root -e "FLUSH PRIVILEGES;"
+# Check if MariaDB has already been initialized
+if [ ! -f /var/lib/mysql/.mariadb_initialized ]; then
+    echo "Initializing MariaDB and creating users..."
 
-# Marquer l'initialisation comme terminée
-touch /var/lib/mysql/.mariadb_initialized
+    # Initialize the database and create the kodi user
+    mysql -u root -e "CREATE USER 'kodi'@'%' IDENTIFIED BY 'kodi';"
+    mysql -u root -e "GRANT ALL PRIVILEGES ON *.* TO 'kodi'@'%' WITH GRANT OPTION;"
+    mysql -u root -e "FLUSH PRIVILEGES;"
+
+    # Create the initialization flag
+    touch /var/lib/mysql/.mariadb_initialized
+fi
