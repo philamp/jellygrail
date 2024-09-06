@@ -1,1 +1,14 @@
+#!/command/with-contenv bash
+# shellcheck shell=bash
 
+# Create the MySQL data directory if it doesn't already exist
+mkdir -p /jellygrail/data/mariadb
+
+# Ensure the MySQL data directory has the correct permissions
+if [ -d "/jellygrail/data/mariadb" ]; then
+    # Change ownership of the directory to the mysql user and group
+    chown -R mysql:mysql /jellygrail/data/mariadb
+else
+    echo "Error: /jellygrail/data/mariadb directory does not exist."
+    exit 1
+fi
