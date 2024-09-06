@@ -186,6 +186,10 @@ RUN cd /usr/local/bin && \
 # Reduce image size
 # not in dev !! RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# mysql
+ENV MYSQL_DIR="/config"
+ENV DATADIR=$MYSQL_DIR/databases
+
 # expose nginx
 EXPOSE 8085
 
