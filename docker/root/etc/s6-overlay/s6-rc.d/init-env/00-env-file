@@ -1,0 +1,5 @@
+MYSQL_ROOT_PASSWORD=lgclvdnmj1492
+MYSQL_DATABASE=kodi_video131
+MYSQL_USER=kodi
+MYSQL_PASSWORD=kodi
+DATADIR=/jellygrail/data/mysql
