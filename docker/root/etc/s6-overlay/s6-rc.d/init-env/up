@@ -9,7 +9,7 @@ echo "kodi" > /run/s6/container_environment/MYSQL_PASSWORD
 
 # Ensure the MySQL data directory has the correct permissions
 if [ -d "/jellygrail/data/mysql" ]; then
-  chown -R mysql:mysql /jellygrail/data/mysql
+  chown -R mysql:mysql /jellygrail/data/mariadb
 else
   echo "Error: /jellygrail/data/mysql directory does not exist."
   exit 1
