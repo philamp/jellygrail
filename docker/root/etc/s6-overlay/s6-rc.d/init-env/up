@@ -5,3 +5,4 @@ echo "kodi_video131" > /run/s6/container_environment/MYSQL_DATABASE
 echo "kodi" > /run/s6/container_environment/MYSQL_USER
 echo "kodi" > /run/s6/container_environment/MYSQL_PASSWORD
 echo "/jellygrail/data/mysql" > /run/s6/container_environment/DATADIR
+chown -R mysql:mysql /jellygrail/data/mysql
