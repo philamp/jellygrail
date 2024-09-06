@@ -150,7 +150,6 @@ if [ -d "/root/devmode" ]; then
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/bindfs
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/cache_check_bindfs
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/kodi_addons
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/mariadb
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
   # disrupt normal execution
   cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/main.py
