@@ -8,12 +8,12 @@ mkdir -p \
     /var/run/mysqld
 
 # configure mariadb-server.cnf
-sed -i "s|.*skip-networking.*|#skip-networking|g" /etc/my.cnf.d/mariadb-server.cnf
+sed -i "s|.*skip-networking.*|#skip-networking|g" /etc/mysql/my.cnf
 
 # setup custom cnf file
 cp -n /bash_templates/custom.cnf /config/custom.cnf
-rm -rf /etc/my.cnf.d/custom.cnf
-ln -s /config/custom.cnf /etc/my.cnf.d/custom.cnf
+rm -rf /etc/mysql/mariadb.conf.d/50-server.cnf
+ln -s /config/custom.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
 
 # set permissions
 chmod -R 777 \
