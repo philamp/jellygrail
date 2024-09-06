@@ -168,6 +168,7 @@ RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server netcat-
 # copy the rest
 COPY root/ /
 RUN chmod u+x /init
+RUN chmod -R +x /etc/s6-overlay/s6-rc.d
 
 # ffprobew build
 RUN cd /usr/local/bin/ffprobe_wrapper && \
