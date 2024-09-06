@@ -6,6 +6,6 @@ s6-notifyoncheck -d -n 300 -w 1000 -c "nc -z localhost 3306" \
     /usr/bin/mariadbd-safe \
     --datadir="${DATADIR}" \
     --pid-file=/var/run/mysqld/mysqld.pid \
-    --user=abc &
+    --user=mysql &
 
 wait
