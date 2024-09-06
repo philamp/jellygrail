@@ -163,7 +163,7 @@ RUN WORKDIR=`mktemp -d` && \
     rm -rf $WORKDIR
 
 # Mariadb package install
-RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server
+RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server netcat
     
 # copy the rest
 COPY root/ /
