@@ -1,7 +1,7 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
-MYSQL_ROOT_PASSWORD=lgclvdnmj1492
-MYSQL_DATABASE=kodi_video131
-MYSQL_USER=kodi
-MYSQL_PASSWORD=kodi
-DATADIR=/jellygrail/data/mysql
+export MYSQL_ROOT_PASSWORD=lgclvdnmj1492
+export MYSQL_DATABASE=kodi_video131
+export MYSQL_USER=kodi
+export MYSQL_PASSWORD=kodi
+export DATADIR=/jellygrail/data/mysql
