@@ -1,7 +1,7 @@
 #!/usr/bin/with-contenv bash
 # shellcheck shell=bash
-export MYSQL_ROOT_PASSWORD=lgclvdnmj1492
-export MYSQL_DATABASE=kodi_video131
-export MYSQL_USER=kodi
-export MYSQL_PASSWORD=kodi
-export DATADIR=/jellygrail/data/mysql
+echo "lgclvdnmj1492" > /run/s6/container_environment/MYSQL_ROOT_PASSWORD
+echo "kodi_video131" > /run/s6/container_environment/MYSQL_DATABASE
+echo "kodi" > /run/s6/container_environment/MYSQL_USER
+echo "kodi" > /run/s6/container_environment/MYSQL_PASSWORD
+echo "/jellygrail/data/mysql" > /run/s6/container_environment/DATADIR
