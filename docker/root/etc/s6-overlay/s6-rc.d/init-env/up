@@ -2,10 +2,10 @@
 # shellcheck shell=bash
 
 # Set MySQL environment variables
-echo "lgclvdnmj1492" > /run/s6/container_environment/MYSQL_ROOT_PASSWORD
-echo "kodi_video131" > /run/s6/container_environment/MYSQL_DATABASE
-echo "kodi" > /run/s6/container_environment/MYSQL_USER
-echo "kodi" > /run/s6/container_environment/MYSQL_PASSWORD
+# echo "lgclvdnmj1492" > /run/s6/container_environment/MYSQL_ROOT_PASSWORD
+# echo "kodi_video131" > /run/s6/container_environment/MYSQL_DATABASE
+# echo "kodi" > /run/s6/container_environment/MYSQL_USER
+# echo "kodi" > /run/s6/container_environment/MYSQL_PASSWORD
 
 # Ensure the MySQL data directory has the correct permissions
 if [ -d "/jellygrail/data/mysql" ]; then
