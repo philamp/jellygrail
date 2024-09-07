@@ -247,7 +247,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             stdout = None
                         
 
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'ffprobed' : stdout})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : stdout})
 
                 # EF non-video files only (BDMV)
                 elif ('BDMV' in os.path.normpath(root).split(os.sep) or 'VIDEO_TS' in os.path.normpath(root).split(os.sep)) and not season_present:
@@ -285,7 +285,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             bdmv_ffprobed = stdout
 
                     if not stopthere:
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'ffprobed' : ffprobed})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : ffprobed})
 
                 # S+E remaining mess
                 else:
@@ -298,7 +298,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             stopreason += ' >Pre-reading non-video files failed'
                     # E 
                     if not season_present and not stopthere:
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'ffprobed' : None})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : None})
 
             elif ('BDMV' not in os.path.normpath(root).split(os.sep) and filename.lower().endswith(('.m2ts'))):
                 stopreason += ' >m2ts outside its BDMV structure (verify ALL_FILES_INCLUDING_STRUCTURE in settings.env)'

@@ -600,11 +600,11 @@ if __name__ == "__main__":
         thread_b.daemon = True  # exits when parent thread exits
         thread_b.start()
 
-        # restart scan
-        logger.info("> Daily scan triggered")
-        _scan_instance = ScriptRunner.get(refresh_all)
-        _scan_instance.resetargs(1)
-        _scan_instance.run()
+        # daily restart scan
+        #logger.info("> Daily scan triggered")
+        #_scan_instance = ScriptRunner.get(refresh_all)
+        #_scan_instance.resetargs(1)
+        #_scan_instance.run()
 
         # D: server thread
         # server_thread = threading.Thread(target=run_server)

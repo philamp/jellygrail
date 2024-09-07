@@ -48,7 +48,7 @@ def kodi_mysql_init_and_verify():
 def check_if_vvtype_exists(test_string):
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
-    cursor = conn.cursor()
+    cursor = conn.cursor(buffered=True)
 
     # Exécution d'une requête
     cursor.execute(f"SELECT id FROM videoversiontype where name = %s", (test_string,))
@@ -123,10 +123,10 @@ def link_vv_to_kept_mediaid(vvid, keptmid, new_type_id):
 def video_versions():
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
-    cursor = conn.cursor()
+    cursor = conn.cursor(buffered=True)
 
     # Exécution d'une requête
-    cursor.execute(f"SELECT uid.value as tmdbid, group_concat(mvb.idMovie SEPARATOR '¨') as idmedia, group_concat(mvb.strPath SEPARATOR '¨') as strpath, group_concat(mvb.strFileName SEPARATOR '¨') as strfilename, group_concat(mvb.videoVersionIdFile SEPARATOR '¨') as idfile, group_concat(isDefaultVersion SEPARATOR '¨') as isdefault FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie where uid.type = 'tmdb' GROUP BY uid.value HAVING COUNT(*) > 1")
+    cursor.execute(f"SELECT uid.value as tmdbid, group_concat(mvb.idMovie SEPARATOR ' ') as idmedia, group_concat(mvb.strPath SEPARATOR ' ') as strpath, group_concat(mvb.strFileName SEPARATOR ' ') as strfilename, group_concat(mvb.videoVersionIdFile SEPARATOR ' ') as idfile, group_concat(isDefaultVersion SEPARATOR ' ') as isdefault FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie where uid.type = 'tmdb' GROUP BY uid.value HAVING COUNT(*) > 1")
 
     result = cursor.fetchall()
     cursor.close() 
@@ -143,7 +143,7 @@ def fetch_media_id(path, tabletofetch, idtofetch):
     # Exécution d'une requête
     cursor.execute(f"SELECT ttf.{idtofetch}, MIN(uid.type) as type FROM {tabletofetch} ttf LEFT JOIN uniqueid uid on uid.media_id = ttf.{idtofetch} WHERE strPath like %s GROUP BY ttf.{idtofetch}", (like_param,))
 
-    result = cursor.fetchall()
+    result = cursor.fetchall(buffered=True)
     cursor.close() 
     # Récupération des résultats
     return result

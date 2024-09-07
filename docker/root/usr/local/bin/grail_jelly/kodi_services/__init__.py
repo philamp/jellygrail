@@ -323,11 +323,11 @@ def merge_kodi_versions():
         #find the incr smallest version
         i=0
         currlowest=200
-        idfiles = [int(num) for num in idfilesR.split("¨")]
-        strpaths = strpathsR.split("¨")
-        strfilenames = strfilenamesR.split("¨")
-        isdefaults = [int(num) for num in isdefaultsR.split("¨")]
-        idmedias = [int(num) for num in idmediasR.split("¨")]
+        idfiles = [int(num) for num in idfilesR.split(" ")]
+        strpaths = strpathsR.split(" ")
+        strfilenames = strfilenamesR.split(" ")
+        isdefaults = [int(num) for num in isdefaultsR.split(" ")]
+        idmedias = [int(num) for num in idmediasR.split(" ")]
         videoversiontuple = []
         idtokeep = None
         strpathtokeep = None
@@ -397,14 +397,14 @@ def fix_bad_merges():
 
     # todo look for currently merged items in kodi db (path and filename). 
     # look for their nfo.jf.updated / nfo.jf.done / nfo.jf loaded in xml 
-    # if their tmdb id is different -> remove the videoversion linked to the failed id and then trigger fix_kodi_glitches (because both issues can exist at the same time) and it will trigger a new scan
+    # if their tmdb id is different -> remove the videoversion linked to the failed id and then trigger fix_kodi_glitches (because both issues can exist at the same time) and it will trigger a new scan anyway
 
 
     return
 
 def fix_kodi_glitches():
 
-    # todo look for release folders being mediatype _bdmv, if they're not in kodi db, change the last_updated date to current unix timestamp
+    # todo look for release folders being mediatype _bdmv, if they're *not empty* and not in kodi db, change the last_updated date to current unix timestamp
 
-
+    # and trigger refresh
     return
