@@ -11,9 +11,8 @@ mkdir -p \
 sed -i "s|.*skip-networking.*|#skip-networking|g" /etc/mysql/my.cnf
 
 # setup custom cnf file
-cp -n /bash_templates/custom.cnf /config/custom.cnf
 rm -rf /etc/mysql/mariadb.conf.d/50-server.cnf
-ln -s /config/custom.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
+ln -s /bash_templates/custom.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
 
 # set permissions
 chmod -R 777 \
