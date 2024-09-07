@@ -59,7 +59,7 @@ sort_buffer_size        = 4M
 bulk_insert_buffer_size = 16M
 tmp_table_size          = 32M
 max_heap_table_size     = 32M
-optimizer_search_depth = 0
+optimizer_search_depth  = 0
 
 #performance_schema = on
 character_set_server    = utf8mb4
@@ -147,13 +147,9 @@ max_binlog_size         = 100M
 default_storage_engine  = InnoDB
 # you can't just change log file size, requires special procedure
 #innodb_log_file_size   = 50M
-innodb_buffer_pool_size = 1G
-innodb_buffer_pool_instances= 1
-innodb_file_format = Barracuda
-innodb_log_block_size=4096
+innodb_buffer_pool_size = 512M
 innodb_log_buffer_size  = 8M
 innodb_file_per_table   = 1
-innodb_adaptive_hash_index = OFF
 innodb_open_files       = 400
 innodb_io_capacity      = 400
 innodb_flush_method     = O_DIRECT
