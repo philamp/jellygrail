@@ -1,5 +1,5 @@
 > [!CAUTION]
-> - Next main branch release named "20240715":
+> - Next main branch release named "20240915":
 >   - breaking changes:
 >     - ./jellygrail/.bindfs_jelly.db is now stored in ./jellygrail/data/bindfs
 >     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
