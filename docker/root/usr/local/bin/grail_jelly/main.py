@@ -274,6 +274,7 @@ def refresh_all(step):
             # refresh the jellyfin library and merge variants
             lib_refresh_all()
             wait_for_jfscan_to_finish()
+            pass
         else:
             if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
                 try:

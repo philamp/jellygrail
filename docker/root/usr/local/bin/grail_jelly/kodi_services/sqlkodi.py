@@ -22,10 +22,10 @@ def kodi_mysql_init_and_verify(just_verify=False):
         cursor.close() # important
         if result:
             if just_verify:
-                logger.info("> STARTUP CHECK : kodi_video131 DATABASE : OK")
+                logger.info("> JUST_VERIFY kodi_video131 DB : OK")
                 mariadb_close()
             else:
-                logger.info("> On-demand mariadb connect on kodi_video131 DB : OK")
+                logger.info("> CONNECT kodi_video131 DB : OK")
                 # we don't close connection
             return True
         else:

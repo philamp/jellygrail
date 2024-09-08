@@ -194,7 +194,8 @@ def nfo_loop_service():
 
         #jfclose_ro()
         save_jfsqdate_to_file(nowdate)
-        
+    else:
+        return False
     return True
     # ---- if finished correctly
 

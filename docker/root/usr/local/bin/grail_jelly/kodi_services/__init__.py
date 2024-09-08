@@ -103,7 +103,7 @@ def on_open(ws):
 
 def refresh_kodi():
 
-    if not is_kodi_alive() or not kodi_mysql_init_and_verify():
+    if not is_kodi_alive() or not kodi_mysql_init_and_verify(just_verify=True):
         return False
 
     global is_scanning
@@ -153,11 +153,11 @@ def refresh_kodi():
                 headers=headers,
                 data=payload,
                 auth=(kodi_username, kodi_password),
-                timeout=5
+                timeout=15
             )
 
         except Exception as e:
-            logger.error("!! Kodi refreshing trigger failed with {e} [refresh_kodi]")
+            logger.error(f"!! Kodi refreshing trigger failed with {e} [refresh_kodi]")
             ws.close()
             return False
         else:
@@ -183,11 +183,11 @@ def refresh_kodi():
                 headers=headers,
                 data=clean_payload,
                 auth=(kodi_username, kodi_password),
-                timeout=5
+                timeout=240
             )
 
         except Exception as e:
-            logger.error("!! Kodi cleaning trigger failed with {e} [refresh_kodi]")
+            logger.error(f"!! Kodi cleaning trigger failed with {e} [refresh_kodi]")
             ws.close()
             return False
         else:
