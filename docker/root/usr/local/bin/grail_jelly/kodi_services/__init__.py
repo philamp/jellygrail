@@ -103,7 +103,7 @@ def on_open(ws):
 
 def refresh_kodi():
 
-    if not is_kodi_alive():
+    if not is_kodi_alive() or not kodi_mysql_init_and_verify():
         return False
 
     global is_scanning
