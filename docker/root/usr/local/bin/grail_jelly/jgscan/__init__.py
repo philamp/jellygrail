@@ -353,7 +353,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
     if stopthere == True:
         logger.warning(f"    ! Failed Release: {os.path.join(endpoint, releasefolder)} ; Reasons: {stopreason}")
-
+        return False
     # ---- DIVE S READ + insert + S_DUP idxcheck, unless stopthere is true-----
     if season_present and not stopthere:
 
@@ -511,7 +511,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
             if atleastoneextra:
                 insert_data("/movies/"+title_year+"/extras", None, None, None, dive_e_['mediatype'])
         # S folders are done in first filename loop and do not have extras
-
+    return True
 
 def scan():
 
@@ -536,7 +536,6 @@ def scan():
         for f in os.scandir(src1):
             if f.path not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
-                    items_scanned += 1
                     logger.info(f"> New item: {f.name}")
                     browse = True
                     endpoint2browse = src1
@@ -572,7 +571,8 @@ def scan():
 
                     if browse:
                     # Browse it through !
-                        release_browse(endpoint2browse, f.name, rar_item, f.path, storetype)
+                        if release_browse(endpoint2browse, f.name, rar_item, f.path, storetype):
+                            items_scanned += 1
                         sqcommit()
 
                 elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):

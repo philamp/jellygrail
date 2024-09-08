@@ -353,7 +353,7 @@ def rename_to_done(filepath):
 
 def merge_kodi_versions():
     # merge only when needed, since the regular trigger of jf_nfo_refresh (step 4), bypass this step if there is no new nfo, it's not a an issue
-    if not kodi_mysql_init_and_verify:
+    if not kodi_mysql_init_and_verify():
         return False
 
     results = [(row[0],row[1],row[2],row[3],row[4],row[5]) for row in video_versions()]
