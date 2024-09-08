@@ -1,7 +1,7 @@
 > [!CAUTION]
 > - Next main branch release named "20240715":
 >   - breaking changes:
->     - (maybe not) Please delete your ./jellygrail/.bindfs_jelly.db file as there are some improvements during scan, this will reset your custom changes :(
+>     - ./jellygrail/.bindfs_jelly.db is now stored in ./jellygrail/data/bindfs
 >     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
 >     - Merge versions Jellyfin add-on to be removed. It's confusing when deleting library items since some variants are within same folders while other are not. Removing that will remove this ambiguity.
 >   - Fixes:
@@ -241,7 +241,7 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 > ``./Video_Library/virtual_bdmv/`` is a dynamically filtered folder containing only DVDs and Blu-rays data.
 
 > [!CAUTION]
-> ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
+> ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/data/bindfs/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
 
 
 # ✅ Sanity checks / Troubleshooting

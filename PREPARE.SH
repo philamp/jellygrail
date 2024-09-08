@@ -1,8 +1,8 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 # put back docker stop start commands in place
-# dev reminder : this version should be aligned to version in grail_jelly/main.py (change both at the same time !!!!)
-VERSION="20240830"
+# !!!!!!!!!!!!!!!! dev reminder : this version should be aligned to version in grail_jelly/main.py (change both at the same time !!!!)
+VERSION="20240915"
 
 SETTINGS_PATH="./jellygrail/config/settings.env"
 SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
@@ -10,7 +10,7 @@ SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
 if [ -f "$SETTINGS_PATH" ]; then
     source $SETTINGS_PATH
     echo "Found previous settings values, loading them as default."
-    if [ "$1" = "change" ] && [ "$RUNNING_VERSION" = "$VERSION" ]; then
+    if [ "$1" = "change" ] && [ "$CONFIG_VERSION" = "$VERSION" ]; then
         echo "If you have a running jellygrail container: "
         echo " - named something else than 'jellygrail'" 
         echo " - or managed with systemd" 
@@ -24,7 +24,7 @@ if [ -f "$SETTINGS_PATH" ]; then
             fi
         fi
     fi
-    if [ "$RUNNING_VERSION" != "$VERSION" ]; then
+    if [ "$CONFIG_VERSION" != "$VERSION" ]; then
         echo "If you have a running jellygrail container: "
         echo " - named something else than 'jellygrail'" 
         echo " - or managed with systemd"
@@ -38,13 +38,16 @@ if [ -f "$SETTINGS_PATH" ]; then
                 echo "Container stopped and deleted"
             fi
         fi
-        read -p $'\nWould you like to DELETE your current virtual-renaming database ? Read this version release note ('"$VERSION"$') to know if it\'s recommanded (yes/no):\n>' dbdelyesno
-        if [ $dbdelyesno = "yes" ]; then
-            cp ./jellygrail/.bindfs_jelly.db ./jellygrail/bindfs_jelly.db.$(date +"%Y%m%d-%H%M%S").backup
-            rm ./jellygrail/.bindfs_jelly.db
-            echo "A datestamped backup has been created in ./jellygrail folder."
-        fi
-        echo "Will now upgrade settings from version $RUNNING_VERSION to version $VERSION"
+        #read -p $'\nWould you like to DELETE your current virtual-renaming database ? Read this version release note ('"$VERSION"$') to know if it\'s recommanded (yes/no):\n>' dbdelyesno
+        #if [ $dbdelyesno = "yes" ]; then
+            #cp ./jellygrail/data/bindfs/.bindfs_jelly.db ./jellygrail/data/bindfs/bindfs_jelly.db.$(date +"%Y%m%d-%H%M%S").backup
+            #rm ./jellygrail/data/bindfs/.bindfs_jelly.db
+            #echo "A datestamped backup has been created in ./jellygrail/data/bindfs folder."
+        #fi
+        echo "! Warning : this pulled version is: $VERSION"
+        echo "! Warning: Breaking change as of version 20240915 : Sqlite DB for storing virtual renaming has changed location (now in ./jellygrail/data/bindfs). So a full rescan will be done on first start."
+        echo "! Warning: Breaking change as of version 20240915 : Please delete the jellygrail/jellyfin/config folder before running the container."
+        echo "> We will now upgrade settings from version $CONFIG_VERSION to version $VERSION"
     fi
 fi
 
@@ -319,7 +322,7 @@ if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; t
         echo "No API key entered. The configuration file will not be created. Real-Debrid implementation will not work"
     fi
 
-    sed -i "s/RUNNING_VERSION=/RUNNING_VERSION=\"$VERSION\"/" "$SETTINGS_PATH"
+    sed -i "s/CONFIG_VERSION=/CONFIG_VERSION=\"$VERSION\"/" "$SETTINGS_PATH"
 
 else
     echo "The configuration file already exists, you have not prompted for a change and you have not pulled any new version."

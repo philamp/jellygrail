@@ -519,7 +519,7 @@ def scan():
 
     #global logger
 
-    logger.info("~ Waits 10s for remotes refresh to happen ~") #todo : can be forced ?
+    logger.info("~ Waits 10s for remotes refresh to happen ~") #toimprove
     time.sleep(10)
 
     items_scanned = 0
@@ -545,7 +545,7 @@ def scan():
                         if g.name.lower().endswith('.rar') :
                             rar_item = g.path
                             endpoint2browse = src2
-                            logger.debug(f"  * with RAR file: {g.name}")
+                            logger.info(f"...with a .RAR file: {g.name}")
                             if storetype == "remote":
                                 for i in range(2):
                                     # cache-heater 0 for RAR files and rar2fs

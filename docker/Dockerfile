@@ -86,12 +86,6 @@ RUN cd /tmp && \
     wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz && \
     tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz
 
-# add h2static
-# RUN cd /tmp && \
-    # wget https://github.com/albertodonato/h2static/releases/download/2.4.6/h2static-2.4.6-linux-amd64.tar.gz && \
-    # tar -xzvf h2static-2.4.6-linux-amd64.tar.gz && \
-    # chmod ugo+rx ./h2static && \
-    # mv ./h2static /usr/bin/
 
 
 # add rclone fork

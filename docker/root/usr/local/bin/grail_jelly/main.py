@@ -20,10 +20,10 @@ load_dotenv('/jellygrail/config/settings.env')
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
-# dev reminder : this version should be aligned to version in PREPARE.SH (change both at the same time !!!!)
-VERSION = "20240830"
+# !!!!!!!!!!!!! dev reminder : this version should be aligned to version in PREPARE.SH (change both at the same time !!!!)
+VERSION = "20240915"
 
-RUNNING_VERSION = os.getenv('RUNNING_VERSION')
+CONFIG_VERSION = os.getenv('CONFIG_VERSION')
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
@@ -44,7 +44,7 @@ from jfconfig import jfconfig
 from jgscan.jgsql import init_database, sqclose
 from nfo_generator import nfo_loop_service, fetch_nfo
 from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive, merge_kodi_versions
-from kodi_services.sqlkodi import mariadb_close, kodi_mysql_init_and_verify
+from kodi_services.sqlkodi import kodi_mysql_init_and_verify
 from jfapi import lib_refresh_all, wait_for_jfscan_to_finish
 
 import jg_services
@@ -241,7 +241,7 @@ def is_kodi_alive_loop():
             _refreshkodi_thread.resetargs(8) 
             _refreshkodi_thread.run()
             break
-        time.sleep(2)
+        time.sleep(20)
 
 def refresh_all(step):
 
@@ -249,25 +249,27 @@ def refresh_all(step):
     retry_later = False
     toomany = False
 
-    # todo: before finding a real good solution, temp fixes:
+    # there was temp fixes before; now trying to remove them
+    # temp fixes were :
+    # ---
     # 1 ==2 : kodi refresh scan should be done by device
     # nfo_send and merging should be done manually and separately
     # =5: nfo_send can be done only if kodi device is alive (nfo_send)
     # =6: merging can be done if kodi off or not working in db (nfo_merge)
+    # ----
 
     if step == 1: # or rd_progress_response == "PLEASE_SCAN":
         if scan() > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             toomany = True
-        logger.debug(". refresh_all PART 1 : scan")
+        logger.info(">> refresh_all PART 1 : scan to bindfs file-system")
     if (step < 3 or step == 8) and not toomany:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.debug(". refresh_all PART 2 : refresh kodi incremental mode")
-            # todo remove temp fix
-            if 1==2 and not refresh_kodi():
+            logger.info(">> refresh_all PART 2 : Kodi library refresh (incremental)")
+            if not refresh_kodi():
                 retry_later = True
 
     if step < 4:
-        logger.debug(". refresh_all PART 3 : refresh jf or plex")
+        logger.info(">> refresh_all PART 3 : Jellyfin (or Plex) library refresh")
         if JF_WANTED:
             # refresh the jellyfin library and merge variants
             lib_refresh_all()
@@ -291,49 +293,46 @@ def refresh_all(step):
 
     if step < 5:
         if JF_WANTED:
-            logger.debug(". refresh_all PART 4 : refresh nfo (with jf)")
+            logger.info(">> refresh_all PART 4 : Generate NFOs from Jellyfin")
             if not nfo_loop_service():
                 step = 9 # bypass the rest
+                # tothink : perhaps we should not bypass the rest because if kodi WS prevents connexion, kodi_refresh does nothing, so nfo_* does nothing and next call should do sthing after hopefully user has triggered refresh manually
                 # ping externally before trigerring ?
-                # script runner should check before ressting args: if queued true and current args < new args, keep current args (logic)
 
     # if toomany, kodi refresh is done after jellyfin 
     if toomany:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.debug(". refresh_all PART 2 shifted : refresh kodi shifted because in toomany mode")
-            # todo remove temp fix
-            if 1==2 and not refresh_kodi():
+            logger.info(">> refresh_all PART 2 bis : Kodi library refresh (batch)")
+            if not refresh_kodi():
                 retry_later = True
 
-    # todo remove temp fix to remove below ( = 5 instead of < 6)
-    if (step == 5 or step == 8) and retry_later == False:
+    # if step inferior or if specifically wanted with the webservice (6)
+    if (step < 6 or step == 8) and retry_later == False:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") and JF_WANTED:
-            logger.debug(". refresh_all PART 5 : send new nfos to kodi")
+            logger.info(">> refresh_all PART 5 : Sending NFOs to Kodi")
             if not send_nfo_to_kodi():
-                retry_later = True if 1 == 2 else False # todo remove temp fix
-        '''
+                retry_later = True
             else:
                 merge_kodi_versions()
         else:
             # since merging can be done without jellyfin or kodi rpc access
             merge_kodi_versions()
-        '''
-    # todo remove temp fix
-    if (step == 6 or step == 8) and retry_later == False:
+
+    # if specifically wanted with the webservice (6)
+    if (step == 6) and retry_later == False:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") and JF_WANTED:
             merge_kodi_versions()
 
-    # TODO big temp 
+    # if specifically to refresh kodi (kodi_scan)
     if (step == 56):
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             refresh_kodi()
     
 
-    if 1==2 and retry_later == True and kodi_mysql_init_and_verify():
+    if retry_later == True and kodi_mysql_init_and_verify(just_verify=True):
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
         _is_kodi_alive_loop_thread.run()
-        # launch the jobs that tests kodi alive in loop
-            # this will then launch a new instance of refresh all wth special behavior
+        # will run refresh_all with arg 8
 
 
 
@@ -358,7 +357,7 @@ class EventHandler(pyinotify.ProcessEvent):
         self.inotify_run()
     def inotify_run(self):
         logger.debug("inotify handler will call /scan in 30 minutes")
-        time.sleep(1800) # todo to improve
+        time.sleep(1800) # tothink toimprove
         _scan_instance = ScriptRunner.get(refresh_all)
         _scan_instance.resetargs(1)
         _scan_instance.run()
@@ -384,7 +383,7 @@ def periodic_trigger_rs(seconds=350):
         time.sleep(seconds)
         _rs_instance.run()
 
-def periodic_trigger_nfo_gen(seconds=800):
+def periodic_trigger_nfo_gen(seconds=400):
     _nfogen_instance = ScriptRunner.get(refresh_all)
     while True:
         time.sleep(seconds)
@@ -530,6 +529,7 @@ if __name__ == "__main__":
         if(waitloop > 32):
             # this is a workaround if docker logs contains : s6-sudoc: fatal: unable to get exit status from server: Operation timed out, docker restarts and usually works after. Weird error. Seems related to the way socket is instanciated
             full_run = False
+            logger.error(f"!! IMPORTANT: JellyGrail now restarts if '--restart unless-stopped' was set, so please stop it manually to fix errors")
             break
 
     # ----------------- INITs -----------------------------------------
@@ -538,19 +538,21 @@ if __name__ == "__main__":
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
 
-    # Config JF before starting threads and server threads, trigger a first scan if it's first use (rd_progress potentially does it as well and daily restart scan)      
+    # Config JF before starting threads and server threads      
     if JF_WANTED:
-        #jf_config_result = jfconfig()
-        # if jf_config_result == "FIRST_RUN":
-            # _scan_instance = ScriptRunner.get(refresh_all)
-            # _scan_instance.resetargs(1)
-            # _scan_instance.run()
-        if jfconfig() == "ZERO-RUN":
-            logger.warning(f"! JellyGrail will now shutdown for restart in deamon mode, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
+        jf_config_result = jfconfig()
+        '''
+        if jf_config_result == "FIRST_RUN":
+            _scan_instance = ScriptRunner.get(refresh_all)
+            _scan_instance.resetargs(1)
+            _scan_instance.run()
+        '''
+        if jf_config_result == "ZERO-RUN":
+            logger.warning(f"! JellyGrail now restarts if '--restart unless-stopped' was set, otherwise please start it manually")
             full_run = False
 
     # config checkups
-    if VERSION != RUNNING_VERSION:
+    if VERSION != CONFIG_VERSION:
         logger.critical("!!! Config version is different from app version, please STOP or CTRL-C the container and rerun PREPARE.SH")
     else:
         if KODI_MAIN_URL == "PASTE_KODIMAIN_URL_HERE" or KODI_MAIN_URL == "":
@@ -559,7 +561,7 @@ if __name__ == "__main__":
             if not JF_WANTED:
                 logger.warning("! Kodi main url set up, but embedded jellyfin disabled, Kodi can work without NFO sync from jellyfin. But when adding the webdav movie/show source to Kodi, you must not use the NFO scraper.")
 
-    kodi_mysql_init_and_verify()
+    kodi_mysql_init_and_verify(just_verify=True)
 
     if full_run == True:
         # ------------------- threads A + Ars, B, C, D, E  -----------------------
@@ -586,7 +588,7 @@ if __name__ == "__main__":
             
             logger.info("~ Real Debrid API rd_progress will be triggered every 2mn")
         else:
-            logger.warning("! Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env")
+            logger.warning("! Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env [main]")
 
 
         # C: inotify deamon
@@ -601,20 +603,16 @@ if __name__ == "__main__":
         thread_b.start()
 
         # daily restart scan
-        #logger.info("> Daily scan triggered")
-        #_scan_instance = ScriptRunner.get(refresh_all)
-        #_scan_instance.resetargs(1)
-        #_scan_instance.run()
+        logger.info("-> DAILY SCAN TRIGGERED <-")
+        _scan_instance = ScriptRunner.get(refresh_all)
+        _scan_instance.resetargs(1)
+        _scan_instance.run()
 
-        # D: server thread
-        # server_thread = threading.Thread(target=run_server)
-        # server_thread.daemon = False
-        # server_thread.start()
+        logger.warning("TIP: if run in interactive mode, CTRL+C does not prevent restart, so it should be done manually if needed")
 
-        logger.warning("! if you have run the container in -it mode (interactive) to check for errors, you can now CTRL+C it, fix errors if any, and run 'sudo docker start jellygrail'")
-
+        # D server thread
         run_server()
         #server_thread.join() 
         
     sqclose()
-    mariadb_close()
+    #mariadb_close()

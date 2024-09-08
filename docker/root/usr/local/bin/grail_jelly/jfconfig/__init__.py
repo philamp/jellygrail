@@ -104,13 +104,13 @@ def jfconfig():
             logger.warning("> IMPORTANT: Jellyfin Additional plugins are installed and unefficient tasks are disabled, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
 
             return "ZERO-RUN"
-            # thanks to --restart unless-stopped, drawback: it will restart in a loop if it does not find 2 declared repos (todo: find a more resilient way to test it)
+            # thanks to --restart unless-stopped, drawback: it will restart in a loop if it does not find 2 declared repos (toimprove: find a more resilient way to test it)
             # jfapi.jellyfin(f'System/Shutdown', method='post')
 
 
         else:
             declaredlibs = jfapi.jellyfin(f'Library/VirtualFolders', method='get').json()
-            # (todo: find a more resilient way to test if libraries are declared)
+            # (toimprove: find a more resilient way to test if libraries are declared)
             if len(declaredlibs) < 2:
                 MetaSwitch = [
                     "TheMovieDb",

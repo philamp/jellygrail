@@ -5,7 +5,7 @@ import sqlite3
 
 conn = None
 
-db_path = "/jellygrail/.bindfs_jelly.db"
+db_path = "/jellygrail/data/bindfs/.bindfs_jelly.db"
 
 def sqcommit():
     """ Commit the transaction """

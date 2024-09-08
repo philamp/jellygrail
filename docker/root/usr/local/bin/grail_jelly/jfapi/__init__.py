@@ -28,11 +28,12 @@ def wait_for_jfscan_to_finish():
             ref_task_id = tasks_name_mapping.get('RefreshLibrary').get('Id')
             logger.info("~ Waiting JF library refresh completion ~")
             while True:
+                time.sleep(2)
                 task = jellyfin(f'ScheduledTasks/{ref_task_id}').json()
                 if task.get('State') != "Running":
                     break
                 else:
-                    time.sleep(10) #retry every 10 seconds #todo, jellyfin is overloaded, but fix it later in a more clever way
+                    time.sleep(8) #toimprove : retry every 8+2 seconds toimprove, jellyfin is overloaded, but fix it later in a more clever way
         except Exception as e:
             logger.error("> JF library refresh completion waiting task failed due to API errors")
 

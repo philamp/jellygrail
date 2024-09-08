@@ -97,7 +97,7 @@ def rd_progress():
                         else:
                             RD.torrents.select_files(data_item.get('id'), 'all')
                     except Exception as e:
-                        logger.error(f"  - ...but an Error has occured forcing file selection on {data_item.get('filename')} : {e}")
+                        logger.error(f"  - ...but an error has occured forcing file selection (will be retried later) on {data_item.get('filename')} : {e}")
                     
 
 
@@ -230,7 +230,7 @@ def remoteScan():
 
     # compare with rdump not pile
 
-    # todo : add wait until select files is available (mitigated by regular retry)
+    # toimprove : add wait until select files is available (mitigated by regular retry)
 
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
          # -> ok but if remotescan is called a lot ... lot of backups....
@@ -287,6 +287,7 @@ def remoteScan():
                             get_string = ",".join(all_ids)
                             # part to really get the whole stuff END
                             # RD.torrents.select_files(returned.get('id'), 'all') changed to :
+
                             RD.torrents.select_files(returned.get('id'), get_string)
                         else:
                             RD.torrents.select_files(returned.get('id'), 'all')
@@ -296,7 +297,7 @@ def remoteScan():
                             continue
                     except Exception as e:
                         logger.error(f"...!! An Error has occured on pushing hash to RD (whole batch cancelled but retried next time) : {e}")
-                        # this makes so that any RD action that is not complete stops the full batch, however if the failed action is a "select_files" it won't treat it next time so it does not completely fix the issue of select_files on hold # TODO
+                        # is select files fails, it will be retried later
                         whole_batch_taken = False
                         break
                     else:

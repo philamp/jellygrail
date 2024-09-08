@@ -4,35 +4,32 @@ from base import *
 from base.constants import *
 
 conn = None
-all_good = None
+
 
 # only kodi_mysql_init_and_verify has smart try-except fallbacks as other calls must 100% work if database is not messed up during process
 
-def kodi_mysql_init_and_verify():
+def kodi_mysql_init_and_verify(just_verify=False):
     global conn
-    global all_good
-
-    # do not retry if already done
-    if all_good == True:
-        logger.debug(". kodi mysql allgood already tried")
-        return True
 
     try:
         # Establish a connection to the MySQL server (** is unpacking the dict into keyed args)
         conn = mysql.connector.connect(**KODI_MYSQL_CONFIG)
-        cursor = conn.cursor()
+        cursor = conn.cursor(buffered=True)
 
         # Query to check if the database exists
         cursor.execute("SHOW DATABASES LIKE 'kodi_video131';")
         result = cursor.fetchone()
-
+        cursor.close() # important
         if result:
-            logger.info("> Kodi local MYSQL database has been instanciated and is connected")
-            all_good = True # faster later and no useless reconnection
+            if just_verify:
+                logger.info("> STARTUP CHECK : kodi_video131 DATABASE : OK")
+                mariadb_close()
+            else:
+                logger.info("> On-demand mariadb connect on kodi_video131 DB : OK")
+                # we don't close connection
             return True
         else:
-            logger.critical("!!! Database 'kodi_video131' db must have been deleted during the process, please run kodi to reinstanciate it (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi), no need to restart Jellygrail")
-            all_good = False
+            logger.critical("!!! kodi_video131 DATABASE KO, please run kodi to reinstanciate it (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi), no need to restart Jellygrail")
             mariadb_close()
             return False
 
@@ -40,7 +37,7 @@ def kodi_mysql_init_and_verify():
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
             logger.critical("!!! Something is wrong with the kodi mysql username or password, theorically impossible unless you messed up inside mysql server. Rebuild the docker image to fix it :( ")
         elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            logger.warning("! Kodi Mysql Database does not exist, please instanciate it (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi) for all processes involving Kodi to work, no need to restart Jellygrail")
+            logger.warning("!!! (err) kodi_video131 DATABASE KO, please run kodi to reinstanciate it (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi), no need to restart Jellygrail")
         else:
             logger.critical(err)
         return False

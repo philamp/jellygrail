@@ -189,7 +189,7 @@ def jf_xml_create(item, is_updated, sdata = None):
     '''
 
     # nbseasons total in lib
-    # nbepisodes total in lib TODO
+    # nbepisodes total in lib toimprove
 
     # get images from API + ensure nginx serve them
     try:
