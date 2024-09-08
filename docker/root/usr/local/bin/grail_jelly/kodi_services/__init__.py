@@ -164,7 +164,7 @@ def refresh_kodi():
             if response.status_code == 200:
                 logger.info("~ Kodi lib refreshing... [refresh_kodi]")
 
-                notify_kodi("JG", "Jellygrail triggered library refresh", 4000)
+                notify_kodi("JG", "Jellygrail triggered library refresh", 1000)
                 
             else:
                 logger.error(f"! Error on kodi lib refresh with http response code: {response.status_code}")
@@ -172,7 +172,7 @@ def refresh_kodi():
         while True:
             if is_scanning == False or not is_kodi_alive():
                 logger.info("~> Kodi Library refresh has finished <~")
-                notify_kodi("JG", "Library refresh completed", 4000)
+                notify_kodi("JG", "Library refresh completed", 1000)
                 break
             time.sleep(2)
 
@@ -194,7 +194,7 @@ def refresh_kodi():
             if response.status_code == 200:
                 logger.info("~ Kodi lib cleaning... [refresh_kodi]")
 
-                notify_kodi("JG", "Jellygrail triggered library cleaning", 4000)
+                notify_kodi("JG", "Jellygrail triggered library cleaning", 1000)
                 
             else:
                 logger.error(f"! Error on kodi lib refresh with http response code: {response.status_code}")
@@ -202,7 +202,7 @@ def refresh_kodi():
         while True:
             if is_cleaning == False or not is_kodi_alive():
                 logger.info("~> Kodi Library cleaning has finished <~")
-                notify_kodi("JG", "Library cleaning completed", 4000)
+                notify_kodi("JG", "Library cleaning completed", 1000)
                 break
             time.sleep(2)
 
@@ -224,6 +224,18 @@ def send_nfo_to_kodi():
     previous_root = ""
     potential_nfo_to_send = 0
     xiem = 0
+
+    for root, _, files in os.walk(JFSQ_STORED_NFO):
+        for filename in files:
+            if filename.lower().endswith(('.nfo.jf', '.nfo.jf.updated')):
+                potential_nfo_to_send += 1
+                
+    if potential_nfo_to_send == 0:
+        notify_kodi("JG NFO refresh", f"No new iNFO to send", 1000)
+    else:
+        notify_kodi("JG NFO refresh", f"Sending {potential_nfo_to_send} new iNFOs max", 1000)
+
+
     for root, _, files in os.walk(JFSQ_STORED_NFO):
 
         #nfo refresh is on parent folder basis (root), if there is at least one nfo with ".updated" in this folder it will refresh all neigboors in same folder
@@ -232,15 +244,6 @@ def send_nfo_to_kodi():
         for filename in files:
             if filename.lower().endswith('.nfo.jf.updated'):
                 updated = True
-                potential_nfo_to_send += 1
-            elif filename.lower().endswith('.nfo.jf'):
-                potential_nfo_to_send += 1
-                
-
-        if potential_nfo_to_send == 0:
-            notify_kodi("JG NFO refresh", f"No NFO to send", 2000)
-        else:
-            notify_kodi("JG NFO refresh", f"Will now send up to {potential_nfo_to_send} new NFOs", 2000)
 
         for filename in files:
             tofetch = os.path.basename(root)
@@ -282,7 +285,7 @@ def send_nfo_to_kodi():
                     for (result, uidtype) in results:
                         
                         if uidtype == 'jellygrail' or updated == True:
-                            notify_kodi("JG NFO refresh", f"{xiem} / {potential_nfo_to_send} NFOs sent", 1000)
+                            notify_kodi("JG NFO refresh", f"{xiem} / {potential_nfo_to_send} NFO sent", 1000)
                             time.sleep(1)
                             refresh_payload = json.dumps({
                                 "jsonrpc": "2.0",
@@ -331,7 +334,7 @@ def send_nfo_to_kodi():
         rename_to_done(file_to_mv)
 
     if(potential_nfo_to_send > 1):
-        notify_kodi("JG NFO refresh", f"NFO refresh OK, Kodi flickers dashboard until really done", 1000)
+        notify_kodi("JG NFO refresh", f"iNFOs refresh OK", 1000)
 
     mariadb_close()
     return True
