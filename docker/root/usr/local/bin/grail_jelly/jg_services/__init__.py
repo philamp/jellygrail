@@ -36,7 +36,7 @@ def test():
         
 
     except Exception as e:
-        logger.error(f"Error accessing RD: {e}")
+        logger.error(f"!! Error accessing RD: {e}")
         return "Server running but RD test has failed (DNS or Network failure)"
     else:
         return "This server is running and its last own RD torrents are:   \n"+dumped_data
@@ -60,11 +60,11 @@ def array_to_file(filename, array, initialize_with_unique_key=False):
                     # Convert item to string to ensure compatibility with the "+" operator
                     file.write(str(item) + "\n")
                 except TypeError as e:
-                    logger.critical(f"Error writing item to file: {e}")
+                    logger.critical(f"!!! Error writing item to file: {e}")
                     # Handle or log the TypeError (e.g., item cannot be converted to string)
                     # You might want to continue to the next item or handle this situation differently.
     except IOError as e:
-        logger.critical(f"Error opening or writing to the file: {e}")
+        logger.critical(f"!!! Error opening or writing to the file: {e}")
         # Handle or log the IOError (e.g., file cannot be opened or written to)
 
 def rd_progress():
@@ -84,7 +84,7 @@ def rd_progress():
             # loop in data to get stuff waiting file selection
             for data_item in data:
                 if data_item.get('status') == 'waiting_files_selection' or data_item.get('status') == 'magnet_conversion':
-                    logger.warning(f"  - The {data_item.get('filename')} file selection has not been done, now forcing it")
+                    logger.warning(f"        RD| The {data_item.get('filename')} file selection has not been done, now forcing it")
                     try:
                         if WHOLE_CONTENT:
                             # part to really get the whole stuff BEGIN
@@ -110,13 +110,13 @@ def rd_progress():
                     array_to_file(PILE_FILE, delta_elements)
 
                     if len(delta_elements) > 0:
-                        logger.info("  * New downloaded torrents > scan triggered [rd_progress]")
+                        logger.info("        RD| *New* downloaded torrent(s) > refresh triggered")
                         return "PLEASE_SCAN"
                     else:
                         #logger.debug("RD_PROGRESS > I did not detect any new torrents with 'downloaded' status")
                         return ""
                 else:
-                    logger.warning("! Not any downloaded item in Real-Debrid [rd_progress]")
+                    logger.warning("        RD| Not any downloaded item in Real-Debrid (normal if you just started using it)")
                     return ""
                 
             else:
@@ -124,10 +124,10 @@ def rd_progress():
                 array_to_file(PILE_FILE, dled_rd_hashes, initialize_with_unique_key=True)
                 return "PLEASE_SCAN"
         else:
-            logger.critical(f"An error occurred on getting RD data [rd_progress]")
+            logger.critical(f"An error occurred on getting RD data")
             return ""
     else:
-        logger.critical(f"An error occurred on getting RD data [rd_progress]")
+        logger.critical(f"An error occurred on getting RD data")
         return ""
 
 
@@ -178,7 +178,7 @@ def restoreitem(filename, token):
                         push_to_rd_hashes = [item.get('hash') for item in backup_data if item.get('hash') not in local_data_hashes]
 
                         if len(push_to_rd_hashes) > 0:
-                            logger.info(f"> Restoring RD items from {filename}... [restoreitem]")
+                            logger.info(f"        RD| Restoring RD items from {filename} ...")
                             for item in push_to_rd_hashes:
                                 try:
                                     #logger.debug(f"  * Try adding RD Hash from restored backup: {item} ... [restoreitem]")
@@ -200,10 +200,10 @@ def restoreitem(filename, token):
                                         logger.warning(f"...! Hash {item} is not accepted by RD.")
                                         continue
                                 except Exception as e:
-                                    logger.error(f"  - ...An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry) : {e}")
+                                    logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry) : {e}")
                                     return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry)"
                                 else:
-                                    logger.info(f"  * RD Hash {item} restored [restoreitem]")
+                                    logger.info(f"       RD| * RD Hash {item} restored [restoreitem]")
                             return "Backup restored with success, please verify on your RD account"
                         else:
                             return "This backup file has no additionnal hash compared to your RD account"

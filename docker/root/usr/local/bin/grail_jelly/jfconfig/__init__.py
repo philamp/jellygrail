@@ -15,26 +15,26 @@ def jfconfig():
     # check if /jellygrail/jellyfin/config/data/jellyfin.db exists
     triggerdata = []
     proceedinjf = None
-
+    logger.info("      WAIT| Jellyfin can take a while to start (waiting up to 2mn max)....")
     iwait = 0
-    while iwait < 20:
+    while iwait < 40:
         iwait += 1
         try:
             if not urllib.request.urlopen('http://localhost:8096/health').read() == b'Healthy':
-                logger.debug(f"Waiting for Jellyfin to be available: try {iwait} ...")
+                logger.debug(f". Waiting for Jellyfin to be available: try {iwait} ...")
                 time.sleep(3)
                 continue
         except OSError as e:
-            logger.debug(f"Waiting for Jellyfin to be available: try {iwait} ...")
+            logger.debug(f". Waiting for Jellyfin to be available: try {iwait} ...")
         else:
             proceedinjf = True
-            logger.info("> Jellyfin server is started")
+            logger.info("        OK| Jellyfin started...")
             break
         time.sleep(3)
 
     if iwait >= 20:
-        logger.warning("> Jellyfin is absent...will work without it, if you start it, restart the container as well so this script reboots")
-
+        logger.warning("! Jellyfin seems absent... docker will now restart to retry. Please check logs with 'docker logs jellygrail -f'")
+        return "ZERO-RUN"
     # Whole JF config --------------------------
     if proceedinjf and urllib.request.urlopen('http://localhost:8096/health').read() == b'Healthy':
     
@@ -47,19 +47,19 @@ def jfconfig():
             if len(array) > 0:
                 
                 jfapi.jfapikey = array[0]
-                logger.info(f"> retrieved Jellyfin API key is ***")
+                logger.info(f"        OK| ...and JF API Key fetched from dB")
             
             else:
                 key = ''.join(random.choice('0123456789abcdef') for _ in range(32))
                 insert_api_key(key)
                 # logger.info(f"> Api Key {key} inserted")
-                logger.info(f"> Api Key *** inserted")
+                logger.info(f"        OK| ...and JF API Key inserted in dB")
                 jfapi.jfapikey = key
 
             jfclose()
         
         else:
-            logger.critical("There is an issue with jellyfin config db: not reachable")
+            logger.critical("Jellyfin config dB file does not exist!")
 
         # 1 - Install repo if necessary
         # get list of repos, if len < 3, re-declare
@@ -101,7 +101,7 @@ def jfconfig():
             jfapi.jellyfin(f'ScheduledTasks/4e6637c832ed644d1af3370a2506e80a/Triggers', json=triggerdata, method='post')
             jfapi.jellyfin(f'ScheduledTasks/2c66a88bca43e565d7f8099f825478f1/Triggers', json=triggerdata, method='post')
 
-            logger.warning("> IMPORTANT: Jellyfin Additional plugins are installed and unefficient tasks are disabled, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
+            logger.warning("  AUTOCONF| Jellyfin Add-ons installed, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
 
             return "ZERO-RUN"
             # thanks to --restart unless-stopped, drawback: it will restart in a loop if it does not find 2 declared repos (toimprove: find a more resilient way to test it)
@@ -119,7 +119,7 @@ def jfconfig():
                 MetaSwitchTMDBonly = [
                     "TheMovieDb",
                 ]
-                logger.info("> Now we can add Librariries")
+                #logger.info("> Now we can add Librariries")
                 movielib = {
                     "LibraryOptions": {
                         "PreferredMetadataLanguage": JF_LANGUAGE,
@@ -263,15 +263,15 @@ def jfconfig():
                 try:
                     jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # if installed disable merge episodes which is not working well
                 except Exception as e:
-                    logger.info("merging episodes already disabled")
+                    logger.debug(". merging episodes already disabled")
                 try:
                     jfapi.jellyfin(f'ScheduledTasks/fd957c84b0cfc2380becf2893e4b76fc/Triggers', json=triggerdata, method='post') # if installed disable merge movies which is not working well
                 except Exception as e:
-                    logger.info("merging movies already disabled")
+                    logger.debug(". merging movies already disabled")
 
                 return "FIRST_RUN"
-
-            logger.warning("> don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
+            logger.info("AUTOCONF| Jellyfin setup and librairies configuration finished")
+            logger.warning("AUTOCONF| don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
             
     return ""            
             

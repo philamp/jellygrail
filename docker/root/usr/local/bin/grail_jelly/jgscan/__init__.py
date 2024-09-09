@@ -37,7 +37,7 @@ def get_fastpass_ffprobe(file_path):
 def init_mountpoints():
 
     global dual_endpoints
-    logger.info("~ Waits 10s for remotes refresh to happen ~")
+    logger.info("      WAIT| Giving time for rclone wake-up ...")
     time.sleep(10)
     for f in os.scandir(MOUNTS_ROOT): 
         if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
@@ -519,8 +519,8 @@ def scan():
 
     #global logger
 
-    logger.info("~ Waits 10s for remotes refresh to happen ~") #toimprove
-    time.sleep(10)
+    #logger.info("      WAIT| Giving time for rclone wake-up ...") #toimprove
+    time.sleep(9)
 
     items_scanned = 0
 

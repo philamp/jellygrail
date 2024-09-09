@@ -26,7 +26,7 @@ def wait_for_jfscan_to_finish():
             tasks = jellyfin('ScheduledTasks').json()
             tasks_name_mapping = {task.get('Key'): task for task in tasks}
             ref_task_id = tasks_name_mapping.get('RefreshLibrary').get('Id')
-            logger.info("~ Waiting JF library refresh completion ~")
+            #logger.info(" TASK+WAIT| Jellyfin library refresh in progress ~")
             while True:
                 time.sleep(2)
                 task = jellyfin(f'ScheduledTasks/{ref_task_id}').json()
@@ -35,10 +35,15 @@ def wait_for_jfscan_to_finish():
                 else:
                     time.sleep(8) #toimprove : retry every 8+2 seconds toimprove, jellyfin is overloaded, but fix it later in a more clever way
         except Exception as e:
-            logger.error("> JF library refresh completion waiting task failed due to API errors")
+            logger.error("      WAIT| JF refresh waiting task terminated due to API errors !!")
+            return True
+
+    logger.info("        OK| ~ Jellyfin library refresh done.")
+    return True
 
 
 # maybe deprecated
+'''
 def merge_versions():
     if jfapikey is not None:
         tasks = jellyfin('ScheduledTasks').json()
@@ -60,12 +65,13 @@ def merge_versions():
                     logger.info("> Videos variants merged (only for movies)")
                     break
                 time.sleep(3)
+'''
 
 def lib_refresh_all():
     if jfapikey is not None:
         resp = jellyfin(f'Library/Refresh', method='post')
         if resp.status_code == 204:
-            logger.info("> Library update started successfully.")
+            logger.info("      TASK| Jellyfin Library update started successfully.")
         else:
             logger.critical(f"> FAILURE to update library. Status code: {resp.status_code}")
 

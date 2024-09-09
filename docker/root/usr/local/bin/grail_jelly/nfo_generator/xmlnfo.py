@@ -263,7 +263,7 @@ def jf_xml_create(item, is_updated, sdata = None):
             try:
                 collec_items = jfapi.jellyfin(f'Items/RemoteSearch/BoxSet', json=payload, method='post').json()
             except Exception as e:
-                logger.error(f"!! Get JF collection failed with error: {e}")
+                logger.warning(f"      TASK| Getting movie collection meatadata failed with error: {e}")
             else:
                 for c_item in collec_items:
                     if setname := c_item.get("Name", None):

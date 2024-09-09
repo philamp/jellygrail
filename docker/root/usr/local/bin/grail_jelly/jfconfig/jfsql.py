@@ -35,7 +35,7 @@ def init_jellyfin_db(path):
     try:
         connjf = sqlite3.connect(path, isolation_level='DEFERRED', timeout=5)
     except sqlite3.OperationalError as e:
-        logger.critical(f"init jf config db failed: {e}")
+        logger.critical(f"!!! init jf config db failed: {e}")
 
 def insert_api_key(key):
     global connjf
@@ -50,7 +50,7 @@ def fetch_api_key():
     try:
         cursorjf.execute("SELECT * FROM ApiKeys WHERE Name = 'jellygrail'")
     except sqlite3.OperationalError as e:
-        logger.critical(f"fetching api key from jf db failed: {e}")
+        logger.critical(f"!!! fetching api key from jf db failed: {e}")
         return []
     return cursorjf.fetchall()
 
@@ -61,6 +61,6 @@ def fetch_item_data(inputid):
     try:
         cursorjf.execute("SELECT data FROM TypedBaseItems WHERE PresentationUniqueKey = ?",(inputid,))
     except sqlite3.OperationalError as e:
-        logger.critical(f"fetching json data for videoasset from jf db failed: {e}")
+        logger.critical(f"!!! fetching json data for videoasset from jf db failed: {e}")
         return []
     return cursorjf.fetchall()

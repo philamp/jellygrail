@@ -47,22 +47,22 @@ class ScriptRunnerSub:
             if self.func:
                 self.manytimes += 1
                 if self.func.__name__ == "refresh_all" and len(self.args):
-                    logger.debug(f"~ THREAD {self.func.__name__} triggered @ step {self.args[0]} ~")
+                    logger.info(f"||JOB-RUN~ {self.func.__name__} @Step {self.args[0]} started...")
                 else:
-                    logger.debug(f"~ THREAD {self.func.__name__} triggered ~")
+                    logger.debug(f"||JOB-RUN~ {self.func.__name__} started...")
                 result = self.func(*self.args, **self.kwargs)
                 if result is not None:
                     self.output_queue.put(result)
             else:
                 raise ValueError("> No function set to run as thread")
         except Exception as e:
-            logger.critical(f"> Error occurred in thread: {self.func.__name__}; error is: {e}", exc_info=True)
+            logger.critical(f"~JOB-RUN| Error occurred in thread !!!: {self.func.__name__}; error is: {e}", exc_info=True)
         finally:
             # async bahavior parameters management post-set
             if self.func.__name__ == "refresh_all" and len(self.args):
-                logger.info(f"~> THREAD {self.func.__name__} @ step {self.args[0]} COMPLETED [{self.manytimes}] <~")
+                logger.info(f"~JOB-RUN|| {self.func.__name__} @Step {self.args[0]} Done [{self.manytimes} calls]")
             else:
-                logger.info(f"~> THREAD {self.func.__name__} COMPLETED [{self.manytimes}] <~")
+                logger.info(f"~JOB-RUN|| {self.func.__name__} Done [{self.manytimes} calls]")
             self.is_running = False
             if self.queued_execution:
                 self.queued_execution = False # set it to False ASAP right after flag was interrogated
