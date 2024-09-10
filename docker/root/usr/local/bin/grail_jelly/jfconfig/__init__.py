@@ -270,8 +270,8 @@ def jfconfig():
                     logger.debug(". merging movies already disabled")
 
                 return "FIRST_RUN"
-            logger.info("AUTOCONF| Jellyfin setup and librairies configuration finished")
-            logger.warning("AUTOCONF| don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
+            logger.info("  AUTOCONF| Jellyfin setup and librairies configuration finished")
+            logger.warning("  AUTOCONF| don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
             
     return ""            
             

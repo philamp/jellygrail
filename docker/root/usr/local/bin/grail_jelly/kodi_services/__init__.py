@@ -89,15 +89,15 @@ def on_message(ws, message):
 def on_error(ws, error):
     global is_scanning
     global refresh_is_safe
-    logger.error(f"!! WebSocket error: {error}, please enable 'Allow remote control from applications on other systems' via Kodi UI in Settings/Services/Control [kodi_services]")
+    logger.error(f"WebSocket error: {error}, please enable 'Allow remote control from applications on other systems' via Kodi UI in Settings/Services/Control [kodi_services]")
     refresh_is_safe = False
 
 def on_close(ws, close_status_code, close_msg):
-    logger.debug("> WebSocket connection closed. [kodi_services]")
+    logger.debug(". WebSocket connection closed. [kodi_services]")
 
 def on_open(ws):
     global refresh_is_safe
-    logger.info("~ WebSocket waiting for Kodi scan to be finished [kodi_services] ~")
+    logger.info(" WEBSOCKET~ Waiting for Kodi to finish jobs ...")
     refresh_is_safe = True
 
 
@@ -162,17 +162,17 @@ def refresh_kodi():
             return False
         else:
             if response.status_code == 200:
-                logger.info("~ Kodi lib refreshing... [refresh_kodi]")
+                logger.info("TASK-START~ Kodi Library refresh ...")
 
-                notify_kodi("JG", "Jellygrail triggered library refresh", 1000)
+                notify_kodi("JG", "Jellygrail triggered library refresh", 3000)
                 
             else:
-                logger.error(f"! Error on kodi lib refresh with http response code: {response.status_code}")
+                logger.error(f"Error on kodi lib refresh with http response code: {response.status_code}")
         
         while True:
             if is_scanning == False or not is_kodi_alive():
-                logger.info("~> Kodi Library refresh has finished <~")
-                notify_kodi("JG", "Library refresh completed", 1000)
+                logger.info(" TASK-DONE~ ... Kodi Library refreshed.")
+                notify_kodi("JG", "Library refresh completed", 3000)
                 break
             time.sleep(2)
 
@@ -192,23 +192,23 @@ def refresh_kodi():
             return False
         else:
             if response.status_code == 200:
-                logger.info("~ Kodi lib cleaning... [refresh_kodi]")
+                logger.info("TASK-START~ Kodi Library cleaning ...")
 
-                notify_kodi("JG", "Jellygrail triggered library cleaning", 1000)
+                notify_kodi("JG", "Jellygrail triggered library cleaning", 3000)
                 
             else:
                 logger.error(f"! Error on kodi lib refresh with http response code: {response.status_code}")
         
         while True:
             if is_cleaning == False or not is_kodi_alive():
-                logger.info("~> Kodi Library cleaning has finished <~")
-                notify_kodi("JG", "Library cleaning completed", 1000)
+                logger.info(" TASK-DONE~ Kodi Library cleaned.")
+                notify_kodi("JG", "Library cleaning completed", 3000)
                 break
             time.sleep(2)
 
 
     else:
-        logger.warning("! Kodi websocket on port 9090 is not available, please enable 'Allow remote control from applications on other systems' via Kodi UI in Settings/Services/Control. If still not working, please refresh manually in kodi interface, but making sure that webdav service is available (on port 8085), /nfo_send and /nfo_merge will have to be triggered manually via the python HTTP webservice, or wait for next automatically triggered /scan")
+        logger.warning("       TIP| Kodi websocket (port 9090) not available, try enable 'Allow remote control from applications on other systems' in Kodi/Settings/Services/Control. If still not working, please refresh manually in kodi interface. /nfo_send and /nfo_merge will have to be triggered manually via the python HTTP webservice, or wait for next automatically triggered /scan")
     ws.close()
     return True
 
@@ -231,9 +231,9 @@ def send_nfo_to_kodi():
                 potential_nfo_to_send += 1
                 
     if potential_nfo_to_send == 0:
-        notify_kodi("JG NFO refresh", f"No new iNFO to send", 1000)
+        notify_kodi("JG NFO refresh", f"No new iNFO to send", 3000)
     else:
-        notify_kodi("JG NFO refresh", f"Sending {potential_nfo_to_send} new iNFOs max", 1000)
+        notify_kodi("JG NFO refresh", f"Sending {potential_nfo_to_send} new iNFOs max", 3000)
 
 
     for root, _, files in os.walk(JFSQ_STORED_NFO):
@@ -285,7 +285,7 @@ def send_nfo_to_kodi():
                     for (result, uidtype) in results:
                         
                         if uidtype == 'jellygrail' or updated == True:
-                            notify_kodi("JG NFO refresh", f"{xiem} / {potential_nfo_to_send} NFO sent", 1000)
+                            notify_kodi("JG NFO refresh", f"{xiem} / {potential_nfo_to_send} NFO sent", 3000)
                             time.sleep(1)
                             refresh_payload = json.dumps({
                                 "jsonrpc": "2.0",
@@ -334,7 +334,7 @@ def send_nfo_to_kodi():
         rename_to_done(file_to_mv)
 
     if(potential_nfo_to_send > 1):
-        notify_kodi("JG NFO refresh", f"iNFOs refresh OK", 1000)
+        notify_kodi("JG NFO refresh", f"iNFOs refresh OK", 3000)
 
     mariadb_close()
     return True
@@ -359,9 +359,9 @@ def merge_kodi_versions():
     if not kodi_mysql_init_and_verify():
         return False
 
-    results = [(row[0],row[1],row[2],row[3],row[4],row[5]) for row in video_versions()]
+    results = [(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]) for row in video_versions()]
 
-    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR) in results:
+    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, lastplayedsR, resumetimesR) in results:
         #find the incr smallest version
         i=0
         currlowest=200
@@ -370,6 +370,10 @@ def merge_kodi_versions():
         strfilenames = strfilenamesR.split(" ")
         isdefaults = [int(num) for num in isdefaultsR.split(" ")]
         idmedias = [int(num) for num in idmediasR.split(" ")]
+
+        lastplayeds = lastplayedsR.split("#")
+        resumetimes = [int(num) for num in resumetimesR.split(" ")]
+
         videoversiontuple = []
         idtokeep = None
         strpathtokeep = None
@@ -396,6 +400,8 @@ def merge_kodi_versions():
                     imediatokeep = idmedias[i]
         
                 i += 1
+
+            
 
             # if did not find any way to find the lowest value, we keep the first ones, will be set to the kept media
             if idtokeep == None:

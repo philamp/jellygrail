@@ -259,19 +259,13 @@ sudo ./PREPARE.SH
 ````
 > Will output "Your jellygrail instance seems to be running already"
 
-## Jellygrail python service Logs
+## S6 Logs + Jellygrail python service logs
 
 ````
-tail -f ./jellygrail/log/jelly_update.log
+sudo docker logs -f jellygrail
 ````
 
-## Live container logs
-
-````
-sudo docker logs --follow jellygrail
-````
-
-## Python service 
+## Python service HTTP test
 
 ````
 curl http://localhost:6502/test

@@ -22,10 +22,10 @@ def kodi_mysql_init_and_verify(just_verify=False):
         cursor.close() # important
         if result:
             if just_verify:
-                logger.info("> JUST_VERIFY kodi_video131 DB : OK")
+                logger.info("        OK| MySQL Connection")
                 mariadb_close()
             else:
-                logger.info("> CONNECT kodi_video131 DB : OK")
+                logger.debug(". MySQL Connection ok")
                 # we don't close connection
             return True
         else:
@@ -123,7 +123,7 @@ def video_versions():
     cursor = conn.cursor(buffered=True)
 
     # Exécution d'une requête
-    cursor.execute(f"SELECT uid.value as tmdbid, group_concat(mvb.idMovie SEPARATOR ' ') as idmedia, group_concat(mvb.strPath SEPARATOR ' ') as strpath, group_concat(mvb.strFileName SEPARATOR ' ') as strfilename, group_concat(mvb.videoVersionIdFile SEPARATOR ' ') as idfile, group_concat(isDefaultVersion SEPARATOR ' ') as isdefault FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie where uid.type = 'tmdb' GROUP BY uid.value HAVING COUNT(*) > 1")
+    cursor.execute(f"SELECT uid.value as tmdbid, group_concat(mvb.idMovie SEPARATOR ' ') as idmedia, group_concat(mvb.strPath SEPARATOR ' ') as strpath, group_concat(mvb.strFileName SEPARATOR ' ') as strfilename, group_concat(mvb.videoVersionIdFile SEPARATOR ' ') as idfile, group_concat(isDefaultVersion SEPARATOR ' ') as isdefault, group_concat(lastPlayed SEPARATOR '#') as lastPlayed, group_concat(resumeTimeInSeconds SEPARATOR ' ') as resumeTimeInSeconds FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie where uid.type = 'tmdb' GROUP BY uid.value HAVING COUNT(*) > 1")
 
     result = cursor.fetchall()
     cursor.close() 

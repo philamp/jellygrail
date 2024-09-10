@@ -31,18 +31,18 @@ def get_fastpass_ffprobe(file_path):
         return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
 
 
-    logger.debug(f"> ffprobe wrapper fallback on real ffprobe for: {file_path}")
+    logger.debug(f". ffprobe wrapper fallback on real ffprobe for: {file_path}")
     return get_plain_ffprobe(file_path)
 
 def init_mountpoints():
 
     global dual_endpoints
-    logger.info("      WAIT| Giving time for rclone wake-up ...")
+    logger.info("      WAIT| Rclone startup 10s ...") #toimprove with s6 ?
     time.sleep(10)
     for f in os.scandir(MOUNTS_ROOT): 
         if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
             type = "local" if f.name.startswith("local_") else "remote"
-            logger.info(f"> Found {type} storage: {f.name}")
+            logger.info(f"   STORAGE| {f.name}")
             for d in os.scandir(f.path):
                 if d.is_dir() and d.name != '@eaDir':
                     dual_endpoints.append(( MOUNTS_ROOT+"/"+f.name+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+f.name+"/"+d.name, type))
@@ -342,17 +342,17 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     elif(nbvideos_e > 1):
         multiple_movie_or_disc_present = True
         nomergetype = " - JGxMultiple"
-        logger.info("    -- Multiple videos release --")
+        logger.info("          ~ << Multiple videos release")
     elif bdmv_present:
-        logger.info("    -- BDMV or DVD Release --")
+        logger.info("          ~ << BDMV or DVD Release")
     elif season_present:
-        logger.info("    -- TV show release --")
+        logger.info("          ~ << TV show release")
     else:
-        logger.info("    -- Single video release (can have extras) --")
+        logger.info("          ~ << Single video release")
 
 
     if stopthere == True:
-        logger.warning(f"    ! Failed Release: {os.path.join(endpoint, releasefolder)} ; Reasons: {stopreason}")
+        logger.warning(f"          ~ Failed Item: {os.path.join(endpoint, releasefolder)} ; Reasons: {stopreason}")
         return False
     # ---- DIVE S READ + insert + S_DUP idxcheck, unless stopthere is true-----
     if season_present and not stopthere:
@@ -536,7 +536,7 @@ def scan():
         for f in os.scandir(src1):
             if f.path not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
-                    logger.info(f"> New item: {f.name}")
+                    logger.info(f"  NEW-ITEM~ {f.name}")
                     browse = True
                     endpoint2browse = src1
                     rar_item = None
@@ -544,7 +544,7 @@ def scan():
                         if g.name.lower().endswith('.rar') :
                             rar_item = g.path
                             endpoint2browse = src2
-                            logger.info(f"...with a .RAR file: {g.name}")
+                            logger.info(f"          ~ with a .RAR file: {g.name}")
                             if storetype == "remote":
                                 for i in range(2):
                                     # cache-heater 0 for RAR files and rar2fs
@@ -577,7 +577,7 @@ def scan():
 
                 elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
                     items_scanned += 1
-                    logger.info(f"> New standalone item: {f.name}")
+                    logger.info(f"  NEW-ITEM~ {f.name} (folder-less)")
 
                     dvprofile = None
                     mediatype = None

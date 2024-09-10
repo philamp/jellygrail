@@ -84,7 +84,7 @@ def rd_progress():
             # loop in data to get stuff waiting file selection
             for data_item in data:
                 if data_item.get('status') == 'waiting_files_selection' or data_item.get('status') == 'magnet_conversion':
-                    logger.warning(f"        RD| The {data_item.get('filename')} file selection has not been done, now forcing it")
+                    logger.warning(f"        RD~ The {data_item.get('filename')} file selection has not been done, now forcing it")
                     try:
                         if WHOLE_CONTENT:
                             # part to really get the whole stuff BEGIN
@@ -110,7 +110,7 @@ def rd_progress():
                     array_to_file(PILE_FILE, delta_elements)
 
                     if len(delta_elements) > 0:
-                        logger.info("        RD| *New* downloaded torrent(s) > refresh triggered")
+                        logger.info("        RD| New downloaded torrent(s) >> refresh triggered")
                         return "PLEASE_SCAN"
                     else:
                         #logger.debug("RD_PROGRESS > I did not detect any new torrents with 'downloaded' status")
@@ -301,7 +301,7 @@ def remoteScan():
                         whole_batch_taken = False
                         break
                     else:
-                        logger.info(f"...* RD Hash {item} added from remote [remoteScan]")
+                        logger.info(f"        RD| Hash {item} added from remote [remoteScan]")
                         cur_incr += 1
                 if whole_batch_taken:
                     # whole batch taken so we can save the real increment given by server

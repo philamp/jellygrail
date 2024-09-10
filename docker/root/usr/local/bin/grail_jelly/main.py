@@ -56,6 +56,13 @@ logger = logger_setup.log_setup()
 
 class RequestHandler(BaseHTTPRequestHandler):
 
+    def log_message(self, format, *args):
+        # Redirect the log message to the logger
+        logger.info("   HTTP-IN| %s - [%s] %s" % (
+            self.client_address[0],
+            self.log_date_time_string(),
+            format % args))
+
     def standard_headers(self, type='text/html'):
         self.send_response(200)
         self.send_header('Content-type', type)
@@ -235,12 +242,12 @@ def is_kodi_alive_loop():
 
     while True:
         if is_kodi_alive():
-            logger.info("        OK| ~ Main Kodi Online")
+            logger.info(" WAIT-DONE~ ...Main Kodi switched-on")
             _refreshkodi_thread = ScriptRunner.get(refresh_all)
             _refreshkodi_thread.resetargs(8) 
             _refreshkodi_thread.run()
             break
-        time.sleep(20)
+        time.sleep(15)
 
 def refresh_all(step):
 
@@ -258,18 +265,18 @@ def refresh_all(step):
     # ----
 
     if step == 1: # triggered also with rd_progress_response == "PLEASE_SCAN":
-        logger.info("   REFRESH| Step 1 : MAIN JELLYGRAIL SCAN TO VIRTUAL FILESYSTEM")
+        logger.info("      STEP~ 1/ Main Scan")
         if scan() > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             toomany = True
     if (step < 3 or step == 8): 
         if not toomany:
             if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-                logger.info("   REFRESH| Step 2 : Kodi library refresh *if online*")
+                logger.info("      STEP~ 2/ Kodi library refresh *if online*")
                 if not refresh_kodi():
                     retry_later = True
 
     if step < 4:
-        logger.info("   REFRESH| Step 3 : Jellyfin (or Plex) library refresh")
+        logger.info("      STEP~ 3/ Jellyfin (or Plex) library refresh")
         if JF_WANTED:
             # refresh the jellyfin library and merge variants
             lib_refresh_all()
@@ -280,21 +287,21 @@ def refresh_all(step):
                 try:
                     requests.get(PLEX_REFRESH_A, timeout=10)
                 except Exception as e:
-                    logger.error("!! error with plex refresh")
+                    logger.error("   REFRESH~ Plex refresh API unavailable")
             if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
                 try:
                     requests.get(PLEX_REFRESH_B, timeout=10)
                 except Exception as e:
-                    logger.error("!! error with plex refresh")
+                    logger.error("   REFRESH~ Plex refresh API unavailable")
             if PLEX_REFRESH_C != 'PASTE_C_REFRESH_URL_HERE':
                 try:
                     requests.get(PLEX_REFRESH_C, timeout=10)
                 except Exception as e:
-                    logger.error("!! error with plex refresh")
+                    logger.error("   REFRESH~ Plex refresh API unavailable")
 
     if step < 5:
         if JF_WANTED:
-            logger.info("   REFRESH| Step 4 : Generate Jellyfin NFOs")
+            logger.info("      STEP~ 4/ Generate Jellyfin NFOs")
             if not nfo_loop_service():
                 step = 9 # bypass the rest
                 # tothink : perhaps we should not bypass the rest because if kodi WS prevents connexion, kodi_refresh does nothing, so nfo_* does nothing and next call should do sthing after hopefully user has triggered refresh manually
@@ -303,7 +310,7 @@ def refresh_all(step):
     # if toomany, kodi refresh is done after jellyfin 
     if toomany:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("   REFRESH| Step 2bis : Kodi library refresh (batch) *if online*")
+            logger.info("      STEP~ 2bis/ Kodi library refresh (batch) *if online*")
             if not refresh_kodi():
                 retry_later = True
 
@@ -311,33 +318,33 @@ def refresh_all(step):
     if (step < 6 or step == 8) and retry_later == False:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             if JF_WANTED:
-                logger.info("   REFRESH| Step 5 : Sending NFOs to Kodi *if online*")
+                logger.info("      STEP~ 5/ Sending NFOs to Kodi *if online*")
                 if not send_nfo_to_kodi():
                     retry_later = True
             else:
                 # since merging can be done without jellyfin
-                logger.info("   REFRESH| Step 6 : Custom Kodi MySQL dB Operations")
+                logger.info("      STEP~ 6/ Custom Kodi MySQL dB Operations")
                 merge_kodi_versions()
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") and retry_later == False:
-            logger.info("   REFRESH| Step 6 : Custom Kodi MySQL dB Operations *if online*")
+            logger.info("      STEP~ 6/ Custom Kodi MySQL dB Operations *if online*")
             merge_kodi_versions()
 
 
     # if specifically wanted with the webservice (6)
     if (step == 6) and retry_later == False:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("   REFRESH| Step 6 : Custom Kodi MySQL dB Operations (standalone operation)")
+            logger.info("      STEP~ 6/ Custom Kodi MySQL dB Operations (standalone operation)")
             merge_kodi_versions()
 
     # if specifically to refresh kodi (kodi_scan)
     if (step == 56):
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("   REFRESH| Step 2 : Kodi library refresh (standalone operation)")
+            logger.info("      STEP~ 2/ Kodi library refresh (standalone operation) *if online*")
             refresh_kodi()
     
 
     if retry_later == True and kodi_mysql_init_and_verify(just_verify=True):
-        logger.warning("      WAIT| Steps 2,5,6 bypassed as Main Kodi not online, Retrying ~ (or ip misconfigured or Kodi JSON-RPC service disabled)")
+        logger.warning("      WAIT~ 2,5,6/ bypassed as Main Kodi offline, Retrying in 15s ... (if Kodi online, verfy JG and KODI configurations)")
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
         _is_kodi_alive_loop_thread.run()
         # will run refresh_all with arg 8
@@ -412,7 +419,7 @@ def inotify_deamon(to_watch):
 
     # Notifier
     notifier = pyinotify.Notifier(wm, event_handler)
-    logger.info("MONITORING| Local drive(s) activity detector started ~")
+    logger.info("   STORAGE| Local drive(s) activity detector started ~")
 
     notifier.loop()
     # ----- inotify END
@@ -469,7 +476,7 @@ def handle_socket_request(connection, client_address, socket_type):
                     response = fetch_nfo(message)
                     connection.sendall(response.encode('utf-8'))
                 else:
-                    logger.error(f"    SOCKET| {socket_type} socket unexpectedly !! (BindFS instance must have crashed !!)")
+                    logger.error(f"    SOCKET| {socket_type} socket disconnected (BindFS instance must have crashed !!)")
                     break
     finally:
         connection.close()
@@ -503,7 +510,7 @@ def socket_server_waiting(socket_type):
         connection, client_address = server_socket.accept() # it waits here
         if socket_type == "nfopath":
             socket_started = True
-            logger.info(f"    SOCKET| ~ BindFS connected")
+            logger.info(f" SOCKET-OK| BindFS connected.")
         _handle_client_thread = threading.Thread(target=handle_socket_request, args=(connection, client_address, socket_type))
         _handle_client_thread.daemon = True
         _handle_client_thread.start()
@@ -517,18 +524,18 @@ if __name__ == "__main__":
 
     bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
 
+    # Thread 0.2 - UNIX Socket (ffprobe bash wrapper responder)
+    thread_ef = threading.Thread(target=socket_server_waiting, args=("ffprobe",))
+    thread_ef.daemon = True  # exits when parent thread exits
+    thread_ef.start()
     
     # Thread 0.1 - UNIX Socket (nfo path retriever socket : loop waiting thread) -- multithread requests ready but bindfs is not
     thread_e = threading.Thread(target=socket_server_waiting, args=("nfopath",))
     thread_e.daemon = True  # exits when parent thread exits
     thread_e.start()
 
-    # Thread 0.2 - UNIX Socket (ffprobe bash wrapper responder)
-    thread_ef = threading.Thread(target=socket_server_waiting, args=("ffprobe",))
-    thread_ef.daemon = True  # exits when parent thread exits
-    thread_ef.start()
 
-    logger.warning("    SOCKET| Waiting for BindFS to connect ~")
+    logger.warning("    SOCKET| Waiting for BindFS to connect ...")
     waitloop = 0
     while not socket_started:
         #print(".", end="", flush=True)
@@ -563,7 +570,7 @@ if __name__ == "__main__":
 
     # config checkups
     if VERSION != CONFIG_VERSION:
-        logger.error("  CHECK-UP| Config version is different from app version, please STOP or CTRL-C the container and rerun PREPARE.SH")
+        logger.error("  CHECK-UP| Config version is different from app version, please STOP or CTRL-C the container, rerun PREPARE.SH or fix directly in settings.env (vs. settings.env.example)")
     else:
         if KODI_MAIN_URL == "PASTE_KODIMAIN_URL_HERE" or KODI_MAIN_URL == "":
             logger.warning("  CHECK-UP| Kodi main url is not set up, maybe ignored intentionnaly ? Otherwise please rerun PREPARE.SH and restart container.")
@@ -612,12 +619,13 @@ if __name__ == "__main__":
         thread_b.daemon = True  # exits when parent thread exits
         thread_b.start()
 
+        logger.warning("       TIP| if run in interactive mode, CTRL+C does not prevent restart, so it should be done manually if needed")
+
         # daily restart scan
         _scan_instance = ScriptRunner.get(refresh_all)
         _scan_instance.resetargs(1)
         _scan_instance.run()
 
-        logger.warning("       TIP| if run in interactive mode, CTRL+C does not prevent restart, so it should be done manually if needed")
 
         # D server thread
         run_server()

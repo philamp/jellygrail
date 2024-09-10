@@ -190,7 +190,7 @@ def nfo_loop_service():
 
         whole_jf_json_dump = None # to free memory
         whole_jf_json_dump_s = None
-        logger.info("~> Jellyfin NFOs updated <~")
+        logger.info(" TASK-DONE~ Jellyfin NFOs updated")
 
         #jfclose_ro()
         save_jfsqdate_to_file(nowdate)
