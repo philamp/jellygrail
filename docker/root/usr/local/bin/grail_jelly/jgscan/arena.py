@@ -30,9 +30,12 @@ def parse_ffprobe(stdout, filepathnotice):
     codectpl = ""
     audiotpla = ""
     audiotplb = ""
-    aslang_tpl = ""
 
-    aslang_arr = []
+    slang_tpl = ""
+    alang_tpl = ""
+
+    slang_arr = []
+    alang_arr = []
 
     _dvprofile = None
     if stdout is not None:
@@ -65,7 +68,7 @@ def parse_ffprobe(stdout, filepathnotice):
                     elif stream.get('codec_type') == "audio":
                         if alang := (stream.get('tags') or {}).get('language', '').lower():
                             if alang in "fre eng fra ang": #toimprove : pur here the prefered languages of the user +eng
-                                aslang_arr.append(f"a{alang[:2].upper()}")
+                                alang_arr.append(f"{alang[:2].upper()}")
 
                         if codec_name in ['eac3', 'mlp']:
                             channel_layout = stream.get('channel_layout')
@@ -84,7 +87,7 @@ def parse_ffprobe(stdout, filepathnotice):
                     elif stream.get('codec_type') == "subtitle":
                         if slang := (stream.get('tags') or {}).get('language', '').lower():
                             if slang in "fre eng fra ang": 
-                                aslang_arr.append(f"s{slang[:2].upper()}")
+                                slang_arr.append(f"{slang[:2].upper()}")
     
     
     
@@ -96,11 +99,14 @@ def parse_ffprobe(stdout, filepathnotice):
         except (KeyError, IndexError, json.JSONDecodeError):
             logger.error(f"jgscan/caching | Fail to extract stream details on {filepathnotice}")
 
-    if aslang_arr:
-        aslang_arr = list(set(aslang_arr))
-        aslang_tpl = f" [{' '.join(aslang_arr)}]"
+    if slang_arr:
+        slang_arr = list(set(slang_arr))
+        slang_tpl = f" s[{' '.join(slang_arr)}]"
+    if alang_arr:
+        alang_arr = list(set(alang_arr))
+        alang_tpl = f" a[{' '.join(alang_arr)}]"
 
-    return (f"{bitratetpl}{aslang_tpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile)
+    return (f"{bitratetpl}{alang_tpl}{slang_tpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile)
 
 def find_most_similar(input_str, string_list):
     # This returns the best match, its score and index

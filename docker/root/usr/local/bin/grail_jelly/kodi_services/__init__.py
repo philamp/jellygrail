@@ -365,7 +365,7 @@ def merge_kodi_versions():
         #find the incr smallest version
         i=0
         currlowest=200
-        idfiles = [int(num) for num in idfilesR.split(", ")]
+        idfiles = [int(num) for num in idfilesR.split(",")]
         strpaths = strpathsR.split(" ")
         strfilenames = strfilenamesR.split(" ")
         isdefaults = [int(num) for num in isdefaultsR.split(" ")]
