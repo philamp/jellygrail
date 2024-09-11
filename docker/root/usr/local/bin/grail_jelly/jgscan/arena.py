@@ -64,7 +64,7 @@ def parse_ffprobe(stdout, filepathnotice):
                     ####
                     elif stream.get('codec_type') == "audio":
                         if alang := (stream.get('tags') or {}).get('language', '').lower():
-                            if alang in "fre eng": #toimprove : pur here the prefered languages of the user +eng
+                            if alang in "fre eng fra ang": #toimprove : pur here the prefered languages of the user +eng
                                 aslang_arr.append(f"a{alang[:2].upper()}")
 
                         if codec_name in ['eac3', 'mlp']:
@@ -83,7 +83,7 @@ def parse_ffprobe(stdout, filepathnotice):
                     ####
                     elif stream.get('codec_type') == "subtitle":
                         if slang := (stream.get('tags') or {}).get('language', '').lower():
-                            if slang in "fre eng": 
+                            if slang in "fre eng fra ang": 
                                 aslang_arr.append(f"s{slang[:2].upper()}")
     
     
