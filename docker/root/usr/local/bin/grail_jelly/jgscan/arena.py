@@ -30,6 +30,8 @@ def parse_ffprobe(stdout, filepathnotice):
     codectpl = ""
     audiotpla = ""
     audiotplb = ""
+    alang_tpl = ""
+    slang_tpl = ""
     _dvprofile = None
     if stdout is not None:
         try:
@@ -56,19 +58,31 @@ def parse_ffprobe(stdout, filepathnotice):
                                     resolutiontpl = f" {str(round(resx * 9/16))}p"
                                 else:
                                     resolutiontpl = f" {str(resy)}p"
-    
-                    elif codec_name in ['eac3', 'mlp']:
-                        channel_layout = stream.get('channel_layout')
-                    # eac3 (Enhanced AC-3) is often used for Atmos
-                    # mlp (Meridian Lossless Packing) is used for TrueHD (which can carry Atmos)
-                        if ('atmos' in (stream.get('tags') or {}).get('title', '').lower()) or (codec_name == 'eac3' and channel_layout and '7.1' in channel_layout) or (codec_name == 'mlp' and channel_layout and 'object_based' in channel_layout):
-                            audiotpla = " Atmos"
-    
-                    elif codec_name in ['dts', 'dts_hd']:
-                        dtitle = (stream.get('tags') or {}).get('title', '').lower()
-                    # Additional check in the 'title' metadata if available
-                        if 'dts:x' in dtitle or 'dtsx' in dtitle:
-                            audiotplb = " DTSx"
+                        
+
+                    elif stream.get('codec_type') == "audio":
+                        if alang := (stream.get('tags') or {}).get('language', '').lower():
+                            if alang in "fre eng": 
+                                alang_tpl += f" a{alang[:2].upper()}"
+
+                        if codec_name in ['eac3', 'mlp']:
+                            channel_layout = stream.get('channel_layout')
+                        # eac3 (Enhanced AC-3) is often used for Atmos
+                        # mlp (Meridian Lossless Packing) is used for TrueHD (which can carry Atmos)
+                            if ('atmos' in (stream.get('tags') or {}).get('title', '').lower()) or (codec_name == 'eac3' and channel_layout and '7.1' in channel_layout) or (codec_name == 'mlp' and channel_layout and 'object_based' in channel_layout):
+                                audiotpla = " Atmos"
+        
+                        elif codec_name in ['dts', 'dts_hd']:
+                            dtitle = (stream.get('tags') or {}).get('title', '').lower()
+                        # Additional check in the 'title' metadata if available
+                            if 'dts:x' in dtitle or 'dtsx' in dtitle:
+                                audiotplb = " DTSx"
+
+
+                    elif stream.get('codec_type') == "subtitle":
+                        if slang := (stream.get('tags') or {}).get('language', '').lower():
+                            if slang in "fre eng": 
+                                slang_tpl += f" s{alang[:2].upper()}"
     
     
     
@@ -81,7 +95,7 @@ def parse_ffprobe(stdout, filepathnotice):
             logger.error(f"jgscan/caching | Fail to extract stream details on {filepathnotice}")
 
 
-    return (f"{bitratetpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile)
+    return (f"{bitratetpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}{alang_tpl}", _dvprofile)
 
 def find_most_similar(input_str, string_list):
     # This returns the best match, its score and index

@@ -5,6 +5,7 @@ from base.constants import *
 from datetime import datetime
 from jfconfig.jfsql import *
 from nfo_generator.xmlnfo import *
+from pathlib import Path
 
 # Name of librairies
 # LIB_NAMES = ("Movies", "Shows")
@@ -126,6 +127,8 @@ def nfo_loop_service():
         # kodi has no nfo for seasons
         items_added_and_updated = [(item_id, item_id in syncqueue.get('ItemsUpdated')) for item_id in items_added_and_updated_pre]
         s_data = {}
+        t_data = {}
+        pre_t_data = {}
 
         try:
             whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path,People,ProductionLocations')).json()['Items']
@@ -135,6 +138,7 @@ def nfo_loop_service():
             return False
         
         for item in whole_jf_json_dump:
+            # get tvshows UID to update them
             for item_id, is_updated in items_added_and_updated:
                 if item.get('Id') == item_id:
                     if(item.get('Type') == 'Season'):
@@ -144,9 +148,21 @@ def nfo_loop_service():
                 #elif(item.get('Type') in "Movie Episode"): -> done beneath after all dumps calls to avoid any inconsistencies
                     #jf_xml_create(item)
 
-        #loop the neigboors seasons so that data is complete
+            # tvshow paths fix
+            # toimprove : not sure this way the tvshow.nfo get alwasy written if new episode that don't trigger syncqueue for season type
+            if(item.get('Type') == 'Episode'):
+                # get all possible tvshow parent paths and store it in { season_parent_id : paths_array[]}
+                # tvshow path by season uid (to associate later)
+                suid = item.get('ParentId')
+                pre_t_data.setdefault(suid, [])
+                #pre_t_data[pid].append(item.get('Id'))
+                for mediasource in item.get('MediaSources'):
+                    path = Path(mediasource.get('Path'))
+                    trimmedPath = Path(*path.parts[:4])
+                    pre_t_data[suid].append(trimmedPath)
 
         for item in whole_jf_json_dump:
+            #loop the neigboors seasons so that tvshow data is complete
             if(item.get('Type') == 'Season'):
                 if any(pid == item.get('ParentId') for pid, _ in items_added_and_updated):
                     pid = item.get('ParentId')
@@ -154,6 +170,14 @@ def nfo_loop_service():
                     suid = item.get('Id')
                     s_data.setdefault(pid, [])
                     s_data[pid].append({'sidx': sidx, 'suid': suid})
+                    # append t_data[tvshowid] with pre_t_data indexed by season uids
+                    t_data.setdefault(pid, [])
+                    t_data[pid].extend(pre_t_data[suid])
+
+        # deduplicate t_data
+        for key, _ in t_data.items():
+            t_data[key] = list(set(t_data[key]))
+
 
 
         try:
@@ -176,7 +200,7 @@ def nfo_loop_service():
             for item_id, is_updated in items_added_and_updated:
                 if item.get('Id') == item_id:
                     if(item.get('Type') == 'Series'):
-                        jf_xml_create(item, is_updated, sdata = s_data)            
+                        jf_xml_create(item, is_updated, sdata = s_data, tdata = t_data)            
 
 
 

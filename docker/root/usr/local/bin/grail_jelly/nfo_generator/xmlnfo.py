@@ -10,6 +10,7 @@ from jgscan.jgsql import *
 from jfconfig.jfsql import *
 import urllib.parse
 import requests
+import copy
 
 # for build_jg_nfo_video()
 NFO2XMLTYPE = {
@@ -151,20 +152,21 @@ def get_tech_xml_details(pathwoext):
     #sqclose()
     return None
 
-def jf_xml_create(item, is_updated, sdata = None):
+def jf_xml_create(item, is_updated, sdata = None, tdata = None):
 
     if item.get('Type') == 'Movie':
         root = ET.Element("movie")
-        logger.debug("THIS IS A MOVIE")
+        logger.info("    NFOGEN| MOVIE")
     elif item.get('Type') == 'Episode':
         root = ET.Element("episodedetails")
-        logger.debug("THIS IS AN EPISODE")
+        logger.info("    NFOGEN| EPISODE")
     elif item.get('Type') == 'Series':
-        logger.debug("THIS IS A TVSHOW")
-        seasons_data = []
         root = ET.Element("tvshow")
+        logger.info("    NFOGEN| TVSHOW")
         if sdata:
             seasons_data = sdata.get(item.get('Id'), [])
+        else:
+            seasons_data = []
 
     if item.get('Type') == 'Episode':
         ET.SubElement(root, "showtitle").text = item.get('SeriesName', "")
@@ -298,7 +300,7 @@ def jf_xml_create(item, is_updated, sdata = None):
     # save this nfo for all paths in mediasources
     if item.get('Type') != 'Series':
         for mediasource in item.get('MediaSources'):
-            
+            rootvariant = copy.deepcopy(root)
 
             if mediasource.get("VideoType") == "BluRay":
                 get_wo_ext_out = mediasource.get('Path')[JG_VIRT_SHIFT:]
@@ -311,14 +313,19 @@ def jf_xml_create(item, is_updated, sdata = None):
                 nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mediasource.get('Path')[JG_VIRT_SHIFT:]) + ".nfo.jf"
 
             if tech_details := get_tech_xml_details(get_wo_ext_out):
-                root.append(tech_details)
+                rootvariant.append(tech_details)
 
-            write_to_disk(root, nfo_full_path, is_updated)
+            write_to_disk(rootvariant, nfo_full_path, is_updated)
 
     else:
-        nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(item.get('Path')[JG_VIRT_SHIFT:]) + "/tvshow.nfo.jf"
-
-        write_to_disk(root, nfo_full_path, is_updated)
+        if tdata:
+            nfo_full_paths = tdata.get(item.get('Id'), [])
+        else:
+            nfo_full_paths = []
+        nfo_full_paths += JFSQ_STORED_NFO + get_wo_ext(item.get('Path')[JG_VIRT_SHIFT:]) + "/tvshow.nfo.jf"
+        nfo_full_paths = list(set(nfo_full_paths))
+        for nfo_full_path in nfo_full_paths:
+            write_to_disk(root, nfo_full_path, is_updated)
 
 def write_to_disk(root, nfo_full_path, is_updated):
 

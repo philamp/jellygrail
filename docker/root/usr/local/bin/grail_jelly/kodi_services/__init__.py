@@ -1,12 +1,12 @@
 from base import *
 from base.littles import *
 from base.constants import *
-from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close
+from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, set_resume_times_and_lastplayed
 import requests
 import urllib.parse
 import websocket
 import threading
-
+from datetime import datetime
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
@@ -359,26 +359,42 @@ def merge_kodi_versions():
     if not kodi_mysql_init_and_verify():
         return False
 
-    results = [(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]) for row in video_versions()]
+    #results = [(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]) for row in video_versions()]
 
-    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, lastplayedsR, resumetimesR) in results:
+    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, lastplayedsR, resumetimesR) in video_versions(): #results:
         #find the incr smallest version
         i=0
         currlowest=200
-        idfiles = [int(num) for num in idfilesR.split(" ")]
+        idfiles = [int(num) for num in idfilesR.split(", ")]
         strpaths = strpathsR.split(" ")
         strfilenames = strfilenamesR.split(" ")
         isdefaults = [int(num) for num in isdefaultsR.split(" ")]
         idmedias = [int(num) for num in idmediasR.split(" ")]
 
-        lastplayeds = lastplayedsR.split("#")
-        resumetimes = [int(num) for num in resumetimesR.split(" ")]
-
         videoversiontuple = []
         idtokeep = None
         strpathtokeep = None
         imediatokeep = None
+
+
+        # manage resumtimes:
+        highest_lp = None
+        highest_rt = None
+
+        if lastplayedsR:
+            #lastplayeds_str = lastplayedsR.split("#")
+            lastplayeds_tup = [(thislp, datetime.strptime(thislp, '%Y-%m-%d %H:%M:%S')) for thislp in lastplayedsR.split("#")]
+            highest_lp, _ = max(lastplayeds_tup, key=lambda x: x[1])
+            
+        if resumetimesR:
+            highest_rt = max([float(num) for num in resumetimesR.split(" ")])
+
+        set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR)
+        # :manage resumetimes
+
+
         if idfiles and strpaths and idmedias:
+            # just looping through sthing of all arrays
             for strfilename in strfilenames:
                 decoded_filename = urllib.parse.unquote(strfilename)
                 match = re.search(r'-\s*(.*?)\s*JGx', decoded_filename)
@@ -395,13 +411,11 @@ def merge_kodi_versions():
                 else:
                     videoversiontuple.append((idfiles[i], "Iso Edition"))
 
-
                 if imediatokeep == None and isdefaults[i] == 1:
                     imediatokeep = idmedias[i]
         
                 i += 1
 
-            
 
             # if did not find any way to find the lowest value, we keep the first ones, will be set to the kept media
             if idtokeep == None:

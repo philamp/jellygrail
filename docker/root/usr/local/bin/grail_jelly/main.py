@@ -330,13 +330,13 @@ def refresh_all(step):
             merge_kodi_versions()
 
 
-    # if specifically wanted with the webservice (6)
+    # if specifically wanted with the webservice (6 : nfo_merge)
     if (step == 6) and retry_later == False:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             logger.info("      STEP~ 6/ Custom Kodi MySQL dB Operations (standalone operation)")
             merge_kodi_versions()
 
-    # if specifically to refresh kodi (kodi_scan)
+    # if specifically to refresh kodi (56 : kodi_scan)
     if (step == 56):
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             logger.info("      STEP~ 2/ Kodi library refresh (standalone operation) *if online*")
