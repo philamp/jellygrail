@@ -318,11 +318,14 @@ def jf_xml_create(item, is_updated, sdata = None, tdata = None):
             write_to_disk(rootvariant, nfo_full_path, is_updated)
 
     else:
-        if tdata:
-            nfo_full_paths = tdata.get(item.get('Id'), [])
+        if tdata is not None:
+            nfo_full_paths = [JFSQ_STORED_NFO + tdpath[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf" for tdpath in tdata.get(item.get('Id'), [])]
         else:
             nfo_full_paths = []
-        nfo_full_paths += JFSQ_STORED_NFO + get_wo_ext(item.get('Path')[JG_VIRT_SHIFT:]) + "/tvshow.nfo.jf"
+        #nfo_full_paths.append(JFSQ_STORED_NFO + item.get('Path')[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf")
+        #toremove
+        
+
         nfo_full_paths = list(set(nfo_full_paths))
         for nfo_full_path in nfo_full_paths:
             write_to_disk(root, nfo_full_path, is_updated)

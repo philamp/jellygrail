@@ -158,7 +158,9 @@ def nfo_loop_service():
                 #pre_t_data[pid].append(item.get('Id'))
                 for mediasource in item.get('MediaSources'):
                     path = Path(mediasource.get('Path'))
-                    trimmedPath = Path(*path.parts[:4])
+                    trimmedPath = str(Path(*path.parts[:5]))
+                    #toremove
+                    #logger.info(f"----- URL {trimmedPath}")
                     pre_t_data[suid].append(trimmedPath)
 
         for item in whole_jf_json_dump:
@@ -177,8 +179,6 @@ def nfo_loop_service():
         # deduplicate t_data
         for key, _ in t_data.items():
             t_data[key] = list(set(t_data[key]))
-
-
 
         try:
             whole_jf_json_dump_s = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Series', Fields = 'ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
