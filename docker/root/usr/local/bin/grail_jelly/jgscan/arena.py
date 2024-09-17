@@ -50,7 +50,8 @@ def parse_ffprobe(stdout, filepathnotice):
                         else:
                             hdrtpl = f" sdr{get_bit_depth(stream.get('pix_fmt', 'yuv420p'))}"
     
-                        if hdrtpl == " sdr8" or codec_name not in "h264 hevc":
+                        # hdrtpl == " sdr8" or 
+                        if codec_name not in "h264 hevc":
                             codectpl = f" {codec_name}"
                                     
                         if( sideinfo := stream.get('side_data_list') ):
@@ -71,10 +72,10 @@ def parse_ffprobe(stdout, filepathnotice):
                                 alang_arr.append(f"{alang[:2].upper()}")
 
                         if codec_name in ['eac3', 'mlp']:
-                            channel_layout = stream.get('channel_layout')
+                            channel_layout = stream.get('channel_layout', "")
                         # eac3 (Enhanced AC-3) is often used for Atmos
                         # mlp (Meridian Lossless Packing) is used for TrueHD (which can carry Atmos)
-                            if ('atmos' in (stream.get('tags') or {}).get('title', '').lower()) or (codec_name == 'eac3' and channel_layout and '7.1' in channel_layout) or (codec_name == 'mlp' and channel_layout and 'object_based' in channel_layout):
+                            if ('atmos' in (stream.get('tags') or {}).get('title', '').lower()) or (codec_name == 'eac3' and '7.1' in channel_layout) or (codec_name == 'mlp' and 'object_based' in channel_layout):
                                 audiotpla = " Atmos"
         
                         elif codec_name in ['dts', 'dts_hd']:
@@ -101,10 +102,10 @@ def parse_ffprobe(stdout, filepathnotice):
 
     if slang_arr:
         slang_arr = list(set(slang_arr))
-        slang_tpl = f" s[{' '.join(slang_arr)}]"
+        slang_tpl = f" s{'s'.join(slang_arr)}"
     if alang_arr:
         alang_arr = list(set(alang_arr))
-        alang_tpl = f" a[{' '.join(alang_arr)}]"
+        alang_tpl = f" v{'v'.join(alang_arr)}"
 
     return (f"{bitratetpl}{alang_tpl}{slang_tpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile)
 

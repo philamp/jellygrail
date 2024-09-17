@@ -97,7 +97,7 @@ def on_close(ws, close_status_code, close_msg):
 
 def on_open(ws):
     global refresh_is_safe
-    logger.info(" WEBSOCKET~ Waiting for Kodi to finish jobs ...")
+    logger.info(" WEBSOCKET~ Waiting for Kodi to finish jobs...")
     refresh_is_safe = True
 
 
@@ -162,7 +162,7 @@ def refresh_kodi():
             return False
         else:
             if response.status_code == 200:
-                logger.info("TASK-START~ Kodi Library refresh ...")
+                logger.info("TASK-START~ Kodi Library refresh...")
 
                 notify_kodi("JG", "Jellygrail triggered library refresh", 3000)
                 
@@ -171,7 +171,7 @@ def refresh_kodi():
         
         while True:
             if is_scanning == False or not is_kodi_alive():
-                logger.info(" TASK-DONE~ ... Kodi Library refreshed.")
+                logger.info(" TASK-DONE~ ...Kodi Library refreshed.")
                 notify_kodi("JG", "Library refresh completed", 3000)
                 break
             time.sleep(2)
@@ -192,7 +192,7 @@ def refresh_kodi():
             return False
         else:
             if response.status_code == 200:
-                logger.info("TASK-START~ Kodi Library cleaning ...")
+                logger.info("TASK-START~ Kodi Library cleaning...")
 
                 notify_kodi("JG", "Jellygrail triggered library cleaning", 3000)
                 
@@ -201,7 +201,7 @@ def refresh_kodi():
         
         while True:
             if is_cleaning == False or not is_kodi_alive():
-                logger.info(" TASK-DONE~ Kodi Library cleaned.")
+                logger.info(" TASK-DONE~ ...Kodi Library cleaned.")
                 notify_kodi("JG", "Library cleaning completed", 3000)
                 break
             time.sleep(2)

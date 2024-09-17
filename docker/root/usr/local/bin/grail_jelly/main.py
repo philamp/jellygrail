@@ -302,10 +302,7 @@ def refresh_all(step):
     if step < 5:
         if JF_WANTED:
             logger.info("      STEP~ 4/ Generate Jellyfin NFOs")
-            if not nfo_loop_service():
-                step = 9 # bypass the rest
-                # tothink : perhaps we should not bypass the rest because if kodi WS prevents connexion, kodi_refresh does nothing, so nfo_* does nothing and next call should do sthing after hopefully user has triggered refresh manually
-                # ping externally before trigerring ?
+            nfo_loop_service()
 
     # if toomany, kodi refresh is done after jellyfin 
     if toomany:
@@ -535,7 +532,7 @@ if __name__ == "__main__":
     thread_e.start()
 
 
-    logger.warning("    SOCKET| Waiting for BindFS to connect ...")
+    logger.warning("    SOCKET| Waiting for BindFS to connect...")
     waitloop = 0
     while not socket_started:
         #print(".", end="", flush=True)

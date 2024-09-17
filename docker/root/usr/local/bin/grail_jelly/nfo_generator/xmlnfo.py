@@ -319,9 +319,10 @@ def jf_xml_create(item, is_updated, sdata = None, tdata = None):
 
     else:
         if tdata is not None:
-            nfo_full_paths = [JFSQ_STORED_NFO + tdpath[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf" for tdpath in tdata.get(item.get('Id'), [])]
+            nfo_full_paths = [JFSQ_STORED_NFO + tdpath[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf" for tdpath in tdata.get(item.get('Name'), [])]
         else:
             nfo_full_paths = []
+        #logger.info(f"---- {nfo_full_paths}")
         #nfo_full_paths.append(JFSQ_STORED_NFO + item.get('Path')[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf")
         #toremove
         

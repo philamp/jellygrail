@@ -93,7 +93,7 @@ def nfo_loop_service():
     try:
         users = jfapi.jellyfin('Users').json()
     except Exception as e:
-        logger.critical(f"!!! getting JF users failed [nfo_loop_service] error: {e}")
+        logger.critical(f"Getting JF users failed [nfo_loop_service] error: {e}")
         #jfclose_ro()
         return False
 
@@ -112,7 +112,7 @@ def nfo_loop_service():
         #logger.debug("goes through kodisync queue")
         syncqueue = jfapi.jellyfin(f'Jellyfin.Plugin.KodiSyncQueue/{user_id}/GetItems', params = dict(lastUpdateDt=read_jfsqdate_from_file())).json()
     except Exception as e:
-        logger.critical(f"!!! Get JF sync queue failed [nfo_loop_service] error: {e}")
+        logger.critical(f"Get JF sync queue failed [nfo_loop_service] error: {e}")
         #jfclose_ro()
         return False
 
@@ -124,7 +124,9 @@ def nfo_loop_service():
 
     # loop added and updated
     if items_added_and_updated_pre := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
-        # kodi has no nfo for seasons
+        # 1st deduplication here
+        items_added_and_updated_pre = list(set(items_added_and_updated_pre))
+
         items_added_and_updated = [(item_id, item_id in syncqueue.get('ItemsUpdated')) for item_id in items_added_and_updated_pre]
         s_data = {}
         t_data = {}
@@ -137,48 +139,67 @@ def nfo_loop_service():
             #jfclose_ro()
             return False
         
-        for item in whole_jf_json_dump:
-            # get tvshows UID to update them
-            for item_id, is_updated in items_added_and_updated:
-                if item.get('Id') == item_id:
-                    if(item.get('Type') == 'Season'):
-                        pid = item.get('ParentId')
-                        items_added_and_updated.append((pid, is_updated))
 
-                #elif(item.get('Type') in "Movie Episode"): -> done beneath after all dumps calls to avoid any inconsistencies
-                    #jf_xml_create(item)
+        #loop through episodes
+        for item in whole_jf_json_dump:
 
             # tvshow paths fix
             # toimprove : not sure this way the tvshow.nfo get alwasy written if new episode that don't trigger syncqueue for season type
             if(item.get('Type') == 'Episode'):
                 # get all possible tvshow parent paths and store it in { season_parent_id : paths_array[]}
                 # tvshow path by season uid (to associate later)
-                suid = item.get('ParentId')
-                pre_t_data.setdefault(suid, [])
+                sname = item.get('SeriesName')
+                pre_t_data.setdefault(sname, [])
                 #pre_t_data[pid].append(item.get('Id'))
+
+                for item_id, is_updated in items_added_and_updated:
+                    if item.get('Id') == item_id:
+                        pid = item.get('ParentId')
+                        if pid not in items_added_and_updated_pre:
+                            items_added_and_updated.append((pid, is_updated))
+
                 for mediasource in item.get('MediaSources'):
                     path = Path(mediasource.get('Path'))
                     trimmedPath = str(Path(*path.parts[:5]))
                     #toremove
                     #logger.info(f"----- URL {trimmedPath}")
-                    pre_t_data[suid].append(trimmedPath)
+                    pre_t_data[sname].append(trimmedPath)
+
+        
+        for item in whole_jf_json_dump:
+            # get tvshows UID to update them
+            if(item.get('Type') == 'Season'):
+                for item_id, is_updated in items_added_and_updated:
+                    if item.get('Id') == item_id:
+                        pid = item.get('ParentId')
+                        if pid not in items_added_and_updated_pre:
+                            items_added_and_updated.append((pid, is_updated))
+
+
+                #elif(item.get('Type') in "Movie Episode"): -> done beneath after all dumps calls to avoid any inconsistencies
+                    #jf_xml_create(item)
+
+
 
         for item in whole_jf_json_dump:
             #loop the neigboors seasons so that tvshow data is complete
             if(item.get('Type') == 'Season'):
                 if any(pid == item.get('ParentId') for pid, _ in items_added_and_updated):
                     pid = item.get('ParentId')
+                    sname = item.get('SeriesName') # bind by series name to merge different folders in one
                     sidx = item.get('IndexNumber')
                     suid = item.get('Id')
                     s_data.setdefault(pid, [])
                     s_data[pid].append({'sidx': sidx, 'suid': suid})
                     # append t_data[tvshowid] with pre_t_data indexed by season uids
-                    t_data.setdefault(pid, [])
-                    t_data[pid].extend(pre_t_data[suid])
+                    t_data.setdefault(sname, []) # bind by series name to merge different folders in one
+                    t_data[sname].extend(pre_t_data[sname])
 
         # deduplicate t_data
         for key, _ in t_data.items():
             t_data[key] = list(set(t_data[key]))
+
+        #logger.info(f"#### {t_data}")
 
         try:
             whole_jf_json_dump_s = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Series', Fields = 'ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
@@ -189,20 +210,35 @@ def nfo_loop_service():
             return False
         
 
+
         # if everything went well, it will be consistent so we can continue in xml creation
+        #already_seen = []
         for item in whole_jf_json_dump:
             for item_id, is_updated in items_added_and_updated:
+                #if item_id not in already_seen:
                 if item.get('Id') == item_id:
                     if(item.get('Type') in "Movie Episode"):
                         jf_xml_create(item, is_updated)
+                    #already_seen.append(item_id)
+
+        '''
+        s_ids = []
+        for item in whole_jf_json_dump_s:
+            s_ids.append(item.get('Id'))
+        orphans = [key for key in t_data if key not in s_ids]
+        '''
+
+
 
         for item in whole_jf_json_dump_s:
             for item_id, is_updated in items_added_and_updated:
+                #if item_id not in already_seen:
                 if item.get('Id') == item_id:
                     if(item.get('Type') == 'Series'):
-                        jf_xml_create(item, is_updated, sdata = s_data, tdata = t_data)            
+                        jf_xml_create(item, is_updated, sdata = s_data, tdata = t_data)   
+                    #already_seen.append(item_id)         
 
-
+        # toremove : already_seen complete remove
 
                     # ---- end movie case
 
@@ -219,7 +255,8 @@ def nfo_loop_service():
         #jfclose_ro()
         save_jfsqdate_to_file(nowdate)
     else:
-        return False
+        logger.info(" TASK-DONE~ Not any new or updated NFO")
+        return True
     return True
     # ---- if finished correctly
 

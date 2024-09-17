@@ -31,13 +31,13 @@ def get_fastpass_ffprobe(file_path):
         return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
 
 
-    logger.debug(f". ffprobe wrapper fallback on real ffprobe for: {file_path}")
+    logger.info(f"fallback on real ffprobe for: {file_path}")
     return get_plain_ffprobe(file_path)
 
 def init_mountpoints():
 
     global dual_endpoints
-    logger.info("      WAIT| Rclone startup 10s ...") #toimprove with s6 ?
+    logger.info("      WAIT| Rclone startup (10s)...") #toimprove with s6 ?
     time.sleep(10)
     for f in os.scandir(MOUNTS_ROOT): 
         if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
@@ -559,7 +559,7 @@ def scan():
                                                 browse = False
                                                 break
                                         elif unrar_result == "ERROR_NOFILES":
-                                            logger.warning("    - No Files in this RAR")
+                                            logger.warning("          ~ ...but NO Files in this RAR")
                                             browse = False
                                             break
                                         elif unrar_result == "ERROR":
