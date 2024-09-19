@@ -31,7 +31,7 @@ def get_fastpass_ffprobe(file_path):
         return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
 
 
-    logger.info(f"fallback on real ffprobe for: {file_path}")
+    logger.debug(f"fallback on real ffprobe for: {file_path}")
     return get_plain_ffprobe(file_path)
 
 def init_mountpoints():
@@ -88,6 +88,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     nomergetype = ""
     bdmv_ffprobed = None
     jgxmultiple_parses = []
+    will_idx_check = False
+    lang_in_release_string = None
 
     # E_DUP duplicate workaround for one-movie releases / RESET idxdup at release level
     idxdupmovset = 1
@@ -109,19 +111,37 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     # also: DIVE E write + cache-heater (similar check is done elsewhere, on release folder basis)
     for root, folders, files in os.walk(os.path.join(endpoint, releasefolder)):
         for filename in files:
+            previous_show_folder = ""
+            previous_found_folder = ""
             if not "(sample)" in filename.lower() and not "sample.mkv" in filename.lower() and not '@eaDir' in root and not "DS_Store" in filename.lower() and not ('BDMV' not in os.path.normpath(root).split(os.sep) and filename.lower().endswith(('.m2ts'))):
-                
+                show = ""
+                season = ""
+                episode_num = ""
                 # B - cache item fetching 
                 # folder insert will use rar_item (could be none or the parent rar file) 
                 # file insert will use rd_cache_item (could be a direct file or the parent rar file)
 
                 # S case with itegrated similar show/season/episode fetch (at file loop level):
-                if re.search(r's\d{1,2}\.?e\d{1,2}|\b\d{1,2}x\d{1,2}\b|s\d{1,2}\.\d{1,2}|[ .]e\d{1,2}', filename, re.IGNORECASE):
-                    if filename.lower().endswith(ALLOWED_EXTENSIONS):
+                if filename.lower().endswith(ALLOWED_EXTENSIONS):
+                    regexp_base = None
+                    if re.search(r's\d{1,2}\.?e\d{1,2}|\b\d{1,2}x\d{1,2}\b|s\d{1,2}\.\d{1,2}|[ .]e\d{1,2}', filename, re.IGNORECASE):
+                        regexp_base = get_wo_ext(filename)
+                    elif filename.lower().endswith(SUB_EXTS):
+                        parent_srt_folder = os.path.basename(root)
+                        #logger.info(f"----- releasefolder = {releasefolder} and parent_srt_folder = {parent_srt_folder}")
+                        if (parent_srt_folder != releasefolder):
+                            if re.search(r's\d{1,2}\.?e\d{1,2}|\b\d{1,2}x\d{1,2}\b|s\d{1,2}\.\d{1,2}|[ .]e\d{1,2}', parent_srt_folder, re.IGNORECASE):
+                                regexp_base = parent_srt_folder
+                    
+
+                        
+                    if regexp_base:
                         season_present = True
                         # it's an episode file or sub
-                        filename_base = get_wo_ext(filename)
-                        match = re.search(r'(.+?)\s*((?:s\d{1,2}\.?e\d{1,2})|(?:\b\d{1,2}x\d{1,2}\b)|(?:s\d{1,2}\.\d{1,2})|(?:[ .]e\d{1,2}))\s*(.*?)', filename_base, re.IGNORECASE)
+
+                        # if is a sub file that does not match a regexp but parent is, integrate it as well #TODO (see Subs subfolder in tvshow plain)
+
+                        match = re.search(r'(.+?)\s*((?:s\d{1,2}\.?e\d{1,2})|(?:\b\d{1,2}x\d{1,2}\b)|(?:s\d{1,2}\.\d{1,2})|(?:[ .]e\d{1,2}))\s*(.*?)', regexp_base, re.IGNORECASE)
                         if match:
                             #logger.info(f"")
                             show, season_episode, episode_title = match.groups()
@@ -139,9 +159,23 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                                 season = "1"
                                 season_episode_match = re.search(r'[ .]e(\d+)', season_episode, re.IGNORECASE)
                                 (episode_num,) = season_episode_match.groups()
+                            
+                            if not lang_in_release_string:
+                                lang_in_release_string = find_language_in_string(releasefolder)
 
+                            show = show + lang_in_release_string
 
+                            if previous_show_folder != show: # dont find most similar on every file, if it's same as previous file, don't bother redoing it
+                                previous_show_folder = show
+                                (show, will_idx_check) = show_find_most_similar(show, present_virtual_folders_shows)
+                                previous_found_folder = show
+                            else:
+                                show = previous_found_folder
 
+                            dive_s_.setdefault(show, {}).setdefault(season, {}).setdefault(episode_num, {'rootfilenames': [], 'mediatype_s' : None, 'premetas': '', 'ffprobed': None})
+                            dive_s_[show][season][episode_num]['rootfilenames'].append(os.path.join(root, filename)) # all files are here if filename or parent folder respect regexp....
+                            #dive_s_[show].setdefault('finalname', show + find_language_in_string(releasefolder)) # called once
+                            '''
                             # clean catpured data
                             show = clean_string(show)
 
@@ -170,9 +204,10 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             # dive S WRITE
 
                             # ensuring structure
-                            dive_s_.setdefault(show, {}).setdefault(season, {}).setdefault(episode_num, {'rootfilenames': [], 'mediatype_s' : None, 'premetas': '', 'ffprobed': None})
+                            # MOVED dive_s_.setdefault(show, {}).setdefault(season, {}).setdefault(episode_num, {'rootfilenames': [], 'mediatype_s' : None, 'premetas': '', 'ffprobed': None})
 
-                            dive_s_[show][season][episode_num]['rootfilenames'].append(os.path.join(root, filename))
+                            # MOVED dive_s_[show][season][episode_num]['rootfilenames'].append(os.path.join(root, filename))
+                            '''
 
 
                 # -- END DIVE write S files+folders only
@@ -189,21 +224,31 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     # and storetype == 'remote' missing and rar_item ignored means we run ffprobe on mkv even if they're cache-heated with void-unrar
                     # cache-heater 1 for all files but iso
                     # (bitrate, dvprofile) = get_ffprobe(os.path.join(root, filename))
+
                     stdout = None
                     (stdout, _, fferr) = get_plain_ffprobe(os.path.join(root, filename))
                     if fferr != 0:
                         stdout = None
-                    (premetastpl, dvprofile) = parse_ffprobe(stdout, filename)
+                    (premetastpl, dvprofile, _) = parse_ffprobe(stdout, filename)
 
 
                     if season_present: 
-                        if(dvprofile) and dive_s_[show][season][episode_num]['mediatype_s'] == None:
-                            dive_s_[show][season][episode_num]['mediatype_s'] = '_dv'
-                        else:
-                            dive_s_[show][season][episode_num]['mediatype_s'] = None
-                        
-                        dive_s_[show][season][episode_num]['premetas'] = f" -{premetastpl} JGx"
-                        dive_s_[show][season][episode_num]['ffprobed'] = stdout
+                        if show != "": 
+                            # ensuring structure
+                            # todo : first_audio must be at the show level of dive_s
+                            
+                            
+
+
+                            # ensuring end
+                            # dive_s_[show]['finalname'] = show + first_audio old way, and it's already set
+                            if(dvprofile) and dive_s_[show][season][episode_num]['mediatype_s'] == None:
+                                dive_s_[show][season][episode_num]['mediatype_s'] = '_dv'
+                            else:
+                                dive_s_[show][season][episode_num]['mediatype_s'] = None
+                            
+                            dive_s_[show][season][episode_num]['premetas'] = f" -{premetastpl} JGx"
+                            dive_s_[show][season][episode_num]['ffprobed'] = stdout
 
                     else:
 
@@ -296,7 +341,12 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             logger.error(f" - FAILURE_direct_read: IO or timeout on file: {os.path.join(root, filename)}")
                             stopthere = True
                             stopreason += ' >Pre-reading non-video files failed'
-                    # E 
+                    # S 
+                    #if filename.lower().endswith(ALLOWED_EXTENSIONS) and season_present:
+                    #    (show, will_idx_check) = show_find_most_similar(show, present_virtual_folders_shows)
+                    #    dive_s_.setdefault(show, {}).setdefault(season, {}).setdefault(episode_num, {'rootfilenames': [], 'mediatype_s' : None, 'premetas': '', 'ffprobed': None})
+                    #    dive_s_[show][season][episode_num]['rootfilenames'].append(os.path.join(root, filename))
+                    # E
                     if not season_present and not stopthere:
                         dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : None})
 
@@ -391,15 +441,22 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         # S_DUP
 
                         # filename ext compute
-                        filename_ext = get_ext(os.path.basename(rootfilename))
+                        if rootfilename.endswith(VIDEO_EXTENSIONS):
+                            filename_ext = get_ext(os.path.basename(rootfilename))
+                            ffprobed = episodeattribs['ffprobed'] 
+                        else:
+                            ffprobed = None
+                            filename_ext = subtitle_extension(os.path.basename(rootfilename))
+
+                        # toimprove : try to reimplement subtitles parsing for tvshows
+                        # toimprove : put "subs" subfolders back in (ex: agatha raison s04)
 
                         # S FOLDERS INSERT 
-                        insert_data("/shows/"+keyshow, None, None, None, episodeattribs['mediatype_s'])
-                        insert_data("/shows/"+keyshow+"/Season "+seasonkey, None, None, None, episodeattribs['mediatype_s'])
-                        insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}", None, None, None, episodeattribs['mediatype_s'])
+                        insert_data("/shows/"+show, None, None, None, episodeattribs['mediatype_s'])
+                        insert_data("/shows/"+show+"/Season "+seasonkey, None, None, None, episodeattribs['mediatype_s'])
+                        insert_data("/shows/"+show+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}", None, None, None, episodeattribs['mediatype_s'])
                         # S FILES INSERT
-                        ffprobed = episodeattribs['ffprobed'] if rootfilename.endswith(VIDEO_EXTENSIONS) else None
-                        insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"+"/"+f"{keyshow} S{seasonkey}E{episodekey}{metas}{filename_ext}", rootfilename, release_folder_path, rd_cache_item, episodeattribs['mediatype_s'], ffprobed)
+                        insert_data("/shows/"+show+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"+"/"+f"{keyshow} S{seasonkey}E{episodekey}{metas}{filename_ext}", rootfilename, release_folder_path, rd_cache_item, episodeattribs['mediatype_s'], ffprobed)
 
     if not season_present and not stopthere:
         
@@ -629,7 +686,7 @@ def scan():
                         if fferr != 0:
                             stdout = None
                         
-                        (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
+                        (premetastpl, dvprofile, _) = parse_ffprobe(stdout, f.path)
                         metas = f" -{premetastpl} JGx"
 
                         #(bitrate, dvprofile) = get_ffprobe(f.path)

@@ -6,6 +6,149 @@ import pycountry
 from thefuzz import process
 from base.constants import *
 
+INTERESTED_LANGUAGES = "fre eng fra" #todo: put that in PREPARE.SH and SETTINGS EXAMPLE
+
+# Preprocess: Create a set of all language names for quick lookup
+
+languages = [
+    "Afrikaans",
+    "Arabic",
+    "Bengali",
+    "Bulgarian",
+    "Catalan",
+    "Cantonese",
+    "Croatian",
+    "Czech",
+    "Danish",
+    "Dutch",
+    "Lithuanian",
+    "Malay",
+    "Malayalam",
+    "Panjabi",
+    "Tamil",
+    "English",
+    "Finnish",
+    "French",
+    "German",
+    "Greek",
+    "Hebrew",
+    "Hindi",
+    "Hungarian",
+    "Indonesian",
+    "Italian",
+    "Japanese",
+    "Javanese",
+    "Korean",
+    "Norwegian",
+    "Polish",
+    "Portuguese",
+    "Romanian",
+    "Russian",
+    "Serbian",
+    "Slovak",
+    "Slovene",
+    "Spanish",
+    "Swedish",
+    "Telugu",
+    "Thai",
+    "Turkish",
+    "Ukrainian",
+    "Vietnamese",
+    "Welsh",
+    "Sign language",
+    "Algerian",
+    "Aramaic",
+    "Armenian",
+    "Berber",
+    "Burmese",
+    "Bosnian",
+    "Brazilian",
+    "Bulgarian",
+    "Cypriot",
+    "Corsica",
+    "Creole",
+    "Scottish",
+    "Egyptian",
+    "Esperanto",
+    "Estonian",
+    "Finn",
+    "Flemish",
+    "Georgian",
+    "Hawaiian",
+    "Indonesian",
+    "Inuit",
+    "Irish",
+    "Icelandic",
+    "Latin",
+    "Mandarin",
+    "Nepalese",
+    "Sanskrit",
+    "Tagalog",
+    "Tahitian",
+    "Tibetan",
+    "Gypsy",
+]
+
+
+
+language_names = [lang.lower() for lang in languages] # under 3 chars, it would be too common
+
+
+# Create a single regex pattern to match any language name
+# language_pattern = re.compile(r'\b(' + '|'.join(re.escape(name) for name in language_names) + r')\b', re.IGNORECASE)
+
+def find_language_in_string(input_string):
+    instrlower = input_string.lower()
+    #logger.info(f"---{language_names}")
+    for language in language_names:
+        if re.search(rf'(?<!\w)[\.\s\-]{language}[\.\s\-](?!\w)', instrlower):
+            return f" {{{language}}}"
+    return ""
+
+    # Search for any language in the input string
+    #match = language_pattern.search(input_string)
+    #if match:
+    #    return f" {match.group(0).capitalize()}"  # Return the matched language
+    #return ""
+
+
+def show_find_most_similar(show, present_virtual_folders_shows):
+
+    show = clean_string(show)
+
+    # find existing show folder with thefuzz
+    result = find_most_similar(show, present_virtual_folders_shows)
+
+    will_idx_check = False
+    if result is not None:
+        most_similar_string, similarity_score = result
+
+        if similarity_score > 94:
+            show = most_similar_string
+            #logger.debug(f"      # similarshow check on : {show}")
+            #logger.debug(f"      # similarshow found is : {most_similar_string} with score {similarity_score}")
+
+            # S_DUP
+            will_idx_check = True
+
+        else:
+            present_virtual_folders_shows.append(show)
+    else:
+        present_virtual_folders_shows.append(show)
+
+    return (show, will_idx_check)
+
+#todo, not used, maybe to remove
+def find_lang_code(bibliographic_code):
+    # Loop through all languages in pycountry
+    for language in pycountry.languages:
+        # Check if the language has a bibliographic code
+        if hasattr(language, 'bibliographic') and language.bibliographic == bibliographic_code:
+            # Return the terminological (T) code, which is 'alpha_3'
+            return language.alpha_3
+    return bibliographic_code  # Return None if no match is found
+
+
 def get_bit_depth(pix_fmt):
     bit_depth_map = {
         'yuv420p': '8',
@@ -36,6 +179,8 @@ def parse_ffprobe(stdout, filepathnotice):
 
     slang_arr = []
     alang_arr = []
+
+    first_audio = ""
 
     _dvprofile = None
     if stdout is not None:
@@ -68,8 +213,11 @@ def parse_ffprobe(stdout, filepathnotice):
                     ####
                     elif stream.get('codec_type') == "audio":
                         if alang := (stream.get('tags') or {}).get('language', '').lower():
-                            if alang in "fre eng fra ang": #toimprove : pur here the prefered languages of the user +eng
-                                alang_arr.append(f"{alang[:2].upper()}")
+                            if alang in INTERESTED_LANGUAGES: #toimprove : pur here the prefered languages of the user +eng
+                                alang_arr.append(f"{alang[:3].capitalize()}")
+                            if first_audio == "":
+                                first_audio = f" {{{alang[:3].capitalize()}}}"
+
 
                         if codec_name in ['eac3', 'mlp']:
                             channel_layout = stream.get('channel_layout', "")
@@ -87,8 +235,8 @@ def parse_ffprobe(stdout, filepathnotice):
                     ####
                     elif stream.get('codec_type') == "subtitle":
                         if slang := (stream.get('tags') or {}).get('language', '').lower():
-                            if slang in "fre eng fra ang": 
-                                slang_arr.append(f"{slang[:2].upper()}")
+                            if slang in INTERESTED_LANGUAGES: 
+                                slang_arr.append(f"{slang[:3].capitalize()}")
     
     
     
@@ -102,12 +250,12 @@ def parse_ffprobe(stdout, filepathnotice):
 
     if slang_arr:
         slang_arr = list(set(slang_arr))
-        slang_tpl = f" s{'s'.join(slang_arr)}"
+        slang_tpl = f" [{''.join(slang_arr)}]"
     if alang_arr:
         alang_arr = list(set(alang_arr))
-        alang_tpl = f" v{'v'.join(alang_arr)}"
+        alang_tpl = f" {{{''.join(alang_arr)}}}"
 
-    return (f"{bitratetpl}{alang_tpl}{slang_tpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile)
+    return (f"{bitratetpl}{alang_tpl}{slang_tpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile, first_audio)
 
 def find_most_similar(input_str, string_list):
     # This returns the best match, its score and index
@@ -137,6 +285,9 @@ def clean_string(s):
 
 def remove_brackets(text):
     return re.sub(r'\[.*?\]', '', text)
+
+def remove_braces(text):
+    return re.sub(r'\{.*?\}', '', text)
 
 def subtitle_extension(file_name):
     _attribs = []
@@ -172,9 +323,9 @@ def subtitle_extension(file_name):
                     if lang_code:
                         _attribs.append(lang_code.lower())
 
-    # if there is really nothing return the only last split found
-    if(len(_attribs) < 1):
-        _attribs.append(parts[-1])
+    # if there is really nothing return the only last split found #todo : if len < 8
+    #if(len(_attribs) < 1):
+    #    _attribs.append(parts[-1])
 
     # fix if original filenames kind-of-mentionned same language 2 times (fr.french for example)
     if len(_attribs) > 1 and (_attribs[-1] == _attribs[-2]):

@@ -152,7 +152,7 @@ def get_tech_xml_details(pathwoext):
     #sqclose()
     return None
 
-def jf_xml_create(item, is_updated, sdata = None, tdata = None):
+def jf_xml_create(item, is_updated, sdata = None):
 
     if item.get('Type') == 'Movie':
         root = ET.Element("movie")
@@ -227,8 +227,14 @@ def jf_xml_create(item, is_updated, sdata = None, tdata = None):
         if people := item.get('People',[]):
             for actor in people:
                 actorxml = ET.SubElement(root, "actor")
-                ET.SubElement(actorxml, "name").text = actor.get("Name", "")
+                act_name = actor.get("Name", "")
+                if actor.get("Type", "") == "Director" and item.get('Type') in "Movie Episode":
+                    ET.SubElement(root, "director").text = act_name
+
+                ET.SubElement(actorxml, "name").text = act_name
                 ET.SubElement(actorxml, "role").text = actor.get("Role", "")
+
+
                 try:
                     item_images = jfapi.jellyfin(f'Items/{actor["Id"]}/Images').json()
                 except Exception as e:
@@ -318,18 +324,18 @@ def jf_xml_create(item, is_updated, sdata = None, tdata = None):
             write_to_disk(rootvariant, nfo_full_path, is_updated)
 
     else:
-        if tdata is not None:
-            nfo_full_paths = [JFSQ_STORED_NFO + tdpath[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf" for tdpath in tdata.get(item.get('Name'), [])]
-        else:
-            nfo_full_paths = []
+        #if tdata is not None:
+            #nfo_full_path = JFSQ_STORED_NFO + tdpath[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf" for tdpath in tdata.get(item.get('Name'), [])
+        #else:
+            #nfo_full_paths = []
         #logger.info(f"---- {nfo_full_paths}")
-        #nfo_full_paths.append(JFSQ_STORED_NFO + item.get('Path')[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf")
+        nfo_full_path = JFSQ_STORED_NFO + item.get('Path')[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf"
         #toremove
         
 
-        nfo_full_paths = list(set(nfo_full_paths))
-        for nfo_full_path in nfo_full_paths:
-            write_to_disk(root, nfo_full_path, is_updated)
+        #nfo_full_paths = list(set(nfo_full_paths))
+        #for nfo_full_path in nfo_full_paths:
+        write_to_disk(root, nfo_full_path, is_updated)
 
 def write_to_disk(root, nfo_full_path, is_updated):
 

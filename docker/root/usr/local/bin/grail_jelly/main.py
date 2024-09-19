@@ -302,7 +302,9 @@ def refresh_all(step):
     if step < 5:
         if JF_WANTED:
             logger.info("      STEP~ 4/ Generate Jellyfin NFOs")
-            nfo_loop_service()
+            if not nfo_loop_service():
+                step = 9 # if jfwanted but nfo gen fails stop here
+                logger.error("  ~NFO-FAIL| Generating NFOs from Jellyfin does not work, refresh will stop there")
 
     # if toomany, kodi refresh is done after jellyfin 
     if toomany:
@@ -341,9 +343,10 @@ def refresh_all(step):
     
 
     if retry_later == True and kodi_mysql_init_and_verify(just_verify=True):
-        logger.warning("      WAIT~ 2,5,6/ bypassed as Main Kodi offline, Retrying in 15s ... (if Kodi online, verfy JG and KODI configurations)")
+        logger.warning("      WAIT~ 2,5,6/ bypassed as Main Kodi offline, Retrying every 15s till its online")
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
         _is_kodi_alive_loop_thread.run()
+        # toimprove : ne need to queue this job ?
         # will run refresh_all with arg 8
 
 

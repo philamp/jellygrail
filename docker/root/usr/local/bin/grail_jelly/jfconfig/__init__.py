@@ -208,7 +208,7 @@ def jfconfig():
                         "PreferredMetadataLanguage": "fr",
                         "MetadataCountryCode": "FR",
                         "EnableRealtimeMonitor": False,
-                        "EnableAutomaticSeriesGrouping": True,
+                        "EnableAutomaticSeriesGrouping": False, #otherwise a metadata mistake is impossible to fix
                         "EnableChapterImageExtraction": False,
                         "ExtractChapterImagesDuringLibraryScan": False,
                         "MetadataSavers": [],

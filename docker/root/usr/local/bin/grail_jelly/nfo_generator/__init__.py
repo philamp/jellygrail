@@ -129,8 +129,8 @@ def nfo_loop_service():
 
         items_added_and_updated = [(item_id, item_id in syncqueue.get('ItemsUpdated')) for item_id in items_added_and_updated_pre]
         s_data = {}
-        t_data = {}
-        pre_t_data = {}
+        #t_data = {}
+        #pre_t_data = {}
 
         try:
             whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path,People,ProductionLocations')).json()['Items']
@@ -148,8 +148,8 @@ def nfo_loop_service():
             if(item.get('Type') == 'Episode'):
                 # get all possible tvshow parent paths and store it in { season_parent_id : paths_array[]}
                 # tvshow path by season uid (to associate later)
-                sname = item.get('SeriesName')
-                pre_t_data.setdefault(sname, [])
+                #sname = item.get('SeriesName')
+                #pre_t_data.setdefault(sname, [])
                 #pre_t_data[pid].append(item.get('Id'))
 
                 for item_id, is_updated in items_added_and_updated:
@@ -163,7 +163,7 @@ def nfo_loop_service():
                     trimmedPath = str(Path(*path.parts[:5]))
                     #toremove
                     #logger.info(f"----- URL {trimmedPath}")
-                    pre_t_data[sname].append(trimmedPath)
+                    #pre_t_data[sname+re.search(r'\{.*?\}', trimmedPath).group(0)].append(trimmedPath)
 
         
         for item in whole_jf_json_dump:
@@ -186,18 +186,18 @@ def nfo_loop_service():
             if(item.get('Type') == 'Season'):
                 if any(pid == item.get('ParentId') for pid, _ in items_added_and_updated):
                     pid = item.get('ParentId')
-                    sname = item.get('SeriesName') # bind by series name to merge different folders in one
+                    #sname = item.get('SeriesName') # bind by series name to merge different folders in one
                     sidx = item.get('IndexNumber')
                     suid = item.get('Id')
                     s_data.setdefault(pid, [])
                     s_data[pid].append({'sidx': sidx, 'suid': suid})
                     # append t_data[tvshowid] with pre_t_data indexed by season uids
-                    t_data.setdefault(sname, []) # bind by series name to merge different folders in one
-                    t_data[sname].extend(pre_t_data[sname])
+                    #t_data.setdefault(sname, []) # bind by series name to merge different folders in one
+                    #t_data[sname].extend(pre_t_data[sname])
 
-        # deduplicate t_data
-        for key, _ in t_data.items():
-            t_data[key] = list(set(t_data[key]))
+        # deduplicate pre_t_data
+        #for key, _ in pre_t_data.items():
+            #pre_t_data[key] = list(set(pre_t_data[key]))
 
         #logger.info(f"#### {t_data}")
 
@@ -235,7 +235,7 @@ def nfo_loop_service():
                 #if item_id not in already_seen:
                 if item.get('Id') == item_id:
                     if(item.get('Type') == 'Series'):
-                        jf_xml_create(item, is_updated, sdata = s_data, tdata = t_data)   
+                        jf_xml_create(item, is_updated, sdata = s_data)   
                     #already_seen.append(item_id)         
 
         # toremove : already_seen complete remove
