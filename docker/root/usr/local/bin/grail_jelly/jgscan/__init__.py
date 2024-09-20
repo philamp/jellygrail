@@ -79,7 +79,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     multiple_movie_or_disc_present = False
     bdmv_present = False
     season_present = False
-    one_movie_present = False
+    at_least_one_movie_present = False
     nbvideos = 0
     nbvideos_e = 0
     stopthere = False
@@ -89,7 +89,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     bdmv_ffprobed = None
     jgxmultiple_parses = []
     will_idx_check = False
-    lang_in_release_string = None
+    lang_in_release_string = "NOLANGFOUNDYET"
 
     # E_DUP duplicate workaround for one-movie releases / RESET idxdup at release level
     idxdupmovset = 1
@@ -113,10 +113,11 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
         for filename in files:
             previous_show_folder = ""
             previous_found_folder = ""
+            show = ""
+            season = ""
+            episode_num = ""
             if not "(sample)" in filename.lower() and not "sample.mkv" in filename.lower() and not '@eaDir' in root and not "DS_Store" in filename.lower() and not ('BDMV' not in os.path.normpath(root).split(os.sep) and filename.lower().endswith(('.m2ts'))):
-                show = ""
-                season = ""
-                episode_num = ""
+
                 # B - cache item fetching 
                 # folder insert will use rar_item (could be none or the parent rar file) 
                 # file insert will use rd_cache_item (could be a direct file or the parent rar file)
@@ -156,14 +157,17 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                                 season_episode_match = re.search(r's(\d+)\.?e(\d+)', season_episode, re.IGNORECASE)
                                 season, episode_num = season_episode_match.groups()
                             else:
-                                season = "1"
+                                season = "01"
                                 season_episode_match = re.search(r'[ .]e(\d+)', season_episode, re.IGNORECASE)
                                 (episode_num,) = season_episode_match.groups()
+
+                            season = season.zfill(2)
+                            episode_num = episode_num.zfill(2)
                             
-                            if not lang_in_release_string:
+                            if lang_in_release_string == "NOLANGFOUNDYET": # do it once
                                 lang_in_release_string = find_language_in_string(releasefolder)
 
-                            show = show + lang_in_release_string
+                            show = clean_string(show) + lang_in_release_string
 
                             if previous_show_folder != show: # dont find most similar on every file, if it's same as previous file, don't bother redoing it
                                 previous_show_folder = show
@@ -229,7 +233,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     (stdout, _, fferr) = get_plain_ffprobe(os.path.join(root, filename))
                     if fferr != 0:
                         stdout = None
-                    (premetastpl, dvprofile, _) = parse_ffprobe(stdout, filename)
+                    (premetastpl, dvprofile) = parse_ffprobe(stdout, filename)
 
 
                     if season_present: 
@@ -408,7 +412,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     if season_present and not stopthere:
 
         # S_DUP / reset idxdup at dive_s_ loop level 
-        idxdup = 1
+        
 
         for keyshow, seasonlist in dive_s_.items():
             for seasonkey, episodelist in seasonlist.items():
@@ -420,6 +424,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                         # metas compute
                         # S_DUP
+                        idxdup = 1
                         metas = episodeattribs['premetas']
                         if (will_idx_check):
                         # LS the sim folder with no ext files (because we loop check at filename level, we want to list video only and not subs)
@@ -430,13 +435,13 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                             # We deduplicate anyway to have videofilename.* count as one entry
                             
-                            if(f"{show} S{season}E{episode_num}" not in idxdupshowset_a):
+                            if(f"{keyshow} S{seasonkey}E{episodekey}" not in idxdupshowset_a):
                                 for existing_file in ls_virtual_folder_a:
-                                    if f"{show} S{season}E{episode_num}"+metas+str(idxdup) == existing_file:
+                                    if f"{keyshow} S{seasonkey}E{episodekey}"+metas+str(idxdup) == existing_file:
                                         idxdup += 1
-                                idxdupshowset_a[f"{show} S{season}E{episode_num}"] = idxdup
+                                idxdupshowset_a[f"{keyshow} S{seasonkey}E{episodekey}"] = idxdup
                             else:
-                                idxdup = idxdupshowset_a[f"{show} S{season}E{episode_num}"]
+                                idxdup = idxdupshowset_a[f"{keyshow} S{seasonkey}E{episodekey}"]
                         metas = metas + str(idxdup)
                         # S_DUP
 
@@ -452,11 +457,11 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         # toimprove : put "subs" subfolders back in (ex: agatha raison s04)
 
                         # S FOLDERS INSERT 
-                        insert_data("/shows/"+show, None, None, None, episodeattribs['mediatype_s'])
-                        insert_data("/shows/"+show+"/Season "+seasonkey, None, None, None, episodeattribs['mediatype_s'])
-                        insert_data("/shows/"+show+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}", None, None, None, episodeattribs['mediatype_s'])
+                        insert_data("/shows/"+keyshow, None, None, None, episodeattribs['mediatype_s'])
+                        insert_data("/shows/"+keyshow+"/Season "+seasonkey, None, None, None, episodeattribs['mediatype_s'])
+                        insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}", None, None, None, episodeattribs['mediatype_s'])
                         # S FILES INSERT
-                        insert_data("/shows/"+show+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"+"/"+f"{keyshow} S{seasonkey}E{episodekey}{metas}{filename_ext}", rootfilename, release_folder_path, rd_cache_item, episodeattribs['mediatype_s'], ffprobed)
+                        insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"+"/"+f"{keyshow} S{seasonkey}E{episodekey}{metas}{filename_ext}", rootfilename, release_folder_path, rd_cache_item, episodeattribs['mediatype_s'], ffprobed)
 
     if not season_present and not stopthere:
         
@@ -545,7 +550,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     else:
                         insert_data("/movies/"+title_year+"/"+title_year+metas+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], item['ffprobed'])
 
-                    one_movie_present = True
+                    at_least_one_movie_present = True
 
         # rootfolders for EF case
         for rootfoldername in dive_e_['rootfoldernames']:
@@ -563,7 +568,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                 insert_data("/movies/"+releasefolder+nomergetype+"/extras", None, None, None, dive_e_['mediatype'])
 
         # Esingle folders
-        if one_movie_present:
+        if at_least_one_movie_present:
             insert_data("/movies/"+title_year, None, None, None, dive_e_['mediatype'])
             if atleastoneextra:
                 insert_data("/movies/"+title_year+"/extras", None, None, None, dive_e_['mediatype'])
@@ -632,6 +637,7 @@ def scan():
                             items_scanned += 1
                         sqcommit()
 
+                #todo temp toremove
                 elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
                     items_scanned += 1
                     logger.info(f"  NEW-ITEM~ {f.name} (folder-less)")
@@ -686,7 +692,7 @@ def scan():
                         if fferr != 0:
                             stdout = None
                         
-                        (premetastpl, dvprofile, _) = parse_ffprobe(stdout, f.path)
+                        (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
                         metas = f" -{premetastpl} JGx"
 
                         #(bitrate, dvprofile) = get_ffprobe(f.path)

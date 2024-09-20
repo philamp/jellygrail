@@ -101,7 +101,7 @@ def find_language_in_string(input_string):
     instrlower = input_string.lower()
     #logger.info(f"---{language_names}")
     for language in language_names:
-        if re.search(rf'(?<!\w)[\.\s\-]{language}[\.\s\-](?!\w)', instrlower):
+        if re.search(rf'[ \._\-(\[]{language}[ \._\-)\]]', instrlower):
             return f" {{{language}}}"
     return ""
 
@@ -114,8 +114,6 @@ def find_language_in_string(input_string):
 
 def show_find_most_similar(show, present_virtual_folders_shows):
 
-    show = clean_string(show)
-
     # find existing show folder with thefuzz
     result = find_most_similar(show, present_virtual_folders_shows)
 
@@ -124,6 +122,22 @@ def show_find_most_similar(show, present_virtual_folders_shows):
         most_similar_string, similarity_score = result
 
         if similarity_score > 94:
+
+
+            # remove embiguity from language string in {}
+            if show_match := re.search(r'\{([^}]+)\}', show):
+                show_match = show_match.group(1)
+            else:
+                show_match = ""
+
+            if most_similar_match := re.search(r'\{([^}]+)\}', most_similar_string):
+                most_similar_match = most_similar_match.group(1)
+            else:
+                most_similar_match = ""
+            
+            if show_match != most_similar_match:
+                return (show, will_idx_check)
+
             show = most_similar_string
             #logger.debug(f"      # similarshow check on : {show}")
             #logger.debug(f"      # similarshow found is : {most_similar_string} with score {similarity_score}")
@@ -180,7 +194,7 @@ def parse_ffprobe(stdout, filepathnotice):
     slang_arr = []
     alang_arr = []
 
-    first_audio = ""
+    #first_audio = ""
 
     _dvprofile = None
     if stdout is not None:
@@ -215,8 +229,8 @@ def parse_ffprobe(stdout, filepathnotice):
                         if alang := (stream.get('tags') or {}).get('language', '').lower():
                             if alang in INTERESTED_LANGUAGES: #toimprove : pur here the prefered languages of the user +eng
                                 alang_arr.append(f"{alang[:3].capitalize()}")
-                            if first_audio == "":
-                                first_audio = f" {{{alang[:3].capitalize()}}}"
+                            #if first_audio == "":
+                                #first_audio = f" {{{alang[:3].capitalize()}}}"
 
 
                         if codec_name in ['eac3', 'mlp']:
@@ -255,7 +269,7 @@ def parse_ffprobe(stdout, filepathnotice):
         alang_arr = list(set(alang_arr))
         alang_tpl = f" {{{''.join(alang_arr)}}}"
 
-    return (f"{bitratetpl}{alang_tpl}{slang_tpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile, first_audio)
+    return (f"{bitratetpl}{alang_tpl}{slang_tpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile)
 
 def find_most_similar(input_str, string_list):
     # This returns the best match, its score and index

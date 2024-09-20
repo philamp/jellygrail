@@ -454,7 +454,6 @@ def merge_kodi_versions():
     return True
 
 
-
 def fix_bad_merges():
 
     # toimprove look for currently merged items in kodi db (path and filename). 
