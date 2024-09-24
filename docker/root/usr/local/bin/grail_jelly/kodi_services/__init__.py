@@ -137,6 +137,9 @@ def refresh_kodi():
     clean_payload = json.dumps({
         "jsonrpc": "2.0",
         "method": "VideoLibrary.Clean",
+        "params": {
+            "showdialogs": False
+        },
         "id": "1"
     })
 
@@ -187,9 +190,9 @@ def refresh_kodi():
             )
 
         except Exception as e:
-            logger.error(f"!! Kodi cleaning trigger failed with {e} [refresh_kodi]")
+            logger.warning(f"!! Kodi cleaning maybe triggered but there is this error: {e} [refresh_kodi]")
             ws.close()
-            return False
+            return True
         else:
             if response.status_code == 200:
                 logger.info("TASK-START~ Kodi Library cleaning...")
@@ -231,9 +234,10 @@ def send_nfo_to_kodi():
                 potential_nfo_to_send += 1
                 
     if potential_nfo_to_send == 0:
-        notify_kodi("JG NFO refresh", f"No new iNFO to send", 3000)
+        #notify_kodi("JG NFO refresh", f"No new iNFO to send", 3000)
+        pass
     else:
-        notify_kodi("JG NFO refresh", f"Sending {potential_nfo_to_send} new iNFOs max", 3000)
+        notify_kodi("JG NFO refresh", f"Sending {potential_nfo_to_send} NFOs", 3000)
 
 
     for root, _, files in os.walk(JFSQ_STORED_NFO):
@@ -241,7 +245,7 @@ def send_nfo_to_kodi():
         #nfo refresh is on parent folder basis (root), if there is at least one nfo with ".updated" in this folder it will refresh all neigboors in same folder
         updated = False
 
-        for filename in files:
+        for filename in files: # if one nfo is updated among its siblings, all are considered updated
             if filename.lower().endswith('.nfo.jf.updated'):
                 updated = True
 
@@ -324,6 +328,7 @@ def send_nfo_to_kodi():
                             files_to_rename.append(root + "/" + filename)
 
                 else:
+                    files_to_rename.append(root + "/" + filename) # renaming to done does not prevent kodi to find them later if finally available
                     logger.warning(f"! {tofetch} has no kodi db correspondance (corresponding video file maybe deleted or Kodi hasn't scanned this item yet)") #toimprove : bindfs should also delete the corresponding nfo files when main file deleted
                 
 
