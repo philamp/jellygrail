@@ -2,10 +2,10 @@
 # shellcheck shell=bash
 
 # fill s6 env variables for mariadb
-echo -n "kodi" > "/var/run/s6/container_environment/MYSQL_ROOT_PASSWORD"
+echo -n "nopassword" > "/var/run/s6/container_environment/MYSQL_ROOT_PASSWORD"
 echo -n "kodi_video131" > "/var/run/s6/container_environment/MYSQL_DATABASE"
 echo -n "kodi" > "/var/run/s6/container_environment/MYSQL_USER"
-echo -n "nopassword" > "/var/run/s6/container_environment/MYSQL_PASSWORD"
+echo -n "kodi" > "/var/run/s6/container_environment/MYSQL_PASSWORD"
 
 # Create the MySQL data directory if it doesn't already exist
 mkdir -p /jellygrail/data/mariadb
