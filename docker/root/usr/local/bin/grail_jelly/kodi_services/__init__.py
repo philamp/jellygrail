@@ -1,7 +1,7 @@
 from base import *
 from base.littles import *
 from base.constants import *
-from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, set_resume_times_and_lastplayed
+from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, set_resume_times_and_lastplayed, get_undefined_collection_arts, insert_collection_art
 import requests
 import urllib.parse
 import websocket
@@ -9,6 +9,8 @@ import threading
 from datetime import datetime
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
+
+NGINX_HOST = os.getenv('WEBDAV_LAN_HOST')
 
 kodi_url = f"http://{KODI_MAIN_URL}:8080/jsonrpc"
 kodi_ws_url = f"ws://{KODI_MAIN_URL}:9090/jsonrpc"
@@ -454,6 +456,12 @@ def merge_kodi_versions():
                 logger.error("imediatokeep is none, this should not happen")
         else:
             logger.error("vv main request gone wrong, this should not happen")
+
+    # sets collection images
+    for (idset, strset, _) in get_undefined_collection_arts():
+        insert_collection_art(idset, "http://"+NGINX_HOST+"/pics/collections/"+urllib.parse.quote(strset, safe=SAFE)+".jpg")
+        
+
         
     mariadb_close()
     return True

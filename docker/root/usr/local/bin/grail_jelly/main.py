@@ -619,7 +619,7 @@ if __name__ == "__main__":
         thread_b.daemon = True  # exits when parent thread exits
         thread_b.start()
 
-        logger.warning("       TIP| if run in interactive mode, CTRL+C does not prevent restart, so it should be done manually if needed")
+        logger.warning("       TIP| CTRL+C does not prevent restart. So if needed, stopping should be done with a docker stop command")
 
         # daily restart scan
         _scan_instance = ScriptRunner.get(refresh_all)

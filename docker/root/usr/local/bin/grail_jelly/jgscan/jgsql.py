@@ -130,7 +130,6 @@ def get_path_props_woext(path):
     return cursor.fetchall()
 
 
-
 '''
 def init_jellyfin_db(path):
     """ Initialize the jf db connection """

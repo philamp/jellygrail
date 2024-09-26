@@ -106,6 +106,7 @@ def insert_new_vvtype(new_string):
 
 
 def set_resume_times_and_lastplayed(timesec, lastplayedstr, fileidsstr):
+    #todo update or insert !!
     global conn
     cursor = conn.cursor()
 
@@ -161,6 +162,26 @@ def fetch_media_id(path, tabletofetch, idtofetch):
     cursor.close() 
     # Récupération des résultats
     return result
+
+def get_undefined_collection_arts():
+    global conn
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM sets s WHERE NOT EXISTS (SELECT 1 FROM art a WHERE a.media_type = 'set' AND a.media_id = s.idSet)")
+    return cursor.fetchall()
+
+
+def insert_collection_art(id, strpath):
+    global conn
+    cursor = conn.cursor()
+
+    # Exécution d'une requête
+    cursor.execute("INSERT INTO art (media_id, media_type, type, url) VALUES (%s, 'set', 'thumb', %s)", (id, strpath))
+
+    conn.commit()
+
+    cursor.close() 
+
+    return True
 
 def mariadb_close():
     global conn
