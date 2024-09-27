@@ -245,24 +245,24 @@ def remoteScan():
             response.raise_for_status()
             server_data = response.json()
         except Exception as e:
-            logger.critical(f"Error fetching data from server or server not ready, please retry later: {e}")
+            logger.warning(f" REMOTE-JG| Remote JellyGrail Instance is simply not running or other error: {e}")
             return None
 
         if server_data.get('pilekey') != cur_key:
-            logger.warning(f"> Remote pile key changed, reset with increment from settings.env [remoteScan]")
+            logger.warning(f" REMOTE-JG| Remote pile key changed, reset with increment found in settings.env")
             remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{DEFAULT_INCR}"
             try:
                 response = requests.get(remote_loc, timeout=10)
                 response.raise_for_status()
                 server_data = response.json()
             except Exception as e:
-                logger.critical(f"Error fetching data from server or server not ready, please retry later: {e}")
+                logger.warning(f" REMOTE-JG| Remote JellyGrail Instance is simply not running or other error:  {e}")
                 return None
             save_data_to_file(REMOTE_PILE_KEY_FILE, server_data.get('pilekey'))
 
         if server_data is not None:
             if not len(server_data['hashes']) > 0:
-                logger.debug(f"> no new data [remoteScan]")
+                logger.debug(f" REMOTE-JG| No new RD hashes")
                 return None
         else:
             logger.critical(f"Data was fetched but data returned is None")
@@ -377,10 +377,10 @@ def read_data_from_file(filepath):
             strincr = file.read().strip()
             incr = int(strincr)  # Attempt to convert an empty string to an integer
     except FileNotFoundError:
-        logger.warning(f"! Increment or pilekey data file not exists yet [read_data_from_file]")
+        logger.warning(f" REMOTE-JG| Sync Increment or Sync Pile Key data file not exists yet, should happen just twice on first use")
         return int(DEFAULT_INCR)
     except ValueError as e:
-        logger.critical(f"!!! Error taking increment or pilekey from data file [read_data_from_file]: {e}")
+        logger.critical(f" REMOTE-JG| Error taking increment or pilekey from data file; Error is: {e}")
         return int(DEFAULT_INCR)
     else:
         return incr

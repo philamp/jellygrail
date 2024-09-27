@@ -34,7 +34,7 @@ def wait_for_jfscan_to_finish():
                 else:
                     time.sleep(8) #toimprove : retry every 8+2 seconds toimprove, jellyfin is overloaded, but fix it later in a more clever way
         except Exception as e:
-            logger.error(" TASK-WAIT~ JF refresh waiting task terminated due to API errors !!")
+            logger.warning(" TASK-DONE~ ... Jellyfin Library refreshed. (but API overloaded by status requests :( )")
             return True
 
     logger.info(" TASK-DONE~ ... Jellyfin Library refreshed.")

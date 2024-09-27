@@ -25,6 +25,29 @@ is_scanning = False
 is_cleaning = False
 refresh_is_safe = False
 
+def kodi_ui_refresh():
+    fake_folder_path = 'dummy/path/just/to/refresh'
+
+    # Create the JSON-RPC request
+    payload = {
+        "jsonrpc": "2.0",
+        "method": "VideoLibrary.Scan",
+        "params": {"directory": fake_folder_path},
+        "id": "1"
+    }
+
+    # Send the request
+    try:
+        response = requests.post(kodi_url, data=json.dumps(payload), auth=(kodi_username, kodi_password))
+        response.raise_for_status()
+
+    except Exception as e:
+        logger.warning(f"  KODI-API| UI Refresh failed (please verify Kodi services settings); error is: {e}")
+        return False
+
+    return True
+
+
 def notify_kodi(title, message, display_time):
 
     notification_payload = json.dumps({
@@ -48,7 +71,7 @@ def notify_kodi(title, message, display_time):
         )
         notification_response.raise_for_status()
     except Exception as e:
-        logger.warning(f"!! Kodi message failed with: {e}")
+        logger.warning(f"  KODI-API| Notification failed (please verify Kodi services settings); error is: {e}")
         return False
 
     return True
@@ -368,7 +391,7 @@ def merge_kodi_versions():
 
     #results = [(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]) for row in video_versions()]
 
-    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, lastplayedsR, resumetimesR) in video_versions(): #results:
+    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, lastplayedsR, resumetimesR, totaltimesR) in video_versions(): #results:
         #find the incr smallest version
         i=0
         currlowest=200
@@ -387,6 +410,7 @@ def merge_kodi_versions():
         # manage resumtimes:
         highest_lp = None
         highest_rt = None
+        highest_tt = None
 
         if lastplayedsR:
             #lastplayeds_str = lastplayedsR.split("#")
@@ -396,8 +420,11 @@ def merge_kodi_versions():
         if resumetimesR:
             highest_rt = max([float(num) for num in resumetimesR.split(" ")])
 
-        set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR)
-        # :manage resumetimes
+        if totaltimesR:
+            highest_tt = max([float(num) for num in totaltimesR.split(" ")])
+
+            set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR, idfiles, highest_tt)
+            # :manage resumetimes
 
 
         if idfiles and strpaths and idmedias:
@@ -462,6 +489,10 @@ def merge_kodi_versions():
         insert_collection_art(idset, "http://"+NGINX_HOST+"/pics/collections/"+urllib.parse.quote(strset, safe=SAFE)+".jpg")
         
 
+
+    # refresh kodi UI
+    if is_kodi_alive():
+        kodi_ui_refresh()
         
     mariadb_close()
     return True

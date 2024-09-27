@@ -355,7 +355,7 @@ def run_server(server_class=HTTPServer, handler_class=RequestHandler, port=6502)
     global httpd
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    logger.info(f"      WAIT| HTTP WebService running on port: {port} ~")
+    logger.info(f"      HTTP| JellyGrail WebService running on port: {port} ~")
     httpd.serve_forever()
 
 

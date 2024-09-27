@@ -154,6 +154,8 @@ def get_tech_xml_details(pathwoext):
 
 def jf_xml_create(item, is_updated, sdata = None):
 
+    tstmp = int(time.time())
+
     if item.get('Type') == 'Movie':
         root = ET.Element("movie")
         logger.info("    NFOGEN| MOVIE")
@@ -202,15 +204,15 @@ def jf_xml_create(item, is_updated, sdata = None):
         for itmimg in item_images:
             if itmimg.get('ImageType') == 'Primary':
                 if item.get('Type') == 'Episode':
-                    ET.SubElement(root, "thumb", {"aspect": "thumb"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                    ET.SubElement(root, "thumb", {"aspect": "thumb"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
                 else:
-                    ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                    ET.SubElement(root, "thumb", {"aspect": "poster"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
             elif itmimg.get('ImageType') == 'Logo':
-                ET.SubElement(root, "thumb", {"aspect": "clearlogo"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                ET.SubElement(root, "thumb", {"aspect": "clearlogo"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
             elif itmimg.get('ImageType') == 'Backdrop':
-                ET.SubElement(root, "thumb", {"aspect": "landscape"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
-                ET.SubElement(root, "thumb", {"aspect": "banner"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
-                ET.SubElement(root, "thumb", {"aspect": "clearart"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                ET.SubElement(root, "thumb", {"aspect": "landscape"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
+                ET.SubElement(root, "thumb", {"aspect": "banner"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
+                #ET.SubElement(root, "thumb", {"aspect": "clearart"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
 
     if item.get('Type') == 'Series':
         for season_data in seasons_data:
@@ -220,7 +222,7 @@ def jf_xml_create(item, is_updated, sdata = None):
                 logger.error(f"> Get JF pics TVSHOW failed with error: {e}")
             else:
                 for itmimg in item_images:
-                    ET.SubElement(root, "thumb", {"aspect": "poster", "type": "season", "season": str(season_data['sidx']) }).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}"
+                    ET.SubElement(root, "thumb", {"aspect": "poster", "type": "season", "season": str(season_data['sidx']) }).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
 
 
     if item.get('Type') in "Movie Episode Series":
@@ -241,7 +243,7 @@ def jf_xml_create(item, is_updated, sdata = None):
                     logger.error(f"> Get JF actor pic failed with error: {e}")
                 else:
                     for itmimg in item_images:
-                        ET.SubElement(actorxml, "thumb").text = f"http://[HOST_PORT]/pics{urllib.parse.quote(itmimg.get('Path')[JF_MD_SHIFT:], safe=SAFE)}"
+                        ET.SubElement(actorxml, "thumb").text = f"http://[HOST_PORT]/pics{urllib.parse.quote(itmimg.get('Path')[JF_MD_SHIFT:], safe=SAFE)}?{tstmp}"
 
     if item.get('Type') == "Movie":
         for prodloc in item.get('ProductionLocations', []):
