@@ -5,11 +5,23 @@ from base.constants import *
 
 conn = None
 
+# kodi mysql config
+KODI_MYSQL_CONFIG = {
+    'host' : 'localhost',
+    'user' : 'kodi',
+    'password' : 'kodi',
+    #'database' : 'kodi_video131',
+    'port' : 6503
+}
+
+found_db = ""
+
 
 # only kodi_mysql_init_and_verify has smart try-except fallbacks as other calls must 100% work if database is not messed up during process
 
 def kodi_mysql_init_and_verify(just_verify=False):
     global conn
+    global found_db
 
     try:
         # Establish a connection to the MySQL server (** is unpacking the dict into keyed args)
@@ -17,8 +29,13 @@ def kodi_mysql_init_and_verify(just_verify=False):
         cursor = conn.cursor(buffered=True)
 
         # Query to check if the database exists
-        cursor.execute("SHOW DATABASES LIKE 'kodi_video131';")
-        result = cursor.fetchone()
+        cursor.execute("SHOW DATABASES LIKE 'kodi_video%'")
+        result = cursor.fetchall()
+
+        results = [res[0] for res in result]
+
+        found_db = results[-1]
+
         cursor.close() # important
         if result:
             if just_verify:
@@ -48,6 +65,7 @@ def check_if_vvtype_exists(test_string):
     cursor = conn.cursor(buffered=True)
 
     # Exécution d'une requête
+    cursor.execute(f"USE {found_db}")
     cursor.execute(f"SELECT id FROM videoversiontype where name = %s", (test_string,))
 
     result = cursor.fetchone()
@@ -66,6 +84,7 @@ def delete_other_mediaid(imediatodel):
     cursor = conn.cursor()
 
     # Exécution d'une requête
+    cursor.execute(f"USE {found_db}")
     cursor.execute(f"DELETE FROM movie where idMovie = %s", (imediatodel,))
 
     conn.commit()
@@ -79,6 +98,7 @@ def define_kept_mediaid(idfile, strpath, imediatokeep):
     cursor = conn.cursor()
 
     # Exécution d'une requête
+    cursor.execute(f"USE {found_db}")
     cursor.execute(f"UPDATE movie set idFile = %s, c22 = %s where idMovie = %s", (idfile,strpath,imediatokeep))
 
     conn.commit()
@@ -93,6 +113,7 @@ def insert_new_vvtype(new_string):
     cursor = conn.cursor()
 
     # Exécution d'une requête
+    cursor.execute(f"USE {found_db}")
     cursor.execute(f"insert into videoversiontype (name, owner, itemType) values (%s, 0,0)", (new_string,))
 
     conn.commit()
@@ -109,6 +130,8 @@ def set_resume_times_and_lastplayed(timesec, lastplayedstr, fileidsstr, idfiles,
     #todo update or insert !!
     global conn
     cursor = conn.cursor()
+
+    cursor.execute(f"USE {found_db}")
 
     if timesec:
 
@@ -138,6 +161,7 @@ def set_resume_times_and_lastplayed(timesec, lastplayedstr, fileidsstr, idfiles,
 def link_vv_to_kept_mediaid(vvid, keptmid, new_type_id):
     global conn
     cursor = conn.cursor()
+    cursor.execute(f"USE {found_db}")
 
     cursor.execute(f"UPDATE videoversion set idMedia = %s, idType = %s where idFile = %s", (keptmid,new_type_id,vvid))
 
@@ -151,6 +175,7 @@ def video_versions():
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
     cursor = conn.cursor(buffered=True)
+    cursor.execute(f"USE {found_db}")
 
     # Exécution d'une requête
     cursor.execute(f"SELECT uid.value as tmdbid, group_concat(mvb.idMovie SEPARATOR ' ') as idmedia, group_concat(mvb.strPath SEPARATOR ' ') as strpath, group_concat(mvb.strFileName SEPARATOR ' ') as strfilename, group_concat(mvb.videoVersionIdFile SEPARATOR ',') as idfile, group_concat(isDefaultVersion SEPARATOR ' ') as isdefault, group_concat(lastPlayed SEPARATOR '#') as lastPlayed, group_concat(resumeTimeInSeconds SEPARATOR ' ') as resumeTimeInSeconds, group_concat(mvb.totalTimeInSeconds SEPARATOR ' ') as totalTimeInSeconds FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie where uid.type = 'tmdb' GROUP BY uid.value HAVING COUNT(*) > 1")
@@ -164,6 +189,7 @@ def fetch_media_id(path, tabletofetch, idtofetch):
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
     cursor = conn.cursor(buffered=True)
+    cursor.execute(f"USE {found_db}")
 
     like_param = f"%{path}%"
 
@@ -178,6 +204,7 @@ def fetch_media_id(path, tabletofetch, idtofetch):
 def get_undefined_collection_arts():
     global conn
     cursor = conn.cursor()
+    cursor.execute(f"USE {found_db}")
     cursor.execute("SELECT * FROM sets s WHERE NOT EXISTS (SELECT 1 FROM art a WHERE a.media_type = 'set' AND a.media_id = s.idSet)")
     return cursor.fetchall()
 
@@ -185,6 +212,7 @@ def get_undefined_collection_arts():
 def insert_collection_art(id, strpath):
     global conn
     cursor = conn.cursor()
+    cursor.execute(f"USE {found_db}")
 
     # Exécution d'une requête
     cursor.execute("INSERT INTO art (media_id, media_type, type, url) VALUES (%s, 'set', 'thumb', %s)", (id, strpath))

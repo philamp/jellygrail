@@ -113,6 +113,7 @@ def rd_progress():
                 _, cur_pile = file_to_array(PILE_FILE)
                 if len(dled_rd_hashes) > 0:
                     delta_elements = [item for item in dled_rd_hashes if item not in cur_pile]
+                    delta_elements = list(set(delta_elements))
                     array_to_file(PILE_FILE, delta_elements)
 
                     if len(delta_elements) > 0:
