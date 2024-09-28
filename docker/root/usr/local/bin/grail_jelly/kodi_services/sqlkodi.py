@@ -113,8 +113,14 @@ def set_resume_times_and_lastplayed(timesec, lastplayedstr, fileidsstr, idfiles,
     if timesec:
 
         for fileid in idfiles:
+            
+            cursor.execute(f"SELECT idFile FROM bookmark where idFile = %s", (fileid,))
+            result = cursor.fetchone()
 
-            cursor.execute(f"INSERT INTO bookmark (idFile, timeInSeconds, totalTimeInSeconds, player, type) VALUES (%s, %s, %s, 'VideoPlayer', 1) ON DUPLICATE KEY UPDATE timeInSeconds = VALUES(timeInSeconds)", (fileid,timesec,highest_tt))
+            if result:
+                cursor.execute(f"UPDATE bookmark set timeInSeconds = %s WHERE idFile = %s", (timesec,fileid))
+            else:
+                cursor.execute(f"INSERT INTO bookmark (idFile, timeInSeconds, totalTimeInSeconds, player, type) VALUES (%s, %s, %s, 'VideoPlayer', 1) ON DUPLICATE KEY UPDATE timeInSeconds = VALUES(timeInSeconds)", (fileid,timesec,highest_tt))
 
 
         #cursor.execute(f"UPDATE bookmark set timeInSeconds = %s WHERE idFile in ({fileidsstr})", (timesec,))

@@ -172,6 +172,8 @@ def jf_xml_create(item, is_updated, sdata = None):
 
     if item.get('Type') == 'Episode':
         ET.SubElement(root, "showtitle").text = item.get('SeriesName', "")
+        ET.SubElement(root, "aired").text = str(item.get("PremiereDate", ""))[:10]
+
     
     ET.SubElement(root, "title").text = item.get("Name", "")
     ET.SubElement(root, "premiered").text = str(item.get("PremiereDate", ""))[:10]

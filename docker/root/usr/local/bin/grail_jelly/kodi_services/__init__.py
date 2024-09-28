@@ -114,7 +114,7 @@ def on_message(ws, message):
 def on_error(ws, error):
     global is_scanning
     global refresh_is_safe
-    logger.error(f"WebSocket error: {error}, please enable 'Allow remote control from applications on other systems' via Kodi UI in Settings/Services/Control [kodi_services]")
+    logger.error(f"  KODI-API| Please enable 'Allow remote control from applications on other systems' via Kodi UI in Settings/Services/Control; WebSocket error is: {error}")
     refresh_is_safe = False
 
 def on_close(ws, close_status_code, close_msg):
@@ -122,7 +122,7 @@ def on_close(ws, close_status_code, close_msg):
 
 def on_open(ws):
     global refresh_is_safe
-    logger.info(" WEBSOCKET~ Waiting for Kodi to finish jobs...")
+    logger.info("  KODI-API~ Waiting for Kodi to finish jobs via websocket trigger...")
     refresh_is_safe = True
 
 
@@ -211,7 +211,7 @@ def refresh_kodi():
                 headers=headers,
                 data=clean_payload,
                 auth=(kodi_username, kodi_password),
-                timeout=240
+                timeout=1500
             )
 
         except Exception as e:
@@ -422,7 +422,7 @@ def merge_kodi_versions():
 
         if totaltimesR:
             highest_tt = max([float(num) for num in totaltimesR.split(" ")])
-
+            # only do it if it finds at least one tt
             set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR, idfiles, highest_tt)
             # :manage resumetimes
 

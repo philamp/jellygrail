@@ -24,7 +24,9 @@ JFSQ_STORED_NFO = "/jellygrail/data/nfos"
 JFSQ_STORED_NFO_SHIFT = len(JFSQ_STORED_NFO)
 
 #should not be urlencoded
-SAFE="()[]{}!$&'()*+,;=:@"
+#SAFE="()[]!$&'()*+,;=:@"
+
+SAFE=":/?#[]@!$&'()*+,;="
 
 # rd local dump cron-backups folder
 RDUMP_BACKUP_FOLDER = '/jellygrail/data/backup'
