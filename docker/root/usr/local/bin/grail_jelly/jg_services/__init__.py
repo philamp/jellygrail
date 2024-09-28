@@ -12,6 +12,7 @@ RD = RD()
 
 # one shot token
 oneshot_token = None
+rs_working = False
 
 # rd remote location
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
@@ -71,6 +72,11 @@ def rd_progress():
 # rd_progress NEW: Fill the pile chronologically each time it's called in server and new stuff arrives
     # this will trigger /scan if any downloading finished on own RD account
     # so the order is : /remotescan, /rd_progress -> /scan (+daily forced scan if needed)
+
+    #if remoteScan working, stop rdprogress
+    if rs_working:
+        logger.warning("RDAPI-PACER~ New downloads checker will trigger when remote hashes fetcher has completed")
+        return ""
 
     if data := rdump_backup(including_backup = False, returning_data= True):
 
@@ -224,7 +230,7 @@ def restoreitem(filename, token):
 # ----------------------------------
         
 def remoteScan():
-
+    global rs_working
     # take data from remote RD account
     # if no local data, take it (we have to compare later on)
 
@@ -233,6 +239,9 @@ def remoteScan():
     # toimprove : add wait until select files is available (mitigated by regular retry)
 
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
+
+        rs_working = True
+
          # -> ok but if remotescan is called a lot ... lot of backups....
         cur_incr = read_data_from_file(RDINCR_FILE)
 
@@ -246,6 +255,7 @@ def remoteScan():
             server_data = response.json()
         except Exception as e:
             logger.warning(f" REMOTE-JG| Remote JellyGrail Instance is simply not running or other error: {e}")
+            rs_working = False
             return None
 
         if server_data.get('pilekey') != cur_key:
@@ -257,15 +267,18 @@ def remoteScan():
                 server_data = response.json()
             except Exception as e:
                 logger.warning(f" REMOTE-JG| Remote JellyGrail Instance is simply not running or other error:  {e}")
+                rs_working = False
                 return None
             save_data_to_file(REMOTE_PILE_KEY_FILE, server_data.get('pilekey'))
 
         if server_data is not None:
             if not len(server_data['hashes']) > 0:
                 logger.debug(f" REMOTE-JG| No new RD hashes")
+                rs_working = False
                 return None
         else:
             logger.critical(f"Data was fetched but data returned is None")
+            rs_working = False
             return None
         
         if(local_data := rdump_backup(including_backup = False, returning_data = True)):
@@ -315,6 +328,8 @@ def remoteScan():
                 logger.critical(f"No local data retrieved (rdump_backup) for comparison [remoteScan]")
         else:
             logger.critical(f"No local data retrieved (rdump_backup) for comparison [remoteScan]")
+
+        rs_working = False
 
     else:
         logger.warning("---- No REMOTE_RDUMP_BASE_LOCATION specified, ignoring but remotescan can't work ----")
