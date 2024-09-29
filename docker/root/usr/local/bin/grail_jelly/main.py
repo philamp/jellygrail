@@ -242,7 +242,7 @@ def is_kodi_alive_loop():
 
     while True:
         if is_kodi_alive():
-            logger.info(" WAIT-DONE~ ...Main Kodi switched-on")
+            logger.info("RETRY-DONE~ ... Main Kodi up again.")
             _refreshkodi_thread = ScriptRunner.get(refresh_all)
             _refreshkodi_thread.resetargs(8) 
             _refreshkodi_thread.run()
@@ -343,7 +343,7 @@ def refresh_all(step):
     
 
     if retry_later == True and kodi_mysql_init_and_verify(just_verify=True):
-        logger.warning("      WAIT~ 2,5,6/ bypassed as Main Kodi offline, Retrying every 15s till its online")
+        logger.warning("     RETRY~ STEPS 2,5,6/ Will be retried when Main Kodi is up again (15s retry-loop enabled) ...")
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
         _is_kodi_alive_loop_thread.run()
         # toimprove : ne need to queue this job ?
@@ -510,7 +510,7 @@ def socket_server_waiting(socket_type):
         connection, client_address = server_socket.accept() # it waits here
         if socket_type == "nfopath":
             socket_started = True
-            logger.info(f" SOCKET-OK| BindFS connected.")
+            logger.info(f"    SOCKET| BindFS connected.")
         _handle_client_thread = threading.Thread(target=handle_socket_request, args=(connection, client_address, socket_type))
         _handle_client_thread.daemon = True
         _handle_client_thread.start()
@@ -535,7 +535,7 @@ if __name__ == "__main__":
     thread_e.start()
 
 
-    logger.warning("    SOCKET| Waiting for BindFS to connect...")
+    logger.info("    SOCKET| Waiting for BindFS ...")
     waitloop = 0
     while not socket_started:
         #print(".", end="", flush=True)

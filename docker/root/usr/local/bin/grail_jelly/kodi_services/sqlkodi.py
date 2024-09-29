@@ -39,24 +39,22 @@ def kodi_mysql_init_and_verify(just_verify=False):
         cursor.close() # important
         if result:
             if just_verify:
-                logger.info("        OK| MySQL Connection")
+                logger.info("  SQL-KODI| Working ok")
                 mariadb_close()
             else:
                 logger.debug(". MySQL Connection ok")
                 # we don't close connection
             return True
         else:
-            logger.critical("!!! kodi_video131 DATABASE KO, please run kodi to reinstanciate it (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi), no need to restart Jellygrail")
+            logger.warning("  | Not working. Please instanciate DB in Kodi (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi), no need to restart Jellygrail")
             mariadb_close()
             return False
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            logger.critical("!!! Something is wrong with the kodi mysql username or password, theorically impossible unless you messed up inside mysql server. Rebuild the docker image to fix it :( ")
-        elif err.errno == errorcode.ER_BAD_DB_ERROR:
-            logger.warning("!!! (err) kodi_video131 DATABASE KO, please run kodi to reinstanciate it (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi), no need to restart Jellygrail")
+            logger.error("  SQL-KODI| Authentication failed. Container mariadb setup failed on your system. Please report in the github.")
         else:
-            logger.critical(err)
+            logger.critical(f"  SQL-KODI| SQL server messed-up. Container mariadb setup failed on your system. Please report in the github. Error is: {err}")
         return False
 
 def check_if_vvtype_exists(test_string):

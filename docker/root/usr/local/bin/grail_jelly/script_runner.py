@@ -32,8 +32,8 @@ class ScriptRunnerSub:
     def run(self):
         # async bahavior parameters pre-check and set queud execution only if running
         if self.is_running:
-            self.queued_execution = True
-        else:
+            self.queued_execution = True if self.func.__name__ != "is_kodi_alive_loop" else False # this task does not need a queue
+        else: 
             self.is_running = True
             self.queued_execution = False
             # async is instanciated here
