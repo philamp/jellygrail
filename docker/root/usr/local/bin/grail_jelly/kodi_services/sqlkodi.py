@@ -46,7 +46,7 @@ def kodi_mysql_init_and_verify(just_verify=False):
                 # we don't close connection
             return True
         else:
-            logger.warning("  | Not working. Please instanciate DB in Kodi (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi), no need to restart Jellygrail")
+            logger.warning("  SQL-KODI| Not working. Please instanciate DB in Kodi (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi), no need to restart Jellygrail")
             mariadb_close()
             return False
 

@@ -312,7 +312,7 @@ def send_nfo_to_kodi():
                 if results := [(line[0],line[1]) for line in fetch_media_id(tofetch, tabletofetch, idtofetch)]:
 
                     for (result, uidtype) in results:
-                        
+                        # todo : have the possibility to refresh every single NFO discarding criterias below 
                         if uidtype == 'jellygrail' or updated == True:
                             notify_kodi("JG NFO refresh", f"{xiem} / {potential_nfo_to_send} NFO sent", 3000)
                             time.sleep(1)
