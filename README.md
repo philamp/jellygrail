@@ -50,7 +50,7 @@ JellyGrail is an **experimental** modified Jellyfin docker image to manage all y
  
 > [!CAUTION]
 > - I'm not responsible of any data loss / I'm not responsible of any illegal use / Use at your own risks.
->   - This does not include any torrent indexer search or RD downloader. 
+> - This solution does not include any torrent indexer search. 
 > - Do not open ports 8085 and 6502 to the internet.
 > - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
 > - There can be some rare cases where nginx/jellyfin hangs on readdir or readfile request. Workaround is a docker restart. See details below in ``Known issues`` section. 
