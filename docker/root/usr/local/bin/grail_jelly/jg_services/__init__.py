@@ -305,15 +305,15 @@ def remoteScan():
                             continue # this is ok
                         else:
                             # this is not OK : we don't increment further and stop the batch
-                            logger.error(f"    RD-API| JOB stopped: An HTTP Error has occured on pushing backup hash to RD (job stopped but continued next time): {http_err}")
+                            logger.error(f"    RD-API| JOB stopped: An HTTP Error has occured on pushing backup hash to RD (job stopped but resumed next time): {http_err}")
                             break
                     except noFilesReturned as e:
                         logger.warning(f"    RD-API| {remote_hash} hash imported from remote JG to your RD account, but without file selection")
                     except noIdReturned as e:
-                        logger.error(f"    RD-API| JOB stopped: {e} (job stopped but continued next time)")
+                        logger.error(f"    RD-API| JOB stopped: {e} (job stopped but resumed next time)")
                         break # not ok
                     except Exception as e:
-                        logger.error(f"    RD-API| JOB stopped: An unknown Error has occured on pushing hash to RD (job stopped but continued next time) Error is: {e}")
+                        logger.error(f"    RD-API| JOB stopped: An unknown Error has occured on pushing hash to RD (job stopped but resumed next time) Error is: {e}")
                         # is select files fails, it will be retried later
                         break
                     else:
