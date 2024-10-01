@@ -302,7 +302,6 @@ def remoteScan():
 
                             discarded_hashes.append(remote_hash)
                             #cur_incr += 1 # we can increment
-                            continue # this is ok
                         else:
                             # this is not OK : we don't increment further and stop the batch
                             logger.error(f"    RD-API| JOB stopped: An HTTP Error has occured on pushing backup hash to RD (job stopped but resumed next time): {http_err}")
