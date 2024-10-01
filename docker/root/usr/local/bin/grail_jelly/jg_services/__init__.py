@@ -13,6 +13,7 @@ RD = RD()
 # one shot token
 oneshot_token = None
 rs_working = False
+lastrddump = 0
 
 # rd remote location
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
@@ -68,100 +69,94 @@ def array_to_file(filename, array, initialize_with_unique_key=False):
         logger.critical(f"!!! Error opening or writing to the file: {e}")
         # Handle or log the IOError (e.g., file cannot be opened or written to)
 
-def rd_progress():
-# rd_progress NEW: Fill the pile chronologically each time it's called in server and new stuff arrives
-    # this will trigger /scan if any downloading finished on own RD account
-    # so the order is : /remotescan, /rd_progress -> /scan (+daily forced scan if needed)
 
-    #if remoteScan working, stop rdprogress
-    if rs_working:
-        logger.warning("RDAPI-PACER~ New downloads checker will trigger when remote hashes fetcher has completed")
-        return ""
+class noIdReturned(Exception):
+    pass
 
-    if data := rdump_backup(including_backup = False, returning_data= True):
-
-        if "Error" not in data:
-
-            # open the pile in raw mode 
-            # parse it like array
-            # update array with new hashes if hasehs comes from a completed RD item
-            # if does not exists : append everything
-
-            # loop in data to get stuff waiting file selection
-            for data_item in data:
-                if data_item.get('status') == 'waiting_files_selection' or data_item.get('status') == 'magnet_conversion':
-                    logger.warning(f"        RD~ The {data_item.get('filename')} file selection has not been done, now forcing it")
-                    try:
-                        if WHOLE_CONTENT:
-                            # part to really get the whole stuff BEGIN
-                            info_output = RD.torrents.info(data_item.get('id')).json()
-                            all_ids = [str(item['id']) for item in info_output.get('files')]
-                            get_string = ",".join(all_ids)
-                            # part to really get the whole stuff END
-                            # RD.torrents.select_files(returned.get('id'), 'all') changed to :
-                            RD.torrents.select_files(data_item.get('id'), get_string)
-                        else:
-                            RD.torrents.select_files(data_item.get('id'), 'all')
-                    except Exception as e:
-                        logger.error(f"  - ...but an error has occured forcing file selection (will be retried later) on {data_item.get('filename')} : {e}")
-                    
+class noFilesReturned(Exception):
+    pass
 
 
-            dled_rd_hashes = [data_item.get('hash') for data_item in data if data_item.get('status') == 'downloaded']
+def just_select(returnid):
 
-            if (os.path.exists(PILE_FILE)):
-                _, cur_pile = file_to_array(PILE_FILE)
-                if len(dled_rd_hashes) > 0:
-                    delta_elements = [item for item in dled_rd_hashes if item not in cur_pile]
-                    delta_elements = list(set(delta_elements))
-                    array_to_file(PILE_FILE, delta_elements)
-
-                    if len(delta_elements) > 0:
-                        logger.info("        RD| New downloaded torrent(s) >> refresh triggered")
-                        return "PLEASE_SCAN"
-                    else:
-                        #logger.debug("RD_PROGRESS > I did not detect any new torrents with 'downloaded' status")
-                        return ""
-                else:
-                    logger.warning("        RD| Not any downloaded item in Real-Debrid (normal if you just started using it)")
-                    return ""
-                
-            else:
-                # 1st pile write tagged with unique identifier
-                array_to_file(PILE_FILE, dled_rd_hashes, initialize_with_unique_key=True)
-                return "PLEASE_SCAN"
+    # wait for waiting_files_selection to be available
+    info_output = RD.torrents.info(returnid).json()
+    iters = 0
+    while iters < 8:
+        iters += 1
+        if info_output.get("status") != 'waiting_files_selection':
+            logger.info(f"    RD-API| ... {returnid} RD item not ready for file selection, retrying in 0.5sec, max 8 tries ...")
+            time.sleep(0.5) # ensure waiting enough 
+            info_output = RD.torrents.info(returnid).json()
         else:
-            logger.critical(f"An error occurred on getting RD data")
-            return ""
-    else:
-        logger.critical(f"An error occurred on getting RD data")
-        return ""
-
-
-# ------------
+            break
     
-def restoreList():
+    # so even if "status" is still not 'waiting_files_selection' we continue (it can be magnet conversion and have file selection), so we don't raise an exception
 
-    global oneshot_token
-    backupList = []
-    i = 0
+    if all_ids := [str(item['id']) for item in info_output.get('files', [])]:
+        if info_output.get("status") == 'magnet_conversion':
+            logger.warning(f"    RD-API| Weird: {returnid} item returned magnet_conversion but files seems present anyway")
+        if WHOLE_CONTENT:
+            get_string = ",".join(all_ids)
+            RD.torrents.select_files(returnid, get_string)
+        else:
+            RD.torrents.select_files(returnid, 'all')
+    else:
+        raise noFilesReturned(f"No RD files returned, so select can't be done (will be retried later) on RD item: {returnid} with filename: {info_output.get('filename')}")
 
-    # set a one time use token
-    oneshot_token = ''.join(random.choice('0123456789abcdef') for _ in range(32))
 
-    for f in os.scandir(RDUMP_BACKUP_FOLDER):
-        i += 1
-        if f.is_file():
-            backupList.append(f'-- <a href="/restoreitem?filename={f.name}&token={oneshot_token}" title="{f.name}">{f.name}</a> | {os.path.getsize(f.path)} kb --')
+# great !
+def push_and_select(hash):
+    returned = RD.torrents.add_magnet(hash).json()
+    if returnid := returned.get('id'):
+        just_select(returnid)
+    else:
+        raise noIdReturned(f"No RD ID returned for hash: {hash}.")
 
-    if len(backupList):
-        return "</br>".join(backupList)
+'''
+def push_array_of_items(array):
+
+    for item in array:
+        try:
+            #logger.debug(f"  * Try adding RD Hash from restored backup: {item} ... [restoreitem]")
+
+            # RD calls below !! caution !!
+            
+            returned = RD.torrents.add_magnet(item).json()
+            if WHOLE_CONTENT:
+                # part to really get the whole stuff BEGIN
+                info_output = RD.torrents.info(returned.get('id')).json()
+                all_ids = [str(item['id']) for item in info_output.get('files')]
+                get_string = ",".join(all_ids)
+                # part to really get the whole stuff END
+                # RD.torrents.select_files(returned.get('id'), 'all') changed to :
+                RD.torrents.select_files(returned.get('id'), get_string)
+            else:
+                RD.torrents.select_files(returned.get('id'), 'all')
+            
+            
+        except requests.exceptions.HTTPError as http_err:
+            if http_err.response.status_code == 403:
+                logger.warning(f"...! Hash {item} is not accepted by RD.")
+                continue
+        except Exception as e:
+            logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry) : {e}")
+            return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry)"
+        else:
+            logger.info(f"       RD| * RD Hash {item} restored [restoreitem]")
+
+    return "Backup restored with success, please verify on your RD account"
+
+'''
+
+# #######
 
 # -----------
     
 def restoreitem(filename, token):
 
     global oneshot_token
+    global rs_working
 
     logger.debug(f"! provided token is : {token}, wanted token is: {oneshot_token} [restoreitem]")
 
@@ -180,50 +175,58 @@ def restoreitem(filename, token):
             else:
                 if(local_data := rdump_backup(including_backup = True, returning_data = True)):
 
-                    if "Error" not in local_data:
-                        local_data_hashes = [iteml.get('hash') for iteml in local_data]
-                        push_to_rd_hashes = [item.get('hash') for item in backup_data if item.get('hash') not in local_data_hashes]
+                    rs_working = True
 
-                        if len(push_to_rd_hashes) > 0:
-                            logger.info(f"        RD| Restoring RD items from {filename} ...")
-                            for item in push_to_rd_hashes:
-                                try:
-                                    #logger.debug(f"  * Try adding RD Hash from restored backup: {item} ... [restoreitem]")
+                    local_data_hashes = [iteml.get('hash') for iteml in local_data]
+                    push_to_rd_hashes = [item.get('hash') for item in backup_data if item.get('hash') not in local_data_hashes]
 
-                                    # RD calls below !! caution !!
-                                    returned = RD.torrents.add_magnet(item).json()
-                                    if WHOLE_CONTENT:
-                                        # part to really get the whole stuff BEGIN
-                                        info_output = RD.torrents.info(returned.get('id')).json()
-                                        all_ids = [str(item['id']) for item in info_output.get('files')]
-                                        get_string = ",".join(all_ids)
-                                        # part to really get the whole stuff END
-                                        # RD.torrents.select_files(returned.get('id'), 'all') changed to :
-                                        RD.torrents.select_files(returned.get('id'), get_string)
-                                    else:
-                                        RD.torrents.select_files(returned.get('id'), 'all')
-                                except requests.exceptions.HTTPError as http_err:
-                                    if http_err.response.status_code == 403:
-                                        logger.warning(f"...! Hash {item} is not accepted by RD.")
-                                        continue
-                                except Exception as e:
-                                    logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry) : {e}")
-                                    return "Wrong : An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry)"
+                    if len(push_to_rd_hashes) > 0:
+                        logger.info(f"        RD| Restoring RD items from {filename} ...")
+                        for backup_hash in push_to_rd_hashes:
+
+                            try:
+                                push_and_select(backup_hash)
+                            except requests.exceptions.HTTPError as http_err:
+                                if http_err.response.status_code == 403:
+                                    logger.warning(f"    RD-API| Hash {backup_hash} is not accepted by RD.")
+
+                                    continue # this is ok
                                 else:
-                                    logger.info(f"       RD| * RD Hash {item} restored [restoreitem]")
-                            return "Backup restored with success, please verify on your RD account"
-                        else:
-                            return "This backup file has no additionnal hash compared to your RD account"
+                                    # this is not OK : we don't increment further and stop the batch
+                                    logger.error(f"    RD-API| JOB stopped: An HTTP Error has occured on pushing backup hash to RD : {http_err}")
+                                    rs_working = False
+                                    return "Backup not fully restored, please launch same job again to complete it"
+                            except noFilesReturned as e:
+                                pass
+                            except noIdReturned as e:
+                                logger.error(f"    RD-API| JOB stopped: {e}")
+                                rs_working = False
+                                return "Backup not fully restored, please launch same job again to complete it"
+                            except Exception as e:
+                                logger.error(f"    RD-API| JOB stopped: An Error has occured on pushing backup hash to RD : {e}")
+                                # is select files fails, it will be retried later
+                                rs_working = False
+                                return "Backup not fully restored, please launch same job again to complete it"
+                            else:
+                                # if no other excaption, seems fine
+                                logger.info(f"    RD-API| {backup_hash} is a backup hash added successfully from backup file to your RD account")
+
+                        rs_working = False
+                        return "Backup restored with success, please verify on your RD account; Torrent File selection may not be complete but will be progressively fixed."
                     else:
-                        logger.critical(f"No local data has been retrieved via rdump_backup() in restoreitem()")
-                        return "Wrong local rdump data fetch"           
+                        rs_working = False
+                        return "This backup file has no additionnal hash compared to your RD account"
+    
                 else:
+                    rs_working = False
                     logger.critical(f"No local data has been retrieved via rdump_backup() in restoreitem()")
                     return "Wrong local rdump data fetch" # wrong is mandatory here (return format)
 
         else:
+            rs_working = False
             return "Wrong backup filename" # wrong is mandatory here (return format)
     else:
+        rs_working = False
         return "Wrong Token" # wrong is mandatory here (return format)
 
 
@@ -236,7 +239,7 @@ def remoteScan():
     # if no local data, take it (we have to compare later on)
 
     # compare with rdump not pile
-
+    discarded_hashes = []
     # toimprove : add wait until select files is available (mitigated by regular retry)
 
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
@@ -259,9 +262,10 @@ def remoteScan():
             rs_working = False
             return None
 
-        if server_data.get('pilekey') != cur_key:
-            logger.warning(f" REMOTE-JG| Remote pile key changed, reset with increment found in settings.env")
-            remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{DEFAULT_INCR}"
+        if server_data.get('pilekey') != cur_key or cur_incr > server_data.get('lastid'):
+            logger.warning(f" REMOTE-JG| New Remote pile (identifier changed) or impossible increment (higher thant remote), reset with increment found in settings.env")
+            cur_incr = int(DEFAULT_INCR)
+            remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{cur_incr}"
             try:
                 response = requests.get(remote_loc, timeout=10)
                 response.raise_for_status()
@@ -272,68 +276,167 @@ def remoteScan():
                 return None
             save_data_to_file(REMOTE_PILE_KEY_FILE, server_data.get('pilekey'))
 
-        if server_data is not None:
-            if not len(server_data['hashes']) > 0:
-                logger.debug(f" REMOTE-JG| No new RD hashes")
+        if server_data:
+            if server_data['hashes']:
+                logger.info(f" REMOTE-JG| Has new hashes that your local JG will now try to push starting with incr: {cur_incr}...")
+            else:
+                logger.info(f" REMOTE-JG| No new RD hashes, incr is still: {cur_incr}")
                 rs_working = False
-                return None
+                return None     
         else:
-            logger.critical(f"Data was fetched but data returned is None")
+            logger.critical(f" REMOTE-JG| Data was fetched but not usable. Theorically already handled by generic exception catcher")
             rs_working = False
             return None
         
         if(local_data := rdump_backup(including_backup = False, returning_data = True)):
-            if "Error" not in local_data:
-                local_data_hashes = [iteml.get('hash') for iteml in local_data]
-                push_to_rd_hashes = [item for item in server_data['hashes'] if item not in local_data_hashes]
-                whole_batch_taken = True
-                for item in push_to_rd_hashes:
-                    try:
-                        ## item = 'bf5e32ae2d6c63e0b8ceb7d0c9d7a397ab8b6cd1'
-                        # RD calls below !! caution !!
-                        #logger.debug(f"  * Adding RD Hash from remote: {item} ...")
-                        returned = RD.torrents.add_magnet(item).json()
-                        
-                        if WHOLE_CONTENT:
-                            # part to really get the whole stuff BEGIN
-                            info_output = RD.torrents.info(returned.get('id')).json()
-                            all_ids = [str(item['id']) for item in info_output.get('files')]
-                            get_string = ",".join(all_ids)
-                            # part to really get the whole stuff END
-                            # RD.torrents.select_files(returned.get('id'), 'all') changed to :
+            local_data_hashes = [iteml.get('hash') for iteml in local_data]
 
-                            RD.torrents.select_files(returned.get('id'), get_string)
-                        else:
-                            RD.torrents.select_files(returned.get('id'), 'all')
+            # base for incr is remote
+            for remote_hash in server_data['hashes']:
+                if remote_hash not in local_data_hashes:
+                    try:
+                        push_and_select(remote_hash)
                     except requests.exceptions.HTTPError as http_err:
                         if http_err.response.status_code == 403:
-                            logger.warning(f"...! Hash {item} is not accepted by RD.")
-                            continue
+                            logger.warning(f"    RD-API| Hash {remote_hash} is not accepted by RD.")
+
+                            discarded_hashes.append(remote_hash)
+                            #cur_incr += 1 # we can increment
+                            continue # this is ok
+                        else:
+                            # this is not OK : we don't increment further and stop the batch
+                            logger.error(f"    RD-API| JOB stopped: An HTTP Error has occured on pushing backup hash to RD (job stopped but continued next time): {http_err}")
+                            break
+                    except noFilesReturned as e:
+                        logger.warning(f"    RD-API| {remote_hash} hash imported from remote JG to your RD account, but without file selection")
+                    except noIdReturned as e:
+                        logger.error(f"    RD-API| JOB stopped: {e} (job stopped but continued next time)")
+                        break # not ok
                     except Exception as e:
-                        logger.error(f"...!! An Error has occured on pushing hash to RD (whole batch cancelled but retried next time) : {e}")
+                        logger.error(f"    RD-API| JOB stopped: An unknown Error has occured on pushing hash to RD (job stopped but continued next time) Error is: {e}")
                         # is select files fails, it will be retried later
-                        whole_batch_taken = False
                         break
                     else:
-                        logger.info(f"        RD| Hash {item} added from remote [remoteScan]")
+                        # if no other excaption, seems fine
+                        logger.info(f"    RD-API| {remote_hash} hash imported from remote JG to your RD account")
+                        #cur_incr += 1
+
+
+            # whatever the batch progression we test the progress of new hashes beeing really pushed or not
+            if(post_local_data := rdump_backup(including_backup = False, returning_data = True)):
+                post_local_data_hashes = [iteml.get('hash') for iteml in post_local_data]
+                for remote_hash in server_data['hashes']:
+                    if remote_hash in post_local_data_hashes or remote_hash in discarded_hashes:
                         cur_incr += 1
-                if whole_batch_taken:
-                    # whole batch taken so we can save the real increment given by server
-                    if last_added_incr := server_data.get('lastid'):
-                        save_data_to_file(RDINCR_FILE, last_added_incr)
-                else:
-                    # we only save a manually incremented increment to avoid doing the whole batch again if there are one error in the whole batch
-                    # as this is incremented on client side only upon new hashes (items not already in RD account), when applied on server side pile it can be deeper in the pile than really necessary, does not matter unless an intentionnal deletion happens on client just after an uncomplete batch containing this item, and in this very rare case, it means that the local deleted item could be then fetched again from remote instance on the next remoteScan.
-                    save_data_to_file(RDINCR_FILE, cur_incr)
+                    else:
+                        break # chain is broken here, we stop incrmeenting
             else:
-                logger.critical(f"No local data retrieved (rdump_backup) for comparison [remoteScan]")
+                logger.critical(f"    RD-API| An error occurred on getting post-batch local RD data [remoteScan]")
+
+            logger.info(f" REMOTE-JG| The current increment after batch is now: {cur_incr} (local) / {server_data.get('lastid')} (remote JG cinrement)")
+            if cur_incr < server_data.get('lastid'):
+                logger.warning(" REMOTE-JG| So local incr. inferior to remote incr. Will be completed on next call ...")
+
+            # job finished completely or not, we save the real cur incr
+            save_data_to_file(RDINCR_FILE, cur_incr)
+
+
+
+
         else:
-            logger.critical(f"No local data retrieved (rdump_backup) for comparison [remoteScan]")
+            logger.critical(f"    RD-API| An error occurred on getting local RD data [remoteScan]")
 
         rs_working = False
 
     else:
         logger.warning("---- No REMOTE_RDUMP_BASE_LOCATION specified, ignoring but remotescan can't work ----")
+
+
+
+# #######
+
+
+def rd_progress():
+# rd_progress NEW: Fill the pile chronologically each time it's called in server and new stuff arrives
+    # this will trigger /scan if any downloading finished on own RD account
+    # so the order is : /remotescan, /rd_progress -> /scan (+daily forced scan if needed)
+
+    #if remoteScan working, stop rdprogress
+    if rs_working:
+        logger.info("RD-CHECKER| Cant run when remotescan or restoreitem is running ...")
+        return ""
+
+    if data := rdump_backup(including_backup = False, returning_data= True):
+
+        # open the pile in raw mode 
+        # parse it like array
+        # update array with new hashes if hasehs comes from a completed RD item
+        # if does not exists : append everything
+
+        # loop in data to get stuff waiting file selection
+        for data_item in data:
+            if data_item.get('status') == 'waiting_files_selection' or data_item.get('status') == 'magnet_conversion':
+
+                logger.warning(f"RD-CHECKER| File selection missing on {data_item.get('filename')}. Now retrying it ...")
+
+                try:
+                    just_select(data_item.get('id'))
+                except noFilesReturned as e:
+                    logger.warning(f"RD-CHECKER| ... but {e}")
+                except Exception as e:
+                    logger.error(f"RD-CHECKER| ... but an unknwown error has occured when doing file selection (will be retried later) on {data_item.get('filename')} : {e}")
+                
+
+
+        dled_rd_hashes = [data_item.get('hash') for data_item in data if data_item.get('status') == 'downloaded'] # ensure dl status
+
+        if (os.path.exists(PILE_FILE)):
+            _, cur_pile = file_to_array(PILE_FILE)
+            if len(dled_rd_hashes) > 0:
+                delta_elements = [item for item in dled_rd_hashes if item not in cur_pile] #ensure not in cur pile
+
+                delta_elements = list(dict.fromkeys(reversed(delta_elements))) # ensure : reversed, , then unniqueness applies, then converted back to an array (after having ensure dled status and not in cur pile)
+
+                array_to_file(PILE_FILE, delta_elements)
+
+                if len(delta_elements) > 0:
+                    logger.info("    RD-API| New downloaded torrent(s) >> Refresh triggered.")
+                    return "PLEASE_SCAN"
+                else:
+                    logger.debug("    RD-API| NO new downloaded torrent(s). No trigger.")
+                    return ""
+            else:
+                logger.warning("    RD-API| Zero downloaded torrent (normal if you just started using it)")
+                return ""
+            
+        else:
+            # 1st pile write tagged with unique identifier
+            array_to_file(PILE_FILE, dled_rd_hashes, initialize_with_unique_key=True)
+            return "PLEASE_SCAN" #toimprove ? maybe thanks to that, the very first container start will scan, so subsequent ones are really needed ? yes
+    else:
+        logger.critical(f"An error occurred on getting local RD data")
+        return ""
+
+
+# ------------
+    
+def restoreList():
+
+    global oneshot_token
+    backupList = []
+    i = 0
+
+    # set a one time use token
+    oneshot_token = ''.join(random.choice('0123456789abcdef') for _ in range(32))
+
+    for f in os.scandir(RDUMP_BACKUP_FOLDER):
+        i += 1
+        if f.is_file():
+            backupList.append(f'-- <a href="/restoreitem?filename={f.name}&token={oneshot_token}" title="{f.name}">{f.name}</a> | {os.path.getsize(f.path)} kb --')
+
+    if len(backupList):
+        return "</br>".join(backupList)
+
 
 # ----------------------------------
 # rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
@@ -355,36 +458,73 @@ def getrdincrement(incr):
             # logger.warning(f"> force rd_progress (should happen once) [getrdincrement]")
         return ""
 
-
+# now only overwrite current dump if done more than 4 hours ago or backup is requested
 def rdump_backup(including_backup = True, returning_data = False):
-    if including_backup:
-        if(os.path.exists(RDUMP_FILE)):
-            os.makedirs(RDUMP_BACKUP_FOLDER, exist_ok=True)
-            # copy with date in filename
-            today = datetime.now()
-            file_backuped = "/rd_dump_"+today.strftime("%Y%m%d")+".json"
-            subprocess.call(['cp', RDUMP_FILE, RDUMP_BACKUP_FOLDER+file_backuped])
+    global lastrddump
+
+    has_to_put_sthing = False
+
+    stopthere = False
 
     try:
         # create horodated json file of my torrents
         inbelements = 2500
         nbelements = inbelements
         data = []
-        ipage=1
+        #ipage=1
+        ipage=1 
         while nbelements == inbelements:
-            idata = RD.torrents.get(limit=inbelements, page=ipage).json()
+            idata = RD.torrents.get(limit=inbelements, page=ipage).json() # does RD return no json if out of index ? TODO verify
             data += idata
             ipage += 1
             nbelements = len(idata)
+
+    # potentially reaches further than needed causing out of index paging and thus json parsing error
+    # ... but this way of managing out of index paging is better then through resp.Header["X-Total-Count"][0] as it will really go through RD returned array without issue when race condition adds or *remove* items just after X-total-count is checked.
+
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"    RD-API| Getting current RD status failed for HTTP reason! Error is: {http_err}")
+        stopthere = True
+
+    except json.JSONDecodeError as json_err:
+        if ipage == 1:
+            logger.error(f"    RD-API| Getting current RD status failed for JSON parsing reason! Error is: {json_err}")
+            has_to_put_sthing = True
+            stopthere = True
+        else:
+            logger.info(f"    RD-API| Json Parsing error due to out of index request. Not a problem and happens when torrent count is just divisible by 2500")
+
+    
     except Exception as e:
-        logger.critical(f"!!! Error occurred [rdump_backup]: {e}")
-        return "Error"
-    else:
-        # Store the data in a file
-        with open(RDUMP_FILE, 'w') as f:
-            json.dump(data, f)
+        logger.error(f"    RD-API| Getting current RD status failed for another reason than HTTP protocol error! Error is: {e}")
+        stopthere = True
+        #return "Error"
+
+    if not stopthere:
+        # Store the data in a file if not exists or last time was more than 4 hours ago
+        if not os.path.exists(RDUMP_FILE) or (time.time() - lastrddump) > 3600*4 or including_backup:
+            lastrddump = time.time()
+            with open(RDUMP_FILE, 'w') as f:
+                json.dump(data, f)
+
+        if including_backup:
+            if(os.path.exists(RDUMP_FILE)):
+                os.makedirs(RDUMP_BACKUP_FOLDER, exist_ok=True)
+                # copy with date in filename
+                today = datetime.now()
+                file_backuped = "/rd_dump_"+today.strftime("%Y%m%d")+".json"
+                subprocess.call(['cp', RDUMP_FILE, RDUMP_BACKUP_FOLDER+file_backuped])
+
         if returning_data:
             return data
+
+    if has_to_put_sthing:
+        logger.warning("    RD-API| Will now try to add at least one torrent to workaround the error")
+        try:
+            push_and_select("66FBAB37FF7402D5F0A29ADC95299A244E09AADC")
+        except Exception as e:
+            logger.critical(f"    RD-API| RD API workaround did not work, error is: {e}")
+
     return None
 
 def read_data_from_file(filepath):
