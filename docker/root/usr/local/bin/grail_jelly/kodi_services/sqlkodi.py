@@ -123,7 +123,41 @@ def insert_new_vvtype(new_string):
     return inserted_id
 
 
+def new_set_resume_times_and_lastplayed(timesec, lastplayedstr, fileidsstr, idfiles, highest_tt):
+    #todo update or insert !!
+    global conn
+    cursor = conn.cursor()
 
+    cursor.execute(f"USE {found_db}")
+
+    if timesec != 0 and highest_tt !=0:
+
+        for fileid in idfiles:
+            
+            cursor.execute(f"SELECT idFile FROM bookmark where idFile = %s", (fileid,))
+            result = cursor.fetchone()
+
+            if result:
+                cursor.execute(f"UPDATE bookmark set timeInSeconds = %s WHERE idFile = %s", (timesec,fileid))
+            else:
+                cursor.execute(f"INSERT INTO bookmark (idFile, timeInSeconds, totalTimeInSeconds, player, type) VALUES (%s, %s, %s, 'VideoPlayer', 1) ON DUPLICATE KEY UPDATE timeInSeconds = VALUES(timeInSeconds)", (fileid,timesec,highest_tt))
+
+
+    else:
+        # propagate the absence of bookmark for the last played item
+        cursor.execute(f"DELETE FROM bookmark WHERE idFile in ({fileidsstr})")
+
+    if lastplayedstr != "0":
+        # propagate the last_played value to all files belonging to same unique id pool
+        cursor.execute(f"UPDATE files set lastPlayed = %s WHERE idFile in ({fileidsstr})", (lastplayedstr,))
+
+    conn.commit()
+
+    cursor.close() 
+
+    return True
+
+'''
 def set_resume_times_and_lastplayed(timesec, lastplayedstr, fileidsstr, idfiles, highest_tt):
     #todo update or insert !!
     global conn
@@ -153,7 +187,7 @@ def set_resume_times_and_lastplayed(timesec, lastplayedstr, fileidsstr, idfiles,
     cursor.close() 
 
     return True
-
+'''
 
 
 def link_vv_to_kept_mediaid(vvid, keptmid, new_type_id):
@@ -176,7 +210,7 @@ def video_versions():
     cursor.execute(f"USE {found_db}")
 
     # Exécution d'une requête
-    cursor.execute(f"SELECT uid.value as tmdbid, group_concat(mvb.idMovie SEPARATOR ' ') as idmedia, group_concat(mvb.strPath SEPARATOR ' ') as strpath, group_concat(mvb.strFileName SEPARATOR ' ') as strfilename, group_concat(mvb.videoVersionIdFile SEPARATOR ',') as idfile, group_concat(isDefaultVersion SEPARATOR ' ') as isdefault, group_concat(lastPlayed SEPARATOR '#') as lastPlayed, group_concat(resumeTimeInSeconds SEPARATOR ' ') as resumeTimeInSeconds, group_concat(mvb.totalTimeInSeconds SEPARATOR ' ') as totalTimeInSeconds FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie where uid.type = 'tmdb' GROUP BY uid.value HAVING COUNT(*) > 1")
+    cursor.execute(f"SELECT uid.value as tmdbid, group_concat(mvb.idMovie SEPARATOR ' ') as idmedia, group_concat(mvb.strPath SEPARATOR ' ') as strpath, group_concat(mvb.strFileName SEPARATOR ' ') as strfilename, group_concat(mvb.videoVersionIdFile SEPARATOR ',') as idfile, group_concat(isDefaultVersion SEPARATOR ' ') as isdefault, GROUP_CONCAT(CONCAT(IFNULL(mvb.lastPlayed, 0), '#',IFNULL(mvb.resumeTimeInSeconds, 0), '#',IFNULL(mvb.totalTimeInSeconds, 0)) ORDER BY mvb.lastPlayed DESC) AS bmk_stuff FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie where uid.type = 'tmdb' GROUP BY uid.value HAVING COUNT(*) > 1")
 
     result = cursor.fetchall()
     cursor.close() 
@@ -192,7 +226,7 @@ def fetch_media_id(path, tabletofetch, idtofetch):
     like_param = f"%{path}%"
 
     # Exécution d'une requête
-    cursor.execute(f"SELECT ttf.{idtofetch}, MIN(uid.type) as type FROM {tabletofetch} ttf LEFT JOIN uniqueid uid on uid.media_id = ttf.{idtofetch} WHERE strPath like %s GROUP BY ttf.{idtofetch}", (like_param,))
+    cursor.execute(f"SELECT ttf.{idtofetch}, MAX(IF(uid.type = 'jellygrail', 'jellygrail', 'imdb-tmdb')) as type FROM {tabletofetch} ttf LEFT JOIN uniqueid uid on uid.media_id = ttf.{idtofetch} WHERE strPath like %s GROUP BY ttf.{idtofetch}", (like_param,))
 
     result = cursor.fetchall()
     cursor.close() 

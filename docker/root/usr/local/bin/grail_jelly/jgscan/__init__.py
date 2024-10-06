@@ -637,7 +637,7 @@ def scan():
                             items_scanned += 1
                         sqcommit()
 
-                #todo temp toremove
+                
                 elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
                     items_scanned += 1
                     logger.info(f"  NEW-ITEM~ {f.name} (folder-less)")

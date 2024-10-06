@@ -160,7 +160,7 @@ def nfo_loop_service():
 
                 for mediasource in item.get('MediaSources'):
                     path = Path(mediasource.get('Path'))
-                    trimmedPath = str(Path(*path.parts[:5]))
+                    #trimmedPath = str(Path(*path.parts[:5]))
                     #toremove
                     #logger.info(f"----- URL {trimmedPath}")
                     #pre_t_data[sname+re.search(r'\{.*?\}', trimmedPath).group(0)].append(trimmedPath)

@@ -89,6 +89,8 @@ def get_tech_xml_details(pathwoext):
     #logger.debug(f"build nfo with pathwoext = {pathwoext}")
 
     if (ff_result := [ffpitem[0] for ffpitem in get_path_props_woext(pathwoext) if ffpitem[0] is not None]):
+        first_subs = []
+        last_subs = []
         info = json.loads(ff_result[0].decode("utf-8"))
 
         fileinfo = ET.Element('fileinfo')
@@ -126,6 +128,7 @@ def get_tech_xml_details(pathwoext):
                         ET.SubElement(video_element, "language").text = tags.get('language')
 
                 streamdetails.append(video_element)
+            
             # AUDIO
             if stream.get('codec_type') == "audio":
                 audio_element = ET.Element('audio')
@@ -139,11 +142,19 @@ def get_tech_xml_details(pathwoext):
                 streamdetails.append(audio_element)
             # Subs
             if stream.get('codec_type') == "subtitle":
-                subtitle_element = ET.Element('subtitle')
                 if( tags := stream.get('tags') ):
-                    if (tags.get('language')):
-                        ET.SubElement(subtitle_element, "language").text = tags.get('language')
-                streamdetails.append(subtitle_element)
+                    if sub_l := (tags.get('language')):
+                        if sub_l in INTERESTED_LANGUAGES:
+                            first_subs.append(sub_l)
+                        else:
+                            last_subs.append(sub_l)
+                    
+                    
+        first_subs.extend(last_subs)
+        for lang in first_subs:
+            subtitle_element = ET.Element('subtitle')
+            ET.SubElement(subtitle_element, "language").text = lang
+            streamdetails.append(subtitle_element)
 
 
         #sqclose()

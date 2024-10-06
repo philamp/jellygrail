@@ -399,7 +399,7 @@ def rd_progress():
                 array_to_file(PILE_FILE, delta_elements)
 
                 if len(delta_elements) > 0:
-                    logger.info("    RD-API| New downloaded torrent(s) >> Refresh triggered.")
+                    logger.info("    RD-API| New downloaded torrent(s) >> Refresh triggered or queued.")
                     return "PLEASE_SCAN"
                 else:
                     logger.debug("    RD-API| NO new downloaded torrent(s). No trigger.")

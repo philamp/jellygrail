@@ -1,7 +1,7 @@
 from base import *
 from base.littles import *
 from base.constants import *
-from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, set_resume_times_and_lastplayed, get_undefined_collection_arts, insert_collection_art
+from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, get_undefined_collection_arts, insert_collection_art, new_set_resume_times_and_lastplayed
 import requests
 import urllib.parse
 import websocket
@@ -310,7 +310,7 @@ def send_nfo_to_kodi():
                 tofetch = tofetch.replace("%", r"\%")
                 logger.debug(f". Kodi mysqldb fetching : {root}/{filename}")
                 if results := [(line[0],line[1]) for line in fetch_media_id(tofetch, tabletofetch, idtofetch)]:
-
+                    #toimprove, redundant unpacking here
                     for (result, uidtype) in results:
                         # todo : have the possibility to refresh every single NFO discarding criterias below 
                         if uidtype == 'jellygrail' or updated == True:
@@ -391,7 +391,7 @@ def merge_kodi_versions():
 
     #results = [(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]) for row in video_versions()]
 
-    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, lastplayedsR, resumetimesR, totaltimesR) in video_versions(): #results:
+    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, bmk_stuff) in video_versions(): #results:
         #find the incr smallest version
         i=0
         currlowest=200
@@ -401,17 +401,31 @@ def merge_kodi_versions():
         isdefaults = [int(num) for num in isdefaultsR.split(" ")]
         idmedias = [int(num) for num in idmediasR.split(" ")]
 
+        #bmk_stuff / new manage resumtimes
+        bmk_str_last = bmk_stuff.split(",")[0]
+
+        if bmk_str_last != "0#0#0": # no need to propagate if nothing is found ? : drawback : if file having lp data is deleted before next propagation, its data wont ever be propagated
+            bmk_arr_last = bmk_str_last.split("#")
+            if len(bmk_arr_last) > 2: # some fail-proof check
+                highest_lp = bmk_arr_last[0]
+                highest_rt = float(bmk_arr_last[1])
+                highest_tt = float(bmk_arr_last[2])
+                new_set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR, idfiles, highest_tt)
+
+        #bmk_stuff
+
         videoversiontuple = []
         idtokeep = None
         strpathtokeep = None
         imediatokeep = None
 
-
+        '''
         # manage resumtimes:
         highest_lp = None
         highest_rt = None
         highest_tt = None
 
+        
         if lastplayedsR:
             #lastplayeds_str = lastplayedsR.split("#")
             lastplayeds_tup = [(thislp, datetime.strptime(thislp, '%Y-%m-%d %H:%M:%S')) for thislp in lastplayedsR.split("#")]
@@ -425,7 +439,7 @@ def merge_kodi_versions():
             # only do it if it finds at least one tt
             set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR, idfiles, highest_tt)
             # :manage resumetimes
-
+        '''
 
         if idfiles and strpaths and idmedias:
             # just looping through sthing of all arrays
