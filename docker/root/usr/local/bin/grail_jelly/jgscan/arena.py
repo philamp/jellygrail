@@ -6,7 +6,7 @@ import pycountry
 from thefuzz import process
 from base.constants import *
 
-INTERESTED_LANGUAGES = "fre eng fra" #todo: put that in PREPARE.SH and SETTINGS EXAMPLE
+
 
 # Preprocess: Create a set of all language names for quick lookup
 
