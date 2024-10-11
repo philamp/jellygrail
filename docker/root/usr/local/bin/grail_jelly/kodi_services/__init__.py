@@ -308,10 +308,13 @@ def send_nfo_to_kodi():
 
                 tofetch = urllib.parse.quote(tofetch, safe=SAFE)
                 tofetch = tofetch.replace("%", r"\%")
+                #debug toremove DEBU
+                #logger.info(f"DEBU fetching media: {tofetch} IN TABLE {tabletofetch}")
                 logger.debug(f". Kodi mysqldb fetching : {root}/{filename}")
                 if results := [(line[0],line[1]) for line in fetch_media_id(tofetch, tabletofetch, idtofetch)]:
                     #toimprove, redundant unpacking here
                     for (result, uidtype) in results:
+                        #logger.info(f"DEBU found mediaid: {result}")
                         # todo : have the possibility to refresh every single NFO discarding criterias below 
                         if uidtype == 'jellygrail' or updated == True:
                             notify_kodi("JG NFO refresh", f"{xiem} / {potential_nfo_to_send} NFO sent", 3000)
