@@ -83,6 +83,8 @@ def fetch_nfo(nfopath):
 
 def nfo_loop_service():
 
+    nbofmovieorepisode = 0
+    nboftvshow = 0
 
     # stops if any dump fails as result won't be consistent anyway
     #logger.debug("Scan thread selected is nfo generator")
@@ -93,7 +95,7 @@ def nfo_loop_service():
     try:
         users = jfapi.jellyfin('Users').json()
     except Exception as e:
-        logger.error(f"  JELLYFIN| Getting JF users failed. Open jellyfin on your browser to create the primary user. error is: {e}")
+        logger.warning(f"    JF-API| Getting JF users failed. Open jellyfin on your browser to create the primary user. error is: {e}")
         #jfclose_ro()
         return False
 
@@ -124,6 +126,7 @@ def nfo_loop_service():
 
     # loop added and updated
     if items_added_and_updated_pre := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
+        logger.info("    JF-API| ...There are new NFOs to generate...")
         # 1st deduplication here
         items_added_and_updated_pre = list(set(items_added_and_updated_pre))
 
@@ -219,6 +222,11 @@ def nfo_loop_service():
                 if item.get('Id') == item_id:
                     if(item.get('Type') in "Movie Episode"):
                         jf_xml_create(item, is_updated)
+                        nbofmovieorepisode += 1
+                        if nbofmovieorepisode % 5 == 0:
+                            logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[0]")
+        logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[0]")
+
                     #already_seen.append(item_id)
 
         '''
@@ -236,6 +244,10 @@ def nfo_loop_service():
                 if item.get('Id') == item_id:
                     if(item.get('Type') == 'Series'):
                         jf_xml_create(item, is_updated, sdata = s_data)   
+                        nboftvshow += 1
+                        if nboftvshow % 5 == 0:
+                            logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[{nboftvshow}]")
+        logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[{nboftvshow}]")
                     #already_seen.append(item_id)         
 
         # toremove : already_seen complete remove
@@ -250,12 +262,12 @@ def nfo_loop_service():
 
         whole_jf_json_dump = None # to free memory
         whole_jf_json_dump_s = None
-        logger.info(" TASK-DONE~ Jellyfin NFOs updated")
+        logger.info("    JF-API| ...metadata generation completed.")
 
         #jfclose_ro()
         save_jfsqdate_to_file(nowdate)
     else:
-        logger.info(" TASK-DONE~ Not any new or updated NFO")
+        logger.info("    JF-API| ...no metadata to generate")
         return True
     return True
     # ---- if finished correctly

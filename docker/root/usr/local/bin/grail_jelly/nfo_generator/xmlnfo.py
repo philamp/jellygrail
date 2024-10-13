@@ -169,13 +169,13 @@ def jf_xml_create(item, is_updated, sdata = None):
 
     if item.get('Type') == 'Movie':
         root = ET.Element("movie")
-        logger.info("    NFOGEN| MOVIE")
+        #logger.info("    NFOGEN| MOVIE")
     elif item.get('Type') == 'Episode':
         root = ET.Element("episodedetails")
-        logger.info("    NFOGEN| EPISODE")
+        #logger.info("    NFOGEN| EPISODE")
     elif item.get('Type') == 'Series':
         root = ET.Element("tvshow")
-        logger.info("    NFOGEN| TVSHOW")
+        #logger.info("    NFOGEN| TVSHOW")
         if sdata:
             seasons_data = sdata.get(item.get('Id'), [])
         else:
@@ -223,7 +223,7 @@ def jf_xml_create(item, is_updated, sdata = None):
             elif itmimg.get('ImageType') == 'Logo':
                 ET.SubElement(root, "thumb", {"aspect": "clearlogo"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
             elif itmimg.get('ImageType') == 'Backdrop':
-                ET.SubElement(root, "thumb", {"aspect": "landscape"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
+                ET.SubElement(root, "thumb", {"aspect": "fanart"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
                 ET.SubElement(root, "thumb", {"aspect": "banner"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
                 #ET.SubElement(root, "thumb", {"aspect": "clearart"}).text = f"http://[HOST_PORT]/pics{itmimg.get('Path')[JF_MD_SHIFT:]}?{tstmp}"
 

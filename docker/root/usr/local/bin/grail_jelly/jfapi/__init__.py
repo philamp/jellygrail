@@ -34,10 +34,10 @@ def wait_for_jfscan_to_finish():
                 else:
                     time.sleep(8) #toimprove : retry every 8+2 seconds toimprove, jellyfin is overloaded, but fix it later in a more clever way
         except Exception as e:
-            logger.warning(" TASK-DONE~ ... Jellyfin Library refreshed. (but API overloaded by status requests :( )")
+            logger.warning("    JF-API| ... Jellyfin Library refreshed. (but API overloaded by status requests :( )")
             return True
 
-    logger.info(" TASK-DONE~ ... Jellyfin Library refreshed.")
+    logger.info("    JF-API| ...Jellyfin Library refreshed.")
     return True
 
 
@@ -70,7 +70,8 @@ def lib_refresh_all():
     if jfapikey is not None:
         resp = jellyfin(f'Library/Refresh', method='post')
         if resp.status_code == 204:
-            logger.info("TASK-START~ Jellyfin Library refresh ...")
+            #logger.info("TASK-START~ Jellyfin Library refresh ...")
+            pass
         else:
             logger.critical(f"FAILURE to update library. Status code: {resp.status_code}")
 

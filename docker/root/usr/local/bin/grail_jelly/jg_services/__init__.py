@@ -181,7 +181,7 @@ def restoreitem(filename, token):
                     push_to_rd_hashes = [item.get('hash') for item in backup_data if item.get('hash') not in local_data_hashes]
 
                     if len(push_to_rd_hashes) > 0:
-                        logger.info(f"        RD| Restoring RD items from {filename} ...")
+                        logger.info(f"    RD-API| Restoring RD items from {filename} ...")
                         for backup_hash in push_to_rd_hashes:
 
                             try:
@@ -362,7 +362,7 @@ def rd_progress():
 
     #if remoteScan working, stop rdprogress
     if rs_working:
-        logger.info("RD-CHECKER| Cant run when remotescan or restoreitem is running ...")
+        logger.info("RD-CHECKER| Cant run RD download checker when remotescan or restoreitem is running ...")
         return ""
 
     if data := rdump_backup(including_backup = False, returning_data= True):

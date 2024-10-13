@@ -81,7 +81,7 @@ class RD:
             if 'error_code' in request.json():
                 code = request.json()['error_code']
                 message = error_codes.get(str(code), 'Unknown error')
-                logger.warning('%s: %s at %s', code, message, path)
+                logger.warning('RD-API| %s: %s at %s', code, message, path)
         except:
             pass
         self.handle_sleep()
@@ -89,7 +89,7 @@ class RD:
     
     def check_token(self):
         if self.rd_apitoken is None or self.rd_apitoken == 'your_token_here':
-            logger.warning('Add token to .env')
+            logger.warning('RD-API| Add token to .env')
 
     def handle_sleep(self):
         if self.count < 500:

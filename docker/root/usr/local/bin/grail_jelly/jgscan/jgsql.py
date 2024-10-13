@@ -69,7 +69,7 @@ def jg_datamodel_migration():
             if apply_migration(os.path.join(sqlfiles_folder, migration_file)):
                 set_current_version(migration_version)
                 sqcommit()
-                logger.warning(f' DATAMODEL| Applied {migration_file} migr. file and commited')
+                logger.warning(f' DATAMODEL/ Applied {migration_file} migr. file and commited')
             else:
                 logger.critical("Migration failure just happened")
 

@@ -1,7 +1,7 @@
 from base import *
 from base.littles import *
 from base.constants import *
-from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, get_undefined_collection_arts, insert_collection_art, new_set_resume_times_and_lastplayed
+from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, get_undefined_collection_arts, insert_collection_art, new_set_resume_times_and_lastplayed, return_last_played_max, return_last_file_id_max
 import requests
 import urllib.parse
 import websocket
@@ -16,6 +16,11 @@ kodi_url = f"http://{KODI_MAIN_URL}:8080/jsonrpc"
 kodi_ws_url = f"ws://{KODI_MAIN_URL}:9090/jsonrpc"
 kodi_username = "kodi"  
 kodi_password = "kodi"
+
+last_clean = 0
+
+last_max_lastplayed = ""
+last_max_fileid = 0
 
 headers = {
     'Content-Type': 'application/json',
@@ -122,7 +127,7 @@ def on_close(ws, close_status_code, close_msg):
 
 def on_open(ws):
     global refresh_is_safe
-    logger.info("  KODI-API~ Waiting for Kodi to finish jobs via websocket trigger...")
+    #logger.info("  KODI-API| Waiting for Kodi to finish jobs via websocket trigger...")
     refresh_is_safe = True
 
 
@@ -133,6 +138,7 @@ def refresh_kodi():
 
     global is_scanning
     global is_cleaning
+    global last_clean
     global refresh_is_safe
     refresh_is_safe = False
     is_scanning = True
@@ -174,7 +180,7 @@ def refresh_kodi():
         time.sleep(1)
 
     if waitloop < 5:
-
+        
         try:
             response = requests.post(
                 kodi_url,
@@ -190,53 +196,74 @@ def refresh_kodi():
             return False
         else:
             if response.status_code == 200:
-                logger.info("TASK-START~ Kodi Library refresh...")
+                started_at = time.time()
+                #logger.info("TASK-START~ Kodi Library refresh...")
 
-                notify_kodi("JG", "Jellygrail triggered library refresh", 3000)
+                notify_kodi("JG Refresh", "Started...", 3000)
                 
             else:
                 logger.error(f"Error on kodi lib refresh with http response code: {response.status_code}")
         
         while True:
+            # if hanging since 2 hours, declare it's done ?
             if is_scanning == False or not is_kodi_alive():
-                logger.info(" TASK-DONE~ ...Kodi Library refreshed.")
-                notify_kodi("JG", "Library refresh completed", 3000)
+                logger.info("  KODI-API| ...Kodi Library refreshed, will now try cleaning if necessary...")
+                notify_kodi("JG Refresh", "...completed.", 3000)
+                break
+            if (time.time() - started_at) > 7200:
+                logger.warning("  KODI-API| ...Kodi Library refreshed (more than 2 hours).")
+                notify_kodi("JG Refresh", "...completed (more than 2 hours !).", 3000)
                 break
             time.sleep(2)
 
         # toimprove : the code can be easilly factorized
-        try:
-            response = requests.post(
-                kodi_url,
-                headers=headers,
-                data=clean_payload,
-                auth=(kodi_username, kodi_password),
-                timeout=1500
-            )
 
-        except Exception as e:
-            logger.warning(f"!! Kodi cleaning maybe triggered but there is this error: {e} [refresh_kodi]")
-            ws.close()
-            return True
-        else:
-            if response.status_code == 200:
-                logger.info("TASK-START~ Kodi Library cleaning...")
-
-                notify_kodi("JG", "Jellygrail triggered library cleaning", 3000)
-                
-            else:
-                logger.error(f"! Error on kodi lib refresh with http response code: {response.status_code}")
         
-        while True:
-            if is_cleaning == False or not is_kodi_alive():
-                logger.info(" TASK-DONE~ ...Kodi Library cleaned.")
-                notify_kodi("JG", "Library cleaning completed", 3000)
-                break
-            time.sleep(2)
+        # clean once to twice max per day
+        if (time.time() - last_clean) > 12*3600:
+            
+            try:
+                response = requests.post(
+                    kodi_url,
+                    headers=headers,
+                    data=clean_payload,
+                    auth=(kodi_username, kodi_password),
+                    timeout=1500
+                )
+
+            except Exception as e:
+                logger.warning(f"!! Kodi cleaning maybe triggered but there is this error: {e} [refresh_kodi]")
+                ws.close()
+                return True
+            else:
+                if response.status_code == 200:
+                    started_at = time.time()
+                    last_clean = time.time()
+                    #logger.info("TASK-START~ Kodi Library cleaning...")
+
+                    notify_kodi("JG Cleaning", "Started...", 3000)
+                    
+                else:
+                    logger.error(f"! Error on kodi lib refresh with http response code: {response.status_code}")
+            
+            while True:
+                # if hanging since 1 hour, declare it's done
+                if is_cleaning == False or not is_kodi_alive():
+                    logger.info("  KODI-API| ...Kodi Library cleaned.")
+                    notify_kodi("JG Cleaning", "...completed.", 3000)
+                    break
+                if (time.time() - started_at) > 3600:
+                    logger.warning("  KODI-API| ...Kodi Library cleaned (more than 1hour).")
+                    notify_kodi("JG Cleaning", "...completed (more than 1 hour !).", 3000)
+                    break
+                time.sleep(2)
+        else:
+            notify_kodi("JG Cleaning", "Bypassed: already done in last 12h.", 3000)
+            logger.info("  KODI-API| Kodi Library cleaning bypassed.")
 
 
     else:
-        logger.warning("       TIP| Kodi websocket (port 9090) not available, try enable 'Allow remote control from applications on other systems' in Kodi/Settings/Services/Control. If still not working, please refresh manually in kodi interface. /nfo_send and /nfo_merge will have to be triggered manually via the python HTTP webservice, or wait for next automatically triggered /scan")
+        logger.warning("    MANUAL| Kodi websocket (port 9090) not available, either offline suddenly or try enable 'Allow remote control from applications on other systems' in Kodi/Settings/Services/Control. If still not working, please refresh manually in kodi interface. /nfo_send will have to be triggered manually via the python HTTP webservice, or wait for next automatically triggered /scan")
     ws.close()
     return True
 
@@ -260,9 +287,10 @@ def send_nfo_to_kodi():
                 
     if potential_nfo_to_send == 0:
         #notify_kodi("JG NFO refresh", f"No new iNFO to send", 3000)
+        logger.info("  KODI-API| ...no new NFO to send")
         pass
     else:
-        notify_kodi("JG NFO refresh", f"Sending {potential_nfo_to_send} NFOs", 3000)
+        notify_kodi("JG Metadata refresh", f"Sending {potential_nfo_to_send} metadatas...", 3000)
 
 
     for root, _, files in os.walk(JFSQ_STORED_NFO):
@@ -317,7 +345,7 @@ def send_nfo_to_kodi():
                         #logger.info(f"DEBU found mediaid: {result}")
                         # todo : have the possibility to refresh every single NFO discarding criterias below 
                         if uidtype == 'jellygrail' or updated == True:
-                            notify_kodi("JG NFO refresh", f"{xiem} / {potential_nfo_to_send} NFO sent", 3000)
+                            notify_kodi("JG Metadata refresh", f"{xiem} / {potential_nfo_to_send} metadatas sent", 3000)
                             time.sleep(1)
                             refresh_payload = json.dumps({
                                 "jsonrpc": "2.0",
@@ -367,7 +395,7 @@ def send_nfo_to_kodi():
         rename_to_done(file_to_mv)
 
     if(potential_nfo_to_send > 1):
-        notify_kodi("JG NFO refresh", f"iNFOs refresh OK", 3000)
+        notify_kodi("JG Metadata refresh", f"...completed.", 3000)
 
     mariadb_close()
     return True
@@ -388,11 +416,29 @@ def rename_to_done(filepath):
         logger.debug(f"!! An error occured on renaming .nfo.jf to .nfo.jf.done : {e}")
 
 def merge_kodi_versions():
+    global last_max_lastplayed
+    global last_max_fileid
     # merge only when needed, since the regular trigger of jf_nfo_refresh (step 4), bypass this step if there is no new nfo, it's not a an issue
     if not kodi_mysql_init_and_verify():
         return False
 
     #results = [(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]) for row in video_versions()]
+
+    returned_max_played = return_last_played_max()
+    returned_max_fileid = return_last_file_id_max()
+
+    #logger.info(f"{returned_max_played}")
+    #logger.info(f"{returned_max_fileid}")
+
+
+    if not (( returned_max_played and returned_max_played != last_max_lastplayed) or ( returned_max_fileid and returned_max_fileid != last_max_fileid)):
+        # do nothing if nothing changed
+        #notify_kodi("JG Custom SQL ops", f"Bypassed.", 3000)
+        logger.info("  SQL-KODI| ...custom ops fully bypassed.")
+        return True
+
+    if is_kodi_alive():
+        notify_kodi("JG Custom SQL ops", "Started...", 3000)
 
     for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, bmk_stuff) in video_versions(): #results:
         #find the incr smallest version
@@ -407,109 +453,98 @@ def merge_kodi_versions():
         #bmk_stuff / new manage resumtimes
         bmk_str_last = bmk_stuff.split(",")[0]
 
-        if bmk_str_last != "0#0#0": # no need to propagate if nothing is found ? : drawback : if file having lp data is deleted before next propagation, its data wont ever be propagated
-            bmk_arr_last = bmk_str_last.split("#")
-            if len(bmk_arr_last) > 2: # some fail-proof check
-                highest_lp = bmk_arr_last[0]
-                highest_rt = float(bmk_arr_last[1])
-                highest_tt = float(bmk_arr_last[2])
-                new_set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR, idfiles, highest_tt)
+         # no need to propagate if nothing is found ? : drawback : if file having lp data is deleted before next propagation, its data wont ever be propagated
+        if returned_max_played and returned_max_played != last_max_lastplayed: # dont do if unnecessary
+            if bmk_str_last != "0#0#0":
+                bmk_arr_last = bmk_str_last.split("#")
+                if len(bmk_arr_last) > 2: # some fail-proof check
+                    highest_lp = bmk_arr_last[0]
+                    highest_rt = float(bmk_arr_last[1])
+                    highest_tt = float(bmk_arr_last[2])
+                    new_set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR, idfiles, highest_tt)
+                    
 
-        #bmk_stuff
 
-        videoversiontuple = []
-        idtokeep = None
-        strpathtokeep = None
-        imediatokeep = None
+        #bmk_stuffend
 
-        '''
-        # manage resumtimes:
-        highest_lp = None
-        highest_rt = None
-        highest_tt = None
+        if returned_max_fileid and returned_max_fileid != last_max_fileid: # dont do if unnecessary
 
-        
-        if lastplayedsR:
-            #lastplayeds_str = lastplayedsR.split("#")
-            lastplayeds_tup = [(thislp, datetime.strptime(thislp, '%Y-%m-%d %H:%M:%S')) for thislp in lastplayedsR.split("#")]
-            highest_lp, _ = max(lastplayeds_tup, key=lambda x: x[1])
+            videoversiontuple = []
+            idtokeep = None
+            strpathtokeep = None
+            imediatokeep = None
+
+            if idfiles and strpaths and idmedias:
+                # just looping through sthing of all arrays
+                for strfilename in strfilenames:
+                    decoded_filename = urllib.parse.unquote(strfilename)
+                    match = re.search(r'-\s*(.*?)\s*JGx', decoded_filename)
+                    if match:
+                        extracted_text = match.group(1)
+                        videoversiontuple.append((idfiles[i], extracted_text))
+                        matchb = re.search(r'(\d+)Mbps', extracted_text)
+                        if matchb:
+                            mbps_value = int(matchb.group(1))
+                            if mbps_value < currlowest:
+                                currlowest = mbps_value
+                                idtokeep = idfiles[i]
+                                strpathtokeep = strpaths[i]
+                    else:
+                        videoversiontuple.append((idfiles[i], "Iso Edition"))
+
+                    if imediatokeep == None and isdefaults[i] == 1:
+                        imediatokeep = idmedias[i]
             
-        if resumetimesR:
-            highest_rt = max([float(num) for num in resumetimesR.split(" ")])
+                    i += 1
 
-        if totaltimesR:
-            highest_tt = max([float(num) for num in totaltimesR.split(" ")])
-            # only do it if it finds at least one tt
-            set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR, idfiles, highest_tt)
-            # :manage resumetimes
-        '''
 
-        if idfiles and strpaths and idmedias:
-            # just looping through sthing of all arrays
-            for strfilename in strfilenames:
-                decoded_filename = urllib.parse.unquote(strfilename)
-                match = re.search(r'-\s*(.*?)\s*JGx', decoded_filename)
-                if match:
-                    extracted_text = match.group(1)
-                    videoversiontuple.append((idfiles[i], extracted_text))
-                    matchb = re.search(r'(\d+)Mbps', extracted_text)
-                    if matchb:
-                        mbps_value = int(matchb.group(1))
-                        if mbps_value < currlowest:
-                            currlowest = mbps_value
-                            idtokeep = idfiles[i]
-                            strpathtokeep = strpaths[i]
+                # if did not find any way to find the lowest value, we keep the first ones, will be set to the kept media
+                if idtokeep == None:
+                    idtokeep = idfiles[0]
+                    strpathtokeep = strpaths[0]
+
+
+                if imediatokeep != None:
+                    # proceed to link videoverion to the kept mediaid
+                    for idfile, versionlabel in videoversiontuple:
+                        # check if extracted text exists in db
+                        if new_id := check_if_vvtype_exists(versionlabel):
+                            pass
+                        else:
+                            new_id = insert_new_vvtype(versionlabel)
+
+                        if new_id != None:
+                            link_vv_to_kept_mediaid(idfile, imediatokeep, new_id)
+                        else:
+                            logger.error("new_id is none, thos should not happen")
+
+                    # proceed to set idfile and strpath to the mediaid we keep
+                    define_kept_mediaid(idtokeep, strpathtokeep, imediatokeep)
+
+                    # proceed to delete all mediaid but the one we keep
+                    for idmedia in idmedias:
+                        if idmedia != imediatokeep:
+                            delete_other_mediaid(idmedia)
                 else:
-                    videoversiontuple.append((idfiles[i], "Iso Edition"))
-
-                if imediatokeep == None and isdefaults[i] == 1:
-                    imediatokeep = idmedias[i]
-        
-                i += 1
-
-
-            # if did not find any way to find the lowest value, we keep the first ones, will be set to the kept media
-            if idtokeep == None:
-                idtokeep = idfiles[0]
-                strpathtokeep = strpaths[0]
-
-
-            if imediatokeep != None:
-                # proceed to link videoverion to the kept mediaid
-                for idfile, versionlabel in videoversiontuple:
-
-                    # check if extracted text exists in db
-                    if new_id := check_if_vvtype_exists(versionlabel):
-                        pass
-                    else:
-                        new_id = insert_new_vvtype(versionlabel)
-
-                    if new_id != None:
-                        link_vv_to_kept_mediaid(idfile, imediatokeep, new_id)
-                    else:
-                        logger.error("new_id is none, thos should not happen")
-
-                # proceed to set idfile and strpath to the mediaid we keep
-                define_kept_mediaid(idtokeep, strpathtokeep, imediatokeep)
-
-                # proceed to delete all mediaid but the one we keep
-                for idmedia in idmedias:
-                    if idmedia != imediatokeep:
-                        delete_other_mediaid(idmedia)
+                    logger.error("imediatokeep is none, this should not happen")
             else:
-                logger.error("imediatokeep is none, this should not happen")
-        else:
-            logger.error("vv main request gone wrong, this should not happen")
+                logger.error("vv main request gone wrong, this should not happen")
+
+            
+    last_max_lastplayed = returned_max_played
+    last_max_fileid = returned_max_fileid
 
     # sets collection images
     for (idset, strset, _) in get_undefined_collection_arts():
         insert_collection_art(idset, "http://"+NGINX_HOST+"/pics/collections/"+urllib.parse.quote(strset, safe=SAFE)+".jpg")
         
 
-
     # refresh kodi UI
     if is_kodi_alive():
         kodi_ui_refresh()
+        notify_kodi("JG Custom SQL ops", "...completed.", 3000)
+    
+    logger.info("  SQL-KODI| ...custom ops completed.")
         
     mariadb_close()
     return True

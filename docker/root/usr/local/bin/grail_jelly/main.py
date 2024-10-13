@@ -58,7 +58,7 @@ class RequestHandler(BaseHTTPRequestHandler):
 
     def log_message(self, format, *args):
         # Redirect the log message to the logger
-        logger.info("   HTTP-IN| %s - [%s] %s" % (
+        logger.info("   HTTP-IN/ %s - [%s] %s" % (
             self.client_address[0],
             self.log_date_time_string(),
             format % args))
@@ -84,7 +84,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
 
-        elif url_path == '/mc_scan':
+            '''
+        elif url_path == '/kodi_scan':
             _kodirefresh_instance = ScriptRunner.get(refresh_all)
             _kodirefresh_instance.resetargs(2)
             _kodirefresh_instance.run()
@@ -94,6 +95,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 message = "### refresh_mediacenters directly executed ! \n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
+            '''
 
         elif url_path == '/nfo_scan':
             _nfo_scan = ScriptRunner.get(refresh_all)
@@ -106,6 +108,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
 
+            '''
         elif url_path == '/kodi_alive':
             _kodi_alive = ScriptRunner.get(is_kodi_alive)
             _kodi_alive.run()
@@ -115,6 +118,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 message = "### kodi alive directly executed ! \n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
+            '''
 
         elif url_path == '/nfo_send':
             _nfo_send = ScriptRunner.get(refresh_all)
@@ -138,9 +142,10 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
 
+            '''
         elif url_path == '/kodi_scan':
             _kodi_scan = ScriptRunner.get(refresh_all)
-            _kodi_scan.resetargs(56)
+            _kodi_scan.resetargs(9)
             _kodi_scan.run()
             if _kodi_scan.queued_execution:
                 message = "### _kodi_scan queued for later ! \n"
@@ -148,6 +153,7 @@ class RequestHandler(BaseHTTPRequestHandler):
                 message = "### _kodi_scan directly executed ! \n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
+            '''
 
         elif url_path == '/rd_progress':
             _rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
@@ -242,7 +248,7 @@ def is_kodi_alive_loop():
 
     while True:
         if is_kodi_alive():
-            logger.info("RETRY-DONE~ ... Main Kodi up again.")
+            #logger.info("KODI-ALIVE/ ...Main kodi up again.")
             _refreshkodi_thread = ScriptRunner.get(refresh_all)
             _refreshkodi_thread.resetargs(8) 
             _refreshkodi_thread.run()
@@ -265,18 +271,18 @@ def refresh_all(step):
     # ----
 
     if step == 1: # triggered also with rd_progress_response == "PLEASE_SCAN":
-        logger.info("      STEP~ 1/ Main Scan")
+        logger.info("         1| Main Scan...")
         if scan() > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             toomany = True
     if (step < 3 or step == 8): 
         if not toomany:
             if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-                logger.info("      STEP~ 2/ Kodi library refresh *if online*")
+                logger.info("         2| Try Kodi incremental library refresh *if online*...")
                 if not refresh_kodi():
                     retry_later = True
 
     if step < 4:
-        logger.info("      STEP~ 3/ Jellyfin (or Plex) library refresh")
+        logger.info("         3| Jellyfin (or Plex) library refresh...")
         if JF_WANTED:
             # refresh the jellyfin library and merge variants
             lib_refresh_all()
@@ -301,15 +307,15 @@ def refresh_all(step):
 
     if step < 5:
         if JF_WANTED:
-            logger.info("      STEP~ 4/ Generate Jellyfin NFOs")
+            logger.info("         4| Try generate Jellyfin NFOs *if any new items*...")
             if not nfo_loop_service():
                 step = 9 # if jfwanted but nfo gen fails stop here
-                logger.error("  ~NFO-FAIL| Generating NFOs from Jellyfin does not work, refresh will stop there")
+                logger.error("         4| Generating NFOs from Jellyfin does not work, refresh will stop there")
 
     # if toomany, kodi refresh is done after jellyfin 
     if toomany:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("      STEP~ 2bis/ Kodi library refresh (batch) *if online*")
+            logger.info("      4bis| Try Kodi batch library refresh *if online*")
             if not refresh_kodi():
                 retry_later = True
 
@@ -317,33 +323,20 @@ def refresh_all(step):
     if (step < 6 or step == 8) and retry_later == False:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             if JF_WANTED:
-                logger.info("      STEP~ 5/ Sending NFOs to Kodi *if online*")
+                logger.info("         5| Try sending NFOs to Kodi *if online and new NFOs present*...")
                 if not send_nfo_to_kodi():
                     retry_later = True
-            else:
-                # since merging can be done without jellyfin
-                logger.info("      STEP~ 6/ Custom Kodi MySQL dB Operations")
-                merge_kodi_versions()
-        if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") and retry_later == False:
-            logger.info("      STEP~ 6/ Custom Kodi MySQL dB Operations *if online*")
-            merge_kodi_versions()
 
 
-    # if specifically wanted with the webservice (6 : nfo_merge)
-    if (step == 6) and retry_later == False:
+    # is tep inferior or specifically wanted with the webservice (6 : nfo_merge)
+    if (step < 7 or step == 8) and (retry_later == False or not JF_WANTED):
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("      STEP~ 6/ Custom Kodi MySQL dB Operations (standalone operation)")
+            logger.info("         6| Try custom Kodi MySQL dB Operations *if online and new data*...")
             merge_kodi_versions()
-
-    # if specifically to refresh kodi (56 : kodi_scan)
-    if (step == 56):
-        if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("      STEP~ 2/ Kodi library refresh (standalone operation) *if online*")
-            refresh_kodi()
     
 
     if retry_later == True and kodi_mysql_init_and_verify(just_verify=True):
-        logger.warning("     RETRY~ STEPS 2,5,6/ Will be retried when Main Kodi is up again (15s retry-loop enabled) ...")
+        logger.warning(" STEPS-256| Will be retried when Main Kodi is up again (15s retry-loop enabled)...")
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
         _is_kodi_alive_loop_thread.run()
         # toimprove : ne need to queue this job ?
@@ -355,7 +348,7 @@ def run_server(server_class=HTTPServer, handler_class=RequestHandler, port=6502)
     global httpd
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
-    logger.info(f"      HTTP| JellyGrail WebService running on port: {port} ~")
+    logger.info(f"      HTTP/ JellyGrail WebService running on port: {port} ~")
     httpd.serve_forever()
 
 
@@ -397,7 +390,7 @@ def periodic_trigger_rs(seconds=350):
         time.sleep(seconds)
         _rs_instance.run()
 
-def periodic_trigger_nfo_gen(seconds=400):
+def periodic_trigger_nfo_gen(seconds=200):
     _nfogen_instance = ScriptRunner.get(refresh_all)
     while True:
         time.sleep(seconds)
@@ -419,7 +412,7 @@ def inotify_deamon(to_watch):
 
     # Notifier
     notifier = pyinotify.Notifier(wm, event_handler)
-    logger.info("   STORAGE| Local drive(s) activity detector started ~")
+    logger.info("   STORAGE/ Local drive(s) activity detector started ~")
 
     notifier.loop()
     # ----- inotify END
@@ -433,10 +426,10 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
         if next_run < now:
             next_run += datetime.timedelta(days=1)
         sleep_time = (next_run - now).total_seconds()
-        logger.info(f"  SCHEDULE| JellyGrail next restart in {sleep_time/3600} hours ~")
+        logger.info(f"  SCHEDULE/ JellyGrail next restart in {str(sleep_time/3600)[:4]} hours ~")
         time.sleep(sleep_time)
         if True:
-            logger.warning(f"      TASK| JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
+            logger.warning(f"  SCHEDULE/ ~ JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
             httpd.shutdown()
 
 def handle_socket_request(connection, client_address, socket_type):
@@ -503,14 +496,14 @@ def socket_server_waiting(socket_type):
     # Listen for incoming connections
     server_socket.listen()
     if socket_type == "ffprobe":
-        logger.info(f"    SOCKET| Waiting for any {socket_type} wrapper transaction ~")
+        logger.info(f"    SOCKET/ Waiting for any {socket_type} wrapper transaction ~")
 
     while True:
         #print(".", end="", flush=True)
         connection, client_address = server_socket.accept() # it waits here
         if socket_type == "nfopath":
             socket_started = True
-            logger.info(f"    SOCKET| BindFS connected.")
+            logger.info(f"    SOCKET/ BindFS connected.")
         _handle_client_thread = threading.Thread(target=handle_socket_request, args=(connection, client_address, socket_type))
         _handle_client_thread.daemon = True
         _handle_client_thread.start()
@@ -535,7 +528,7 @@ if __name__ == "__main__":
     thread_e.start()
 
 
-    logger.info("    SOCKET| Waiting for BindFS ...")
+    logger.info("    SOCKET/ Waiting for BindFS ...")
     waitloop = 0
     while not socket_started:
         #print(".", end="", flush=True)
@@ -565,18 +558,18 @@ if __name__ == "__main__":
             _scan_instance.run()
         '''
         if jf_config_result == "ZERO-RUN":
-            logger.warning(f"   RESTART| JellyGrail now restarts if '--restart unless-stopped' was set, otherwise please start it manually.")
+            logger.warning(f"   RESTART/ JellyGrail now restarts if '--restart unless-stopped' was set, otherwise please start it manually.")
             full_run = False
 
     # config checkups
     if VERSION != CONFIG_VERSION:
-        logger.error("  CHECK-UP| Config version is different from app version, please STOP or CTRL-C the container, rerun PREPARE.SH or fix directly in settings.env (vs. settings.env.example)")
+        logger.error("    MANUAL/ Config version is different from app version, please STOP or CTRL-C the container, rerun PREPARE.SH or fix directly in settings.env (vs. settings.env.example)")
     else:
         if KODI_MAIN_URL == "PASTE_KODIMAIN_URL_HERE" or KODI_MAIN_URL == "":
-            logger.warning("  CHECK-UP| Kodi main url is not set up, maybe ignored intentionnaly ? Otherwise please rerun PREPARE.SH and restart container.")
+            logger.warning("    MANUAL/ Kodi main url is not set up, maybe ignored intentionnaly ? Otherwise please rerun PREPARE.SH and restart container.")
         else:
             if not JF_WANTED:
-                logger.warning("  CHECK-UP| Kodi main url defined, but embedded Jellyfin disabled, Kodi can work without NFO sync from jellyfin, however make sure not to use the Local NFO data scrapper in Kodi video sources configuration.")
+                logger.warning("    MANUAL/ Kodi main url defined, but embedded Jellyfin disabled, Kodi can work without NFO sync from jellyfin, however make sure not to use the Local NFO data scrapper in Kodi video sources configuration.")
 
     kodi_mysql_init_and_verify(just_verify=True)
 
@@ -601,11 +594,11 @@ if __name__ == "__main__":
                 thread_ars = threading.Thread(target=periodic_trigger_rs)
                 thread_ars.daemon = True  # 
                 thread_ars.start()
-                logger.info("  SCHEDULE| Real Debrid API remoteScan will be triggered every 7mn ~")
+                logger.info("  SCHEDULE/ Real Debrid API remoteScan will be triggered every 7mn ~")
             
-            logger.info("  SCHEDULE| Real Debrid API rd_progress will be triggered every 2mn ~")
+            logger.info("  SCHEDULE/ Real Debrid API rd_progress will be triggered every 2mn ~")
         else:
-            logger.warning("  CHECK-UP| Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env and restart container")
+            logger.warning("    MANUAL/ Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env and restart container")
 
 
         # C: inotify deamon
@@ -619,7 +612,7 @@ if __name__ == "__main__":
         thread_b.daemon = True  # exits when parent thread exits
         thread_b.start()
 
-        logger.warning("       TIP| CTRL+C does not prevent restart. So if needed, stopping should be done with a docker stop command")
+        logger.warning("    MANUAL/ CTRL+C does not prevent restart. So if needed, stopping should be done with a docker stop command")
 
         # daily restart scan
         _scan_instance = ScriptRunner.get(refresh_all)

@@ -68,13 +68,49 @@ def check_if_vvtype_exists(test_string):
 
     result = cursor.fetchone()
 
-    logger.debug("--- vv merging passing through ----")
     cursor.close() 
 
     if result:
         return result[0]
     
     return 0
+
+def return_last_played_max():
+    global conn
+    # Création d'un curseur pour exécuter des requêtes SQL
+    cursor = conn.cursor(buffered=True)
+
+    # Exécution d'une requête
+    cursor.execute(f"USE {found_db}")
+    cursor.execute(f"SELECT MAX(lastPlayed) FROM files")
+
+    result = cursor.fetchone()
+
+    cursor.close() 
+
+    if result:
+        return result[0]
+    
+    return None
+
+def return_last_file_id_max():
+    global conn
+    # Création d'un curseur pour exécuter des requêtes SQL
+    cursor = conn.cursor(buffered=True)
+
+    # Exécution d'une requête
+    cursor.execute(f"USE {found_db}")
+    cursor.execute(f"SELECT MAX(idFile) FROM files")
+
+    result = cursor.fetchone()
+
+    cursor.close() 
+
+    if result:
+        return result[0]
+    
+    return None
+
 
 
 def delete_other_mediaid(imediatodel):

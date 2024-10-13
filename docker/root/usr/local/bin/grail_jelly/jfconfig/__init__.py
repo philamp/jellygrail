@@ -15,7 +15,7 @@ def jfconfig():
     # check if /jellygrail/jellyfin/config/data/jellyfin.db exists
     triggerdata = []
     proceedinjf = None
-    logger.info("  JELLYFIN| Waiting for API availability (waiting up to 2mn max) ...")
+    logger.info("  JELLYFIN/ Waiting for API availability (waiting up to 2mn max)...")
     iwait = 0
     while iwait < 40:
         iwait += 1
@@ -28,7 +28,7 @@ def jfconfig():
             logger.debug(f". Waiting for Jellyfin to be available: try {iwait} ...")
         else:
             proceedinjf = True
-            logger.info("  JELLYFIN| ... Available.")
+            logger.info("  JELLYFIN/ ...Available.")
             break
         time.sleep(3)
 
@@ -47,13 +47,13 @@ def jfconfig():
             if len(array) > 0:
                 
                 jfapi.jfapikey = array[0]
-                logger.info(f"  JELLYFIN| API Key fetched from dB")
+                logger.info(f"  JELLYFIN/ API Key fetched from dB")
             
             else:
                 key = ''.join(random.choice('0123456789abcdef') for _ in range(32))
                 insert_api_key(key)
                 # logger.info(f"> Api Key {key} inserted")
-                logger.info(f"  JELLYFIN| API Key inserted in dB")
+                logger.info(f"  JELLYFIN/ API Key inserted in dB")
                 jfapi.jfapikey = key
 
             jfclose()
@@ -101,7 +101,7 @@ def jfconfig():
             jfapi.jellyfin(f'ScheduledTasks/4e6637c832ed644d1af3370a2506e80a/Triggers', json=triggerdata, method='post')
             jfapi.jellyfin(f'ScheduledTasks/2c66a88bca43e565d7f8099f825478f1/Triggers', json=triggerdata, method='post')
 
-            logger.warning("  JELLYFIN| Add-ons installed, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
+            logger.warning("  JELLYFIN/ Add-ons installed, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
 
             return "ZERO-RUN"
             # thanks to --restart unless-stopped, drawback: it will restart in a loop if it does not find 2 declared repos (toimprove: find a more resilient way to test it)
@@ -270,8 +270,8 @@ def jfconfig():
                     logger.debug(". merging movies already disabled")
 
                 return "FIRST_RUN"
-            logger.info("  JELLYFIN| Jellyfin setup and librairies configuration finished.")
-            logger.warning("  JELLYFIN| don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
+            logger.info("  JELLYFIN/ Jellyfin setup and librairies configuration finished.")
+            logger.warning("  JELLYFIN/ don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
             
     return ""            
             
