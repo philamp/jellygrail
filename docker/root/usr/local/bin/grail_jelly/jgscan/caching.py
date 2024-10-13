@@ -136,7 +136,7 @@ def read_file_with_timeout(file_path, timeout = 604):
     thread.join(timeout)
     
     if thread.is_alive():
-        logger.error(f" - FAILURE_read : Waited 604 seconds (10m) : Reading file {file_path} took too long and was aborted.")
+        logger.error(f" - FAILURE_read : Waited 604 seconds (10m) : Reading file {file_path} took too long and was aborted")
         return False
     elif not success:
         # Si `worker` a rencontré une exception, `success` aura été changé en False

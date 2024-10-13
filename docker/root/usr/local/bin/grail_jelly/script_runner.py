@@ -60,9 +60,9 @@ class ScriptRunnerSub:
         finally:
             # async bahavior parameters management post-set
             if self.func.__name__ == "refresh_all" and len(self.args):
-                logger.info(f"         ~| #{self.manytimes} completed.]]")
+                logger.info(f"         ~| #{self.manytimes} completed]]")
             else:
-                logger.info(f"[Threadrun/ {self.func.__name__} #{self.manytimes} done.]")
+                logger.info(f"[Threadrun/ {self.func.__name__} #{self.manytimes} done]")
             self.is_running = False
             if self.queued_execution:
                 self.queued_execution = False # set it to False ASAP right after flag was interrogated

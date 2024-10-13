@@ -503,7 +503,7 @@ def socket_server_waiting(socket_type):
         connection, client_address = server_socket.accept() # it waits here
         if socket_type == "nfopath":
             socket_started = True
-            logger.info(f"    SOCKET/ BindFS connected.")
+            logger.info(f"    SOCKET/ BindFS connected")
         _handle_client_thread = threading.Thread(target=handle_socket_request, args=(connection, client_address, socket_type))
         _handle_client_thread.daemon = True
         _handle_client_thread.start()
@@ -581,6 +581,7 @@ if __name__ == "__main__":
             thread_e = threading.Thread(target=periodic_trigger_nfo_gen)
             thread_e.daemon = True  # 
             thread_e.start()
+            logger.info("  SCHEDULE/ NFO Metadata delta generation will be triggered every 3mn ~")
 
 
         if RD_API_SET:
@@ -616,7 +617,7 @@ if __name__ == "__main__":
 
         # daily restart scan
         _scan_instance = ScriptRunner.get(refresh_all)
-        _scan_instance.resetargs(1)
+        _scan_instance.resetargs(4)
         _scan_instance.run()
 
 

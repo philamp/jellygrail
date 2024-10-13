@@ -95,10 +95,10 @@ def is_kodi_alive():
         logger.debug(f"kodi responded with {response.status_code}")
 
         if response.status_code == 401:
-            logger.debug("Kodi is alive and responsive.")
+            logger.debug("Kodi is alive and responsive")
             return True
         else:
-            logger.debug("Kodi responded, but the result was unexpected.")
+            logger.debug("Kodi responded, but the result was unexpected")
             return False
     except requests.exceptions.RequestException as e:
         logger.debug(f"Failed to connect to Kodi: {e}")
@@ -249,17 +249,17 @@ def refresh_kodi():
             while True:
                 # if hanging since 1 hour, declare it's done
                 if is_cleaning == False or not is_kodi_alive():
-                    logger.info("  KODI-API| ...Kodi Library cleaned.")
-                    notify_kodi("JG Cleaning", "...completed.", 3000)
+                    logger.info("  KODI-API| ...Kodi Library cleaned")
+                    notify_kodi("JG Cleaning", "...completed", 3000)
                     break
                 if (time.time() - started_at) > 3600:
-                    logger.warning("  KODI-API| ...Kodi Library cleaned (more than 1hour).")
-                    notify_kodi("JG Cleaning", "...completed (more than 1 hour !).", 3000)
+                    logger.warning("  KODI-API| ...Kodi Library cleaned (more than 1hour)")
+                    notify_kodi("JG Cleaning", "...completed (more than 1 hour !)", 3000)
                     break
                 time.sleep(2)
         else:
-            notify_kodi("JG Cleaning", "Bypassed: already done in last 12h.", 3000)
-            logger.info("  KODI-API| Kodi Library cleaning bypassed.")
+            notify_kodi("JG Cleaning", "Bypassed: already done in last 12h", 3000)
+            logger.info("  KODI-API| Kodi Library cleaning bypassed")
 
 
     else:
@@ -434,13 +434,13 @@ def merge_kodi_versions():
     if not (( returned_max_played and returned_max_played != last_max_lastplayed) or ( returned_max_fileid and returned_max_fileid != last_max_fileid)):
         # do nothing if nothing changed
         #notify_kodi("JG Custom SQL ops", f"Bypassed.", 3000)
-        logger.info("  SQL-KODI| ...custom ops fully bypassed.")
+        logger.info("  SQL-KODI| ...custom ops fully bypassed")
         return True
 
     if is_kodi_alive():
         notify_kodi("JG Custom SQL ops", "Started...", 3000)
 
-    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, bmk_stuff) in video_versions(): #results:
+    for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, bmk_stuff) in video_versions(): #results: 
         #find the incr smallest version
         i=0
         currlowest=200
@@ -544,7 +544,7 @@ def merge_kodi_versions():
         kodi_ui_refresh()
         notify_kodi("JG Custom SQL ops", "...completed.", 3000)
     
-    logger.info("  SQL-KODI| ...custom ops completed.")
+    logger.info("  SQL-KODI| ...custom ops completed")
         
     mariadb_close()
     return True

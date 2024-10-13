@@ -137,7 +137,7 @@ def push_array_of_items(array):
             
         except requests.exceptions.HTTPError as http_err:
             if http_err.response.status_code == 403:
-                logger.warning(f"...! Hash {item} is not accepted by RD.")
+                logger.warning(f"...! Hash {item} is not accepted by RD")
                 continue
         except Exception as e:
             logger.error(f"An Error has occured on pushing hash to RD (+cancellation of whole batch, so please retry) : {e}")
@@ -298,7 +298,7 @@ def remoteScan():
                         push_and_select(remote_hash)
                     except requests.exceptions.HTTPError as http_err:
                         if http_err.response.status_code == 403:
-                            logger.warning(f"    RD-API| Hash {remote_hash} is not accepted by RD.")
+                            logger.warning(f"    RD-API| Hash {remote_hash} is not accepted by RD")
 
                             discarded_hashes.append(remote_hash)
                             #cur_incr += 1 # we can increment
@@ -399,7 +399,7 @@ def rd_progress():
                 array_to_file(PILE_FILE, delta_elements)
 
                 if len(delta_elements) > 0:
-                    logger.info("    RD-API| New downloaded torrent(s) >> Refresh triggered or queued.")
+                    logger.info("    RD-API| New downloaded torrent(s) >> Refresh triggered or queued")
                     return "PLEASE_SCAN"
                 else:
                     logger.debug("    RD-API| NO new downloaded torrent(s). No trigger.")

@@ -28,7 +28,7 @@ def jfconfig():
             logger.debug(f". Waiting for Jellyfin to be available: try {iwait} ...")
         else:
             proceedinjf = True
-            logger.info("  JELLYFIN/ ...Available.")
+            logger.info("  JELLYFIN/ ...Available")
             break
         time.sleep(3)
 
@@ -270,7 +270,7 @@ def jfconfig():
                     logger.debug(". merging movies already disabled")
 
                 return "FIRST_RUN"
-            logger.info("  JELLYFIN/ Jellyfin setup and librairies configuration finished.")
+            logger.info("  JELLYFIN/ Jellyfin setup and librairies configuration finished")
             logger.warning("  JELLYFIN/ don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
             
     return ""            

@@ -262,7 +262,7 @@ def nfo_loop_service():
 
         whole_jf_json_dump = None # to free memory
         whole_jf_json_dump_s = None
-        logger.info("    JF-API| ...metadata generation completed.")
+        logger.info("    JF-API| ...metadata generation completed")
 
         #jfclose_ro()
         save_jfsqdate_to_file(nowdate)
