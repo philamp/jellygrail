@@ -250,7 +250,7 @@ def is_kodi_alive_loop():
         if is_kodi_alive():
             #logger.info("KODI-ALIVE/ ...Main kodi up again.")
             _refreshkodi_thread = ScriptRunner.get(refresh_all)
-            _refreshkodi_thread.resetargs(8) 
+            #_refreshkodi_thread.resetargs(8) already set inrefresh_all itself
             _refreshkodi_thread.run()
             break
         time.sleep(15)
@@ -269,17 +269,20 @@ def refresh_all(step):
     # =5: nfo_send can be done only if kodi device is alive (nfo_send)
     # =6: merging can be done if kodi off or not working in db (nfo_merge)
     # ----
+    post_kodi_run_step = 12
 
     if step == 1: # triggered also with rd_progress_response == "PLEASE_SCAN":
         logger.info("         1| Main Scan...")
         if scan() > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             toomany = True
-    if (step < 3 or step == 8): 
+    if (step < 3 or (step > 10 and step < 13)): 
         if not toomany:
             if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
                 logger.info("         2| Try Kodi incremental library refresh *if online*...")
                 if not refresh_kodi():
                     retry_later = True
+                else:
+                    post_kodi_run_step = 15
 
     if step < 4:
         logger.info("         3| Jellyfin (or Plex) library refresh...")
@@ -318,27 +321,36 @@ def refresh_all(step):
             logger.info("      4bis| Try Kodi batch library refresh *if online*")
             if not refresh_kodi():
                 retry_later = True
+            else:
+                post_kodi_run_step = 15
 
     # if step inferior or if specifically wanted with the webservice (6)
-    if (step < 6 or step == 8) and retry_later == False:
+    if (step < 6 or (step > 10 and step < 16)) and retry_later == False:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             if JF_WANTED:
                 logger.info("         5| Try sending NFOs to Kodi *if online and new NFOs present*...")
                 if not send_nfo_to_kodi():
                     retry_later = True
+                else:
+                    post_kodi_run_step = 16
 
 
     # is tep inferior or specifically wanted with the webservice (6 : nfo_merge)
-    if (step < 7 or step == 8) and (retry_later == False or not JF_WANTED):
+    if (step < 7 or (step > 10 and step < 17)) and (retry_later == False or not JF_WANTED):
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             logger.info("         6| Try custom Kodi MySQL dB Operations *if online and new data*...")
             merge_kodi_versions()
+            post_kodi_run_step = 17
     
 
+    # 2 5 6 = 12 15 16 (>10)
+    # potential refresh_all setup if run by kodi_alive_loop (if run by retry later or already run)
+    _prepare_kodi_dedicated_thread = ScriptRunner.get(refresh_all)
+    _prepare_kodi_dedicated_thread.resetargs(post_kodi_run_step)
     if retry_later == True and kodi_mysql_init_and_verify(just_verify=True):
         logger.warning(" STEPS-256| Will be retried when Main Kodi is up again (15s retry-loop enabled)...")
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
-        _is_kodi_alive_loop_thread.run()
+        _is_kodi_alive_loop_thread.run() # will run only if not running, no queue
         # toimprove : ne need to queue this job ?
         # will run refresh_all with arg 8
 
@@ -617,7 +629,7 @@ if __name__ == "__main__":
 
         # daily restart scan
         _scan_instance = ScriptRunner.get(refresh_all)
-        _scan_instance.resetargs(4)
+        _scan_instance.resetargs(1)
         _scan_instance.run()
 
 

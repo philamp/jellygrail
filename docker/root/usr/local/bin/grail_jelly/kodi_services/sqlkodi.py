@@ -100,7 +100,7 @@ def return_last_file_id_max():
 
     # Exécution d'une requête
     cursor.execute(f"USE {found_db}")
-    cursor.execute(f"SELECT MAX(idFile) FROM files")
+    cursor.execute(f"SELECT MAX(idMovie) FROM movie")
 
     result = cursor.fetchone()
 

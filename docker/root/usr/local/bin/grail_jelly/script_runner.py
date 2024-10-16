@@ -46,7 +46,9 @@ class ScriptRunnerSub:
         try:
             if self.func:
                 self.manytimes += 1
-                if self.func.__name__ == "refresh_all" and len(self.args):
+                if self.func.__name__ == "refresh_all":
+                    if len(self.args) < 1:
+                        self.args[0] = 1
                     logger.info(f"[[  Step@{self.args[0]}| #{self.manytimes} Started ~")
                 else:
                     logger.debug(f"[Threadrun/ {self.func.__name__} #{self.manytimes}")

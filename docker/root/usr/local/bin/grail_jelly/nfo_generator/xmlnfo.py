@@ -151,6 +151,7 @@ def get_tech_xml_details(pathwoext):
                     
                     
         first_subs.extend(last_subs)
+        list(set(first_subs)) #mention each language only once
         for lang in first_subs:
             subtitle_element = ET.Element('subtitle')
             ET.SubElement(subtitle_element, "language").text = lang
