@@ -346,6 +346,8 @@ def send_nfo_to_kodi():
                         # todo : have the possibility to refresh every single NFO discarding criterias below 
                         if uidtype == 'jellygrail' or updated == True:
                             notify_kodi("JG Metadata refresh", f"{xiem} / {potential_nfo_to_send} metadatas sent", 3000)
+                            #logger.info(f"{xiem} / {potential_nfo_to_send} metadatas sent")
+                            #logger.info(f"ID: result ; uid type: {uidtype}")
                             time.sleep(1)
                             refresh_payload = json.dumps({
                                 "jsonrpc": "2.0",

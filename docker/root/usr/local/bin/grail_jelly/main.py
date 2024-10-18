@@ -261,14 +261,6 @@ def refresh_all(step):
     retry_later = False
     toomany = False
 
-    # there was temp fixes before; now trying to remove them
-    # temp fixes were :
-    # ---
-    # 1 ==2 : kodi refresh scan should be done by device
-    # nfo_send and merging should be done manually and separately
-    # =5: nfo_send can be done only if kodi device is alive (nfo_send)
-    # =6: merging can be done if kodi off or not working in db (nfo_merge)
-    # ----
     post_kodi_run_step = 12
 
     if step == 1: # triggered also with rd_progress_response == "PLEASE_SCAN":

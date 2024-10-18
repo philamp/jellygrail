@@ -247,7 +247,7 @@ def nfo_loop_service():
                         nboftvshow += 1
                         if nboftvshow % 5 == 0:
                             logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[{nboftvshow}]")
-        logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[{nboftvshow}]")
+        logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[{nboftvshow}] ...completed")
                     #already_seen.append(item_id)         
 
         # toremove : already_seen complete remove
@@ -262,7 +262,7 @@ def nfo_loop_service():
 
         whole_jf_json_dump = None # to free memory
         whole_jf_json_dump_s = None
-        logger.info("    JF-API| ...metadata generation completed")
+        #logger.info("    JF-API| ...metadata generation completed")
 
         #jfclose_ro()
         save_jfsqdate_to_file(nowdate)
