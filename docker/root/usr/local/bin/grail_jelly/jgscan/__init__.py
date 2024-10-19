@@ -59,7 +59,7 @@ def bdd_install():
     # create movies and shows parent folders
     insert_data("/movies", None, None, None, 'all')
     insert_data("/shows", None, None, None, 'all')
-    insert_data("/concerts", None, None, None, 'all')
+    #insert_data("/concerts", None, None, None, 'all')
     sqcommit()
 
 

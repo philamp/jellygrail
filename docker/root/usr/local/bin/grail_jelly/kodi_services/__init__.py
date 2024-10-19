@@ -142,7 +142,7 @@ def refresh_kodi():
     global refresh_is_safe
     refresh_is_safe = False
     is_scanning = True
-    is_cleaning = True # even if not started right away, it doe snot change anything to say its running here
+    is_cleaning = True # even if not started right away, it does not change anything to declare its running here
 
     ws = websocket.WebSocketApp(kodi_ws_url,
                                 on_message=on_message,
@@ -212,7 +212,7 @@ def refresh_kodi():
                 break
             if (time.time() - started_at) > 7200:
                 logger.warning("  KODI-API| ...Kodi Library refreshed (more than 2 hours).")
-                notify_kodi("JG Refresh", "...completed (more than 2 hours !).", 3000)
+                notify_kodi("JG Refresh", "...considered completed (> 2 hours !)", 3000)
                 break
             time.sleep(2)
 
@@ -254,7 +254,7 @@ def refresh_kodi():
                     break
                 if (time.time() - started_at) > 3600:
                     logger.warning("  KODI-API| ...Kodi Library cleaned (more than 1hour)")
-                    notify_kodi("JG Cleaning", "...completed (more than 1 hour !)", 3000)
+                    notify_kodi("JG Cleaning", "...considered completed (> 1 hour !)", 3000)
                     break
                 time.sleep(2)
         else:
@@ -274,6 +274,8 @@ def send_nfo_to_kodi():
         return False
     
     files_to_rename = []
+
+    already_sent_ids = []
 
     # browse nfos
     previous_root = ""
@@ -295,10 +297,10 @@ def send_nfo_to_kodi():
 
     for root, _, files in os.walk(JFSQ_STORED_NFO):
 
-        #nfo refresh is on parent folder basis (root), if there is at least one nfo with ".updated" in this folder it will refresh all neigboors in same folder
+        #nfo refresh is on parent folder basis (root)
         updated = False
 
-        for filename in files: # if one nfo is updated among its siblings, all are considered updated
+        for filename in files: # if one nfo is updated among its siblings within same root, all are considered "updated"
             if filename.lower().endswith('.nfo.jf.updated'):
                 updated = True
 
@@ -344,8 +346,8 @@ def send_nfo_to_kodi():
                     for (result, uidtype) in results:
                         #logger.info(f"DEBU found mediaid: {result}")
                         # todo : have the possibility to refresh every single NFO discarding criterias below 
-                        if uidtype == 'jellygrail' or updated == True:
-                            notify_kodi("JG Metadata refresh", f"{xiem} / {potential_nfo_to_send} metadatas sent", 3000)
+                        if result not in already_sent_ids and (uidtype == 'jellygrail' or updated == True):
+                            
                             #logger.info(f"{xiem} / {potential_nfo_to_send} metadatas sent")
                             #logger.info(f"ID: result ; uid type: {uidtype}")
                             time.sleep(1)
@@ -364,21 +366,23 @@ def send_nfo_to_kodi():
                                     headers=headers,
                                     data=refresh_payload,
                                     auth=(kodi_username, kodi_password),
-                                    timeout=5
+                                    timeout=15
                                 )
 
                             except Exception as e:
-                                logger.error("!! Nfo refresh failed [refresh_kodi]")
+                                logger.error(f"  KODI-API| Nfo refresh failed [refresh_kodi], error is : {e}")
                                 mariadb_close()
                                 return False
                             else:
                                 if response.status_code == 200:
-                                    logger.debug(f"> Nfo refresh ok on id item {result} [refresh_kodi]")
+                                    logger.debug(f"{xiem} / {potential_nfo_to_send} metadatas sent")
+                                    notify_kodi("JG Metadata refresh", f"{xiem} / {potential_nfo_to_send} metadatas sent", 3000)
+                                    already_sent_ids.append(result)
 
                                     #rename_to_done(root + "/" + filename)
                                     files_to_rename.append(root + "/" + filename)
                                 else:
-                                    logger.warning(f"! Error on kodi nfo refresh: {response.status_code}")
+                                    logger.error(f"  KODI-API| not http200 returned on kodi nfo refresh, http returned code is: {response.status_code}")
                                     mariadb_close()
                                     return False
                         else:

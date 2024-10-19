@@ -54,6 +54,7 @@ def fetch_api_key():
         return []
     return cursorjf.fetchall()
 
+'''
 def fetch_item_data(inputid):
     """ Query data from the jf database """
     global connjf_ro
@@ -64,3 +65,4 @@ def fetch_item_data(inputid):
         logger.critical(f"!!! fetching json data for videoasset from jf db failed: {e}")
         return []
     return cursorjf.fetchall()
+'''
