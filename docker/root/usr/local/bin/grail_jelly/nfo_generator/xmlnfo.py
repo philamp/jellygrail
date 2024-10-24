@@ -32,7 +32,6 @@ AV_KEY_MAPPING = {
 
 T_FORMAT = "%H:%M:%S"
 
-
 def build_jg_nfo_video(nfopath, pathjg, nfotype):
 
      # to get collection id which is in JF api but a pain to fetch :(
@@ -149,9 +148,9 @@ def get_tech_xml_details(pathwoext):
                         else:
                             last_subs.append(sub_l)
                     
-                    
-        first_subs.extend(last_subs)
         first_subs = list(set(first_subs)) #mention each language only once
+        last_subs = list(set(last_subs)) #mention each language only once             
+        first_subs.extend(last_subs)
         for lang in first_subs:
             subtitle_element = ET.Element('subtitle')
             ET.SubElement(subtitle_element, "language").text = lang
