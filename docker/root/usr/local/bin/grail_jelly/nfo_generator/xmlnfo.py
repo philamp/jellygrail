@@ -272,7 +272,10 @@ def jf_xml_create(item, is_updated, sdata = None):
 
     # movie db keys vals
     for key, val in item.get("ProviderIds", {}).items():
-        ET.SubElement(root, "uniqueid", {"type": key.lower()}).text = val
+        if key.lower() == "imdb":
+            ET.SubElement(root, "uniqueid", {"type": key.lower(), "default": "true"}).text = val #test with a4ksubs
+        else:
+            ET.SubElement(root, "uniqueid", {"type": key.lower()}).text = val
         if key.lower() == "tmdbcollection":
             logger.debug(f"REMOTE SERACH TMDBCOLLECTION {val}")
             payload = {

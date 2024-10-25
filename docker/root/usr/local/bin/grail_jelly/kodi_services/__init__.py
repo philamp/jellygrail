@@ -90,7 +90,7 @@ def is_kodi_alive():
     }
 
     try:
-        response = requests.post(kodi_url, json=payload, headers=headers)
+        response = requests.post(kodi_url, json=payload, headers=headers, timeout=10)
 
         logger.debug(f"kodi responded with {response.status_code}")
 
@@ -179,91 +179,107 @@ def refresh_kodi():
         waitloop += 1
         time.sleep(1)
 
-    if waitloop < 5:
+    if waitloop > 5:
+        logger.error("    MANUAL| Kodi websocket (port 9090) not available, either offline suddenly or try enable 'Allow remote control from applications on other systems' in Kodi/Settings/Services/Control and then restart JellyGrail. JellyGrail can't work properly without websocket API")
+        return False # consider jellygrail can't work properly without websocket
+        
+    try:
+        response = requests.post(
+            kodi_url,
+            headers=headers,
+            data=payload,
+            auth=(kodi_username, kodi_password),
+            timeout=15
+        )
+
+    except Exception as e:
+        logger.error(f"!! Kodi refreshing trigger failed with {e} [refresh_kodi]")
+        ws.close()
+        return False
+    else:
+        if response.status_code == 200:
+            started_at = time.time()
+            #logger.info("TASK-START~ Kodi Library refresh...")
+
+            notify_kodi("JG Refresh", "Started...", 3000)
+            
+        else:
+            logger.error(f"Error on kodi lib refresh with http response code: {response.status_code}")
+    #ik = 0
+    while True:
+        #ik += 1
+        # if hanging since 2 hours, declare it's done ?
+        if is_scanning == False:
+            logger.info("  KODI-API| ...Kodi Library refreshed, will now try cleaning if necessary...")
+            notify_kodi("JG Refresh", "...completed.", 3000)
+            break
+        if (time.time() - started_at) > 3600:
+            logger.warning("  KODI-API| ...Kodi Library refreshed (more than 1 hour)")
+            notify_kodi("JG Refresh", "...considered completed (> 1 hour !)", 3000)
+            break
+        if not refresh_is_safe or not is_kodi_alive():
+            logger.warning("  KODI-API| ...Kodi Library refreshed (halted as WS interrupted)")
+            notify_kodi("JG Refresh", "...considered completed (halted as WS interrupted)", 3000)
+            ws.close()
+            return False
+            #break
+        #logger.info(f"refresh wait loop iter {ik}")
+        time.sleep(2)
+
+    # toimprove : the code can be easilly factorized
+
+    
+    # clean once to twice max per day
+    if (time.time() - last_clean) > 12*3600:
         
         try:
             response = requests.post(
                 kodi_url,
                 headers=headers,
-                data=payload,
+                data=clean_payload,
                 auth=(kodi_username, kodi_password),
-                timeout=15
+                timeout=1500
             )
 
         except Exception as e:
-            logger.error(f"!! Kodi refreshing trigger failed with {e} [refresh_kodi]")
+            logger.warning(f"!! Kodi cleaning maybe triggered but there is this error: {e} [refresh_kodi]")
             ws.close()
-            return False
+            return True
         else:
             if response.status_code == 200:
                 started_at = time.time()
-                #logger.info("TASK-START~ Kodi Library refresh...")
+                last_clean = time.time()
+                #logger.info("TASK-START~ Kodi Library cleaning...")
 
-                notify_kodi("JG Refresh", "Started...", 3000)
+                notify_kodi("JG Cleaning", "Started...", 3000)
                 
             else:
-                logger.error(f"Error on kodi lib refresh with http response code: {response.status_code}")
+                logger.error(f"! Error on kodi lib refresh with http response code: {response.status_code}")
         
         while True:
-            # if hanging since 2 hours, declare it's done ?
-            if is_scanning == False or not is_kodi_alive():
-                logger.info("  KODI-API| ...Kodi Library refreshed, will now try cleaning if necessary...")
-                notify_kodi("JG Refresh", "...completed.", 3000)
-                break
-            if (time.time() - started_at) > 7200:
-                logger.warning("  KODI-API| ...Kodi Library refreshed (more than 2 hours).")
-                notify_kodi("JG Refresh", "...considered completed (> 2 hours !)", 3000)
-                break
-            time.sleep(2)
-
-        # toimprove : the code can be easilly factorized
-
-        
-        # clean once to twice max per day
-        if (time.time() - last_clean) > 12*3600:
             
-            try:
-                response = requests.post(
-                    kodi_url,
-                    headers=headers,
-                    data=clean_payload,
-                    auth=(kodi_username, kodi_password),
-                    timeout=1500
-                )
-
-            except Exception as e:
-                logger.warning(f"!! Kodi cleaning maybe triggered but there is this error: {e} [refresh_kodi]")
+            # if hanging since 1 hour, declare it's done
+            if is_cleaning == False:
+                logger.info("  KODI-API| ...Kodi Library cleaned")
+                notify_kodi("JG Cleaning", "...completed", 3000)
+                break
+            if (time.time() - started_at) > 3600:
+                logger.warning("  KODI-API| ...Kodi Library cleaned (more than 1hour)")
+                notify_kodi("JG Cleaning", "...considered completed (> 1 hour !)", 3000)
+                break
+            if not refresh_is_safe or not is_kodi_alive():
+                logger.warning("  KODI-API| ...Kodi Library cleaned (halted as WS interrupted)")
+                notify_kodi("JG Cleaning", "...considered completed (halted as WS interrupted)", 3000)
                 ws.close()
-                return True
-            else:
-                if response.status_code == 200:
-                    started_at = time.time()
-                    last_clean = time.time()
-                    #logger.info("TASK-START~ Kodi Library cleaning...")
-
-                    notify_kodi("JG Cleaning", "Started...", 3000)
-                    
-                else:
-                    logger.error(f"! Error on kodi lib refresh with http response code: {response.status_code}")
+                return False
+                #break
             
-            while True:
-                # if hanging since 1 hour, declare it's done
-                if is_cleaning == False or not is_kodi_alive():
-                    logger.info("  KODI-API| ...Kodi Library cleaned")
-                    notify_kodi("JG Cleaning", "...completed", 3000)
-                    break
-                if (time.time() - started_at) > 3600:
-                    logger.warning("  KODI-API| ...Kodi Library cleaned (more than 1hour)")
-                    notify_kodi("JG Cleaning", "...considered completed (> 1 hour !)", 3000)
-                    break
-                time.sleep(2)
-        else:
-            notify_kodi("JG Cleaning", "Bypassed: already done in last 12h", 3000)
-            logger.info("  KODI-API| Kodi Library cleaning bypassed")
-
-
+            time.sleep(2)
     else:
-        logger.warning("    MANUAL| Kodi websocket (port 9090) not available, either offline suddenly or try enable 'Allow remote control from applications on other systems' in Kodi/Settings/Services/Control. If still not working, please refresh manually in kodi interface. /nfo_send will have to be triggered manually via the python HTTP webservice, or wait for next automatically triggered /scan")
+        notify_kodi("JG Cleaning", "Bypassed: already done in last 12h", 3000)
+        logger.info("  KODI-API| Kodi Library cleaning bypassed")
+
+
     ws.close()
     return True
 

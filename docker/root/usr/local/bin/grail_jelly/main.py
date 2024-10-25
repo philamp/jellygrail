@@ -23,6 +23,8 @@ KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 # !!!!!!!!!!!!! dev reminder : this version should be aligned to version in PREPARE.SH (change both at the same time !!!!)
 VERSION = "20240915"
 
+INCR_KODI_REFR_MAX = 10
+
 CONFIG_VERSION = os.getenv('CONFIG_VERSION')
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
@@ -37,6 +39,7 @@ PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
 RD_API_SET = os.getenv('RD_APITOKEN') != "PASTE-YOUR-KEY-HERE"
 JF_WANTED = os.getenv('JF_WANTED') != "no"
 socket_started = False
+at_least_once_done = [False, False, False, False, False, False, False, False]
 
 # ------ Contact points
 from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
@@ -257,23 +260,29 @@ def is_kodi_alive_loop():
 
 def refresh_all(step):
 
+    global at_least_once_done # at least one run var
+
 
     retry_later = False
-    toomany = False
+    #toomany = False
 
     post_kodi_run_step = 12
 
+    nb_items = 1
+
     if step == 1: # triggered also with rd_progress_response == "PLEASE_SCAN":
         logger.info("         1| Main Scan...")
-        if scan() > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
-            toomany = True
+        nb_items = scan()
+        #if nb_items > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
+            #toomany = True
     if (step < 3 or (step > 10 and step < 13)): 
-        if not toomany:
+        if not at_least_once_done[2] or (nb_items > 0 and nb_items < INCR_KODI_REFR_MAX):
             if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
                 logger.info("         2| Try Kodi incremental library refresh *if online*...")
                 if not refresh_kodi():
                     retry_later = True
                 else:
+                    at_least_once_done[2] = True
                     post_kodi_run_step = 15
 
     if step < 4:
@@ -308,13 +317,15 @@ def refresh_all(step):
                 logger.error("         4| Generating NFOs from Jellyfin does not work, refresh will stop there")
 
     # if toomany, kodi refresh is done after jellyfin 
-    if toomany:
+    if nb_items > INCR_KODI_REFR_MAX:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("      4bis| Try Kodi batch library refresh *if online*")
+            logger.info("      2bis| Try Kodi batch library refresh *if online*")
             if not refresh_kodi():
                 retry_later = True
             else:
+                at_least_once_done[2] = True
                 post_kodi_run_step = 15
+                
 
     # if step inferior or if specifically wanted with the webservice (6)
     if (step < 6 or (step > 10 and step < 16)) and retry_later == False:
