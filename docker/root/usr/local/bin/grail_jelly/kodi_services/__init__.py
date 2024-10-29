@@ -213,11 +213,11 @@ def refresh_kodi():
             logger.info("  KODI-API| ...Kodi Library refreshed, will now try cleaning if necessary...")
             notify_kodi("JG Refresh", "...completed.", 3000)
 
-            # consider all NFOs have been red
-            for root, _, files in os.walk(JFSQ_STORED_NFO):
-                for filename in files:
-                    if filename.lower().endswith(('.nfo.jf', '.nfo.jf.updated')):
-                        rename_to_done(root + "/" + filename)
+            # consider all NFOs have been red !!!! only for files that have just been added !!!!
+            # for root, _, files in os.walk(JFSQ_STORED_NFO):
+                # for filename in files:
+                    # if filename.lower().endswith(('.nfo.jf', '.nfo.jf.updated')):
+                        # rename_to_done(root + "/" + filename)
 
             break
         if (time.time() - started_at) > 3600:
