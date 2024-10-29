@@ -276,7 +276,7 @@ def refresh_all(step):
         #if nb_items > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             #toomany = True
     if (step < 3 or (step > 10 and step < 13)): 
-        if not at_least_once_done[2] or (nb_items > 0 and nb_items < INCR_KODI_REFR_MAX):
+        if nb_items < INCR_KODI_REFR_MAX and (not at_least_once_done[2] or nb_items > 0):
             if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
                 logger.info("         2| Try Kodi incremental library refresh *if online*...")
                 if not refresh_kodi():
