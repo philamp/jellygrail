@@ -283,7 +283,8 @@ def refresh_all(step):
                     retry_later = True
                 else:
                     at_least_once_done[2] = True
-                    post_kodi_run_step = 15
+                    if post_kodi_run_step == 12:
+                        post_kodi_run_step = 15
 
     if step < 4:
         logger.info("         3| Jellyfin (or Plex) library refresh...")
@@ -324,7 +325,8 @@ def refresh_all(step):
                 retry_later = True
             else:
                 at_least_once_done[2] = True
-                post_kodi_run_step = 15
+                if post_kodi_run_step == 12:
+                    post_kodi_run_step = 15
                 
 
     # if step inferior or if specifically wanted with the webservice (6)
@@ -335,7 +337,8 @@ def refresh_all(step):
                 if not send_nfo_to_kodi():
                     retry_later = True
                 else:
-                    post_kodi_run_step = 16
+                    if post_kodi_run_step == 15:
+                        post_kodi_run_step = 16
 
 
     # is tep inferior or specifically wanted with the webservice (6 : nfo_merge)
@@ -343,7 +346,8 @@ def refresh_all(step):
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             logger.info("         6| Try custom Kodi MySQL dB Operations *if online and new data*...")
             merge_kodi_versions()
-            post_kodi_run_step = 17
+            if post_kodi_run_step == 16:
+                post_kodi_run_step = 17
     
 
     # 2 5 6 = 12 15 16 (>10)
