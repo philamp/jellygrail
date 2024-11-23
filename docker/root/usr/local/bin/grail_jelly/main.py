@@ -23,7 +23,7 @@ KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 # !!!!!!!!!!!!! dev reminder : this version should be aligned to version in PREPARE.SH (change both at the same time !!!!)
 VERSION = "20240915"
 
-INCR_KODI_REFR_MAX = 10
+INCR_KODI_REFR_MAX = 8
 
 CONFIG_VERSION = os.getenv('CONFIG_VERSION')
 
@@ -275,40 +275,63 @@ def refresh_all(step):
         nb_items = scan()
         #if nb_items > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             #toomany = True
+
+    
+        logger.info(f"       ...| Main Scan found {nb_items} new items")
+
+
+        # --unit test nb of items
+        #nb_items = 11
+        #logger.info(f"       ...| nbitems overriden with {nb_items} for testing")
+        # ----
+
+
     if (step < 3 or (step > 10 and step < 13)): 
         if nb_items < INCR_KODI_REFR_MAX and (not at_least_once_done[2] or nb_items > 0):
             if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-                logger.info("         2| Try Kodi incremental library refresh *if online*...")
+                if not at_least_once_done[2]:
+                    logger.info("         2| Try DAILY Kodi refresh *if online*...")
+                else:
+                    logger.info("         2| Try fast Kodi incremental library refresh *if online*...")
                 if not refresh_kodi():
                     retry_later = True
                 else:
                     at_least_once_done[2] = True
                     if post_kodi_run_step == 12:
                         post_kodi_run_step = 15
+        else:
+            logger.info("         2| Kodi refresh bypassed")
 
     if step < 4:
-        logger.info("         3| Jellyfin (or Plex) library refresh...")
-        if JF_WANTED:
-            # refresh the jellyfin library and merge variants
-            lib_refresh_all()
-            wait_for_jfscan_to_finish()
-            pass
+        if not at_least_once_done[3] or nb_items > 0:
+            if not at_least_once_done[3]:
+                logger.info("         3| Jellyfin (or Plex) DAILY library refresh...")
+            else:
+                logger.info("         3| Jellyfin (or Plex) library refresh...")
+            if JF_WANTED:
+                # refresh the jellyfin library and merge variants
+                lib_refresh_all()
+                wait_for_jfscan_to_finish()
+                pass
+            else:
+                if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
+                    try:
+                        requests.get(PLEX_REFRESH_A, timeout=10)
+                    except Exception as e:
+                        logger.error("   REFRESH~ Plex refresh API unavailable")
+                if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
+                    try:
+                        requests.get(PLEX_REFRESH_B, timeout=10)
+                    except Exception as e:
+                        logger.error("   REFRESH~ Plex refresh API unavailable")
+                if PLEX_REFRESH_C != 'PASTE_C_REFRESH_URL_HERE':
+                    try:
+                        requests.get(PLEX_REFRESH_C, timeout=10)
+                    except Exception as e:
+                        logger.error("   REFRESH~ Plex refresh API unavailable")
+            at_least_once_done[3] = True
         else:
-            if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
-                try:
-                    requests.get(PLEX_REFRESH_A, timeout=10)
-                except Exception as e:
-                    logger.error("   REFRESH~ Plex refresh API unavailable")
-            if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
-                try:
-                    requests.get(PLEX_REFRESH_B, timeout=10)
-                except Exception as e:
-                    logger.error("   REFRESH~ Plex refresh API unavailable")
-            if PLEX_REFRESH_C != 'PASTE_C_REFRESH_URL_HERE':
-                try:
-                    requests.get(PLEX_REFRESH_C, timeout=10)
-                except Exception as e:
-                    logger.error("   REFRESH~ Plex refresh API unavailable")
+            logger.info("         3| Jellyfin (or Plex) library refresh bypassed")
 
     if step < 5:
         if JF_WANTED:
@@ -318,9 +341,9 @@ def refresh_all(step):
                 logger.error("         4| Generating NFOs from Jellyfin does not work, refresh will stop there")
 
     # if toomany, kodi refresh is done after jellyfin 
-    if nb_items > INCR_KODI_REFR_MAX:
+    if not nb_items < INCR_KODI_REFR_MAX:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("      2bis| Try Kodi batch library refresh *if online*")
+            logger.info("        2B| Try Kodi Batch library refresh *if online*")
             if not refresh_kodi():
                 retry_later = True
             else:

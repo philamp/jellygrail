@@ -82,7 +82,9 @@ def return_last_played_max():
 
     # Exécution d'une requête
     cursor.execute(f"USE {found_db}")
-    cursor.execute(f"SELECT MAX(lastPlayed) FROM files")
+    cursor.execute(f"SELECT MAX(files.lastPlayed) FROM files INNER JOIN movie_view mv on mv.videoVersionIdFile = files.idFile")
+
+    
 
     result = cursor.fetchone()
 
