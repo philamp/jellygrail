@@ -7,18 +7,29 @@ USERNAME = 'kodi'
 PASSWORD = 'kodi'
 
 # The path to the folder you want to refresh
-folder_path = 'dummy/path/just/to/refresh'
+#folder_path = 'dummy/path/just/to/refresh'
 
 # Create the JSON-RPC request
-payload = {
+refresh_payload = json.dumps({
     "jsonrpc": "2.0",
-    "method": "VideoLibrary.Scan",
-    "params": {"directory": folder_path},
+    "method": f"VideoLibrary.RefreshMovie",
+    "params": {
+        "movieid": 12001
+    },
     "id": "1"
-}
+})
 
 # Send the request
-response = requests.post(KODI_IP, data=json.dumps(payload), auth=(USERNAME, PASSWORD))
+response = requests.post(KODI_IP, data=refresh_payload, auth=(USERNAME, PASSWORD))
+
+resjson = response.json()
+
+if resjson.get('result') != None:
+    print("kodi understood the request")
+else:
+    print("kodi failed the request")
 
 # Print the response
 print(response.json())
+
+print(response.status_code)

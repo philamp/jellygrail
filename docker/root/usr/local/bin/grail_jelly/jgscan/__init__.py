@@ -86,6 +86,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     stopreason = ''
     atleastoneextra = False
     nomergetype = ""
+    atleastonefileinrelease = False
     bdmv_ffprobed = None
     jgxmultiple_parses = []
     will_idx_check = False
@@ -111,6 +112,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     # also: DIVE E write + cache-heater (similar check is done elsewhere, on release folder basis)
     for root, folders, files in os.walk(os.path.join(endpoint, releasefolder)):
         for filename in files:
+            atleastonefileinrelease = True
             previous_show_folder = ""
             previous_found_folder = ""
             show = ""
@@ -284,7 +286,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             nomergetype = " - JGxDVD"
                     except Exception as e:
                         stopthere = True
-                        stopreason += ' >Pre-reading ISO failed'
+                        stopreason += ' >> Pre-reading ISO failed'
                         logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
                     finally:
                         unmount_iso("/mnt/tmp")
@@ -314,7 +316,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         if not read_file_with_timeout(os.path.join(root, filename)):
                             logger.error(f" - FAILURE_direct_read: IO or timeout on bdmv file: {os.path.join(root, filename)}")
                             stopthere = True
-                            stopreason += ' >Pre-reading BDMV files failed'
+                            stopreason += ' >> Pre-reading BDMV files failed'
 
 
 
@@ -344,7 +346,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         if not read_file_with_timeout(os.path.join(root, filename)):
                             logger.error(f" - FAILURE_direct_read: IO or timeout on file: {os.path.join(root, filename)}")
                             stopthere = True
-                            stopreason += ' >Pre-reading non-video files failed'
+                            stopreason += ' >> Pre-reading non-video files failed'
                     # S 
                     #if filename.lower().endswith(ALLOWED_EXTENSIONS) and season_present:
                     #    (show, will_idx_check) = show_find_most_similar(show, present_virtual_folders_shows)
@@ -355,7 +357,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : None})
 
             elif ('BDMV' not in os.path.normpath(root).split(os.sep) and filename.lower().endswith(('.m2ts'))):
-                stopreason += ' >m2ts outside its BDMV structure (verify ALL_FILES_INCLUDING_STRUCTURE in settings.env)'
+                stopreason += ' >> m2ts outside its BDMV structure (verify ALL_FILES_INCLUDING_STRUCTURE in settings.env)'
                 #wont necessarily stop there is other filed are found
 
 
@@ -392,7 +394,11 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     
     if nbvideos < 1 and not bdmv_present:
         stopthere = True
-        stopreason += ' >Nothing to scan: RD download unfinished or broken (or not a video release)'
+        if atleastonefileinrelease:
+            if stopreason == '':
+                stopreason += ' >> NOT A VIDEO RELEASE'
+        else:
+            stopreason += ' >> Nothing to scan: RD download unfinished or broken'
     elif(nbvideos_e > 1):
         multiple_movie_or_disc_present = True
         nomergetype = " - JGxMultiple"
@@ -407,7 +413,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
     if stopthere == True:
         #logger.warning(f"          ~ Failed Item: {os.path.join(endpoint, releasefolder)} ; Reasons: {stopreason}")
-        logger.warning(f"          | ...but failed. Cause: {stopreason}")
+        logger.warning(f"          | ...but failed because:{stopreason}")
         return False
     # ---- DIVE S READ + insert + S_DUP idxcheck, unless stopthere is true-----
     if season_present and not stopthere:

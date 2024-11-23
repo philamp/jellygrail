@@ -239,6 +239,20 @@ def link_vv_to_kept_mediaid(vvid, keptmid, new_type_id):
 
     return True
 
+def separated_seasons():
+    global conn
+    # Création d'un curseur pour exécuter des requêtes SQL
+    cursor = conn.cursor(buffered=True)
+    cursor.execute(f"USE {found_db}")
+
+    # Exécution d'une requête
+    cursor.execute(f"select group_concat(idShow), group_concat(uid.value) from tvshow tvs inner join uniqueid uid on uid.media_id = tvs.idShow and uid.type = 'tvdb' GROUP BY uid.value HAVING COUNT(*) > 1")
+
+    result = cursor.fetchall()
+    cursor.close() 
+    # Récupération des résultats
+    return result
+
 def video_versions():
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL

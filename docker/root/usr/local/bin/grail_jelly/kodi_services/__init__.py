@@ -403,7 +403,10 @@ def send_nfo_to_kodi():
                                     already_sent_ids.append(result)
 
                                     #rename_to_done(root + "/" + filename)
-                                    files_to_rename.append(root + "/" + filename)
+                                    resjson = response.json()
+                                    if resjson.get('result') != None:
+                                        files_to_rename.append(root + "/" + filename)
+                                        #rename only if kodi found an ID
                                 else:
                                     logger.error(f"  KODI-API| not http200 returned on kodi nfo refresh, http returned code is: {response.status_code}")
                                     mariadb_close()
@@ -577,6 +580,18 @@ def merge_kodi_versions():
         
     mariadb_close()
     return True
+
+def merge_tvshow_seasons():
+
+    # separated_seasons() to get all (tvshowids) for one unqueid
+
+    # update seasons set idShow = keptone where idShow in (tvshowids);
+
+    # delete all tvshow id except kept one
+
+
+
+    return
 
 
 def fix_bad_merges():

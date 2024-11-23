@@ -6,7 +6,7 @@ import threading
 
 is_scanning = True
 
-kodi_ws_url = f"ws://172.22.2.28:9090/jsonrpc"
+kodi_ws_url = f"ws://172.22.2.14:9090/jsonrpc"
 
 def on_message(ws, message):
     global is_scanning
