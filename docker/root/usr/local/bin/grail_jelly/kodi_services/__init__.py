@@ -453,6 +453,9 @@ def merge_kodi_versions():
     # merge only when needed, since the regular trigger of jf_nfo_refresh (step 4), bypass this step if there is no new nfo, it's not a an issue
     if not kodi_mysql_init_and_verify():
         return False
+    
+    # fix tvshows merging
+    merge_tvshow_seasons()
 
     #results = [(row[0],row[1],row[2],row[3],row[4],row[5],row[6],row[7]) for row in video_versions()]
 
@@ -570,8 +573,7 @@ def merge_kodi_versions():
     for (idset, strset, _) in get_undefined_collection_arts():
         insert_collection_art(idset, "http://"+NGINX_HOST+"/pics/collections/"+urllib.parse.quote(strset, safe=SAFE)+".jpg")
         
-    # fix tvshows merging
-    merge_tvshow_seasons()
+
 
     # refresh kodi UI
     if is_kodi_alive():
@@ -585,8 +587,10 @@ def merge_kodi_versions():
 
 def merge_tvshow_seasons():
 
+    atleastone = False
     # separated_seasons() to get all (tvshowids) for one unqueid
     for (idshowsR, _) in separated_seasons():
+        atleastone = True
         #treat one show
         idshows = [int(num) for num in idshowsR.split(",")]
         showtokeep = idshows[0]
@@ -596,6 +600,9 @@ def merge_tvshow_seasons():
         for idshow in idshows:
             if idshow != showtokeep:
                 delete_other_showid(idshow)
+
+    if atleastone and is_kodi_alive():
+        kodi_ui_refresh()
 
     return
 
