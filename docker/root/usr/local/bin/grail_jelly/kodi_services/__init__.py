@@ -1,7 +1,7 @@
 from base import *
 from base.littles import *
 from base.constants import *
-from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, get_undefined_collection_arts, insert_collection_art, new_set_resume_times_and_lastplayed, return_last_played_max, return_last_file_id_max
+from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, get_undefined_collection_arts, insert_collection_art, new_set_resume_times_and_lastplayed, return_last_played_max, return_last_file_id_max, separated_seasons, link_all_shows_to_keptone, delete_other_showid
 import requests
 import urllib.parse
 import websocket
@@ -570,6 +570,8 @@ def merge_kodi_versions():
     for (idset, strset, _) in get_undefined_collection_arts():
         insert_collection_art(idset, "http://"+NGINX_HOST+"/pics/collections/"+urllib.parse.quote(strset, safe=SAFE)+".jpg")
         
+    # fix tvshows merging
+    merge_tvshow_seasons()
 
     # refresh kodi UI
     if is_kodi_alive():
@@ -584,12 +586,16 @@ def merge_kodi_versions():
 def merge_tvshow_seasons():
 
     # separated_seasons() to get all (tvshowids) for one unqueid
+    for (idshowsR, _) in separated_seasons():
+        #treat one show
+        idshows = [int(num) for num in idshowsR.split(",")]
+        showtokeep = idshows[0]
+        link_all_shows_to_keptone(idshowsR, showtokeep)
+        # set showtokeep on every idshowfound
 
-    # update seasons set idShow = keptone where idShow in (tvshowids);
-
-    # delete all tvshow id except kept one
-
-
+        for idshow in idshows:
+            if idshow != showtokeep:
+                delete_other_showid(idshow)
 
     return
 

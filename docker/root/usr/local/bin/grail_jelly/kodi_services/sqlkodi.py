@@ -239,6 +239,33 @@ def link_vv_to_kept_mediaid(vvid, keptmid, new_type_id):
 
     return True
 
+def delete_other_showid(idshowtodel):
+    global conn
+    cursor = conn.cursor()
+
+    # Exécution d'une requête
+    cursor.execute(f"USE {found_db}")
+    cursor.execute(f"DELETE FROM tvshow where idShow = %s", (idshowtodel,))
+
+    conn.commit()
+
+    cursor.close() 
+    # Récupération des résultats
+    return True
+
+def link_all_shows_to_keptone(showsR, keptone):
+    global conn
+    cursor = conn.cursor()
+    cursor.execute(f"USE {found_db}")
+
+    cursor.execute(f"UPDATE seasons set idShow = %s where idShow in ({showsR})", (keptone,))
+
+    conn.commit()
+
+    cursor.close() 
+
+    return True
+
 def separated_seasons():
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
