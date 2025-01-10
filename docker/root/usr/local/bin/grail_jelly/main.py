@@ -299,6 +299,8 @@ def refresh_all(step):
                     at_least_once_done[2] = True
                     if post_kodi_run_step == 12:
                         post_kodi_run_step = 15
+        elif(nb_items > INCR_KODI_REFR_MAX):
+            logger.info("         2| Kodi refresh will be done after Jellyfin refresh")
         else:
             logger.info("         2| Kodi refresh bypassed")
 
