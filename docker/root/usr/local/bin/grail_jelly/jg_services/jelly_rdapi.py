@@ -9,7 +9,7 @@ import itertools
 from pathlib import Path
 
 
-class RD:
+class RDE:
     def __init__(self):
         self.rd_apitoken = os.getenv('RD_APITOKEN')
         self.base_url = 'https://api.real-debrid.com/rest/1.0'

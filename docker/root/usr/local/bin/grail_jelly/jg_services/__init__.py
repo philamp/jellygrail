@@ -2,9 +2,9 @@
 from base import *
 from base.constants import *
 import requests
-from jg_services.jelly_rdapi import RD
+from jg_services.jelly_rdapi import RDE
 from datetime import datetime
-RD = RD()
+RD = None
 # plug to same logging instance as main
 #logger = logging.getLogger('jellygrail')
 
@@ -20,6 +20,25 @@ REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 DEFAULT_INCR = os.getenv('DEFAULT_INCR')
 WHOLE_CONTENT = os.getenv('ALL_FILES_INCLUDING_STRUCTURE') != "no"
 
+
+def premium_timeleft():
+    global RD
+    RD = RDE()
+    try:
+        udata = RD.user.get().json()
+
+        expseconds = udata.get('premium')
+        
+        
+
+    except Exception as e:
+        logger.error(f"!! Error accessing RD: {e}")
+        # return "Server running but RD test has failed (DNS or Network failure)"
+        return 0
+    else:
+        return expseconds
+
+
 def test():
     try:
         
@@ -34,6 +53,10 @@ def test():
             nbelements = len(idata)
 
         dumped_data = json.dumps(data)
+
+        udata = RD.user.get().json()
+
+        expdays = "--- exp: "+json.dumps(udata.get('expiration'))+"; secconds premium:"+json.dumps(udata.get('premium'))
         
         
 
@@ -41,7 +64,7 @@ def test():
         logger.error(f"!! Error accessing RD: {e}")
         return "Server running but RD test has failed (DNS or Network failure)"
     else:
-        return "This server is running and its last own RD torrents are:   \n"+dumped_data
+        return "This server is running and its last own RD torrents are:   \n"+dumped_data+expdays
 
 def file_to_array(filename):
     try:

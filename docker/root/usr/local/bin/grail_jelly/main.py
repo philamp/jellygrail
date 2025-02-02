@@ -12,6 +12,7 @@ import datetime
 import socket
 import requests
 import struct
+from jg_services import premium_timeleft
 
 
 # dotenv for RD API management
@@ -629,6 +630,9 @@ if __name__ == "__main__":
 
 
         if RD_API_SET:
+
+            logger.warning(f"REALDEBRID/ Premium days remaining: {str(premium_timeleft()/86400)[:4]}")
+
             # A: rd_progress called automatically every 2mn
             thread_a = threading.Thread(target=periodic_trigger)
             thread_a.daemon = True  # 
