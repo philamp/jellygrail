@@ -34,10 +34,11 @@ def kodi_mysql_init_and_verify(just_verify=False):
 
         results = [res[0] for res in result]
 
-        found_db = results[-1]
+        
 
         cursor.close() # important
-        if result:
+        if results:
+            found_db = results[-1]
             if just_verify:
                 logger.info("  SQL-KODI| Working ok")
                 mariadb_close()
@@ -52,9 +53,9 @@ def kodi_mysql_init_and_verify(just_verify=False):
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            logger.error("  SQL-KODI| Authentication failed. Container mariadb setup failed on your system. Please report in the github.")
+            logger.error("  SQL-KODI| Authentication failed. Container mariadb setup failed on your system. Please report in the github. Verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set")
         else:
-            logger.critical(f"  SQL-KODI| SQL server messed-up. Container mariadb setup failed on your system. Please report in the github. Error is: {err}")
+            logger.critical(f"  SQL-KODI| SQL server messed-up. Container mariadb setup failed on your system. Please report in the github. Verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set. Error is: {err}")
         return False
 
 def check_if_vvtype_exists(test_string):
