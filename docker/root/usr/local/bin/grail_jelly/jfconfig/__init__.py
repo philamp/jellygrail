@@ -15,7 +15,7 @@ def jfconfig():
     # check if /jellygrail/jellyfin/config/data/jellyfin.db exists
     triggerdata = []
     proceedinjf = None
-    logger.info("  JELLYFIN/ Waiting for API availability (waiting up to 2mn max)...")
+    logger.info("  JELLYFIN/ Starting... (waiting API up to 2mn max)")
     iwait = 0
     while iwait < 40:
         iwait += 1
@@ -28,12 +28,12 @@ def jfconfig():
             logger.debug(f". Waiting for Jellyfin to be available: try {iwait} ...")
         else:
             proceedinjf = True
-            logger.info("  JELLYFIN/ ...Available")
+            logger.info("  JELLYFIN/ ...Successfully started")
             break
         time.sleep(3)
 
     if iwait >= 20:
-        logger.warning("! Jellyfin seems absent... docker will now restart to retry. Please check logs with 'docker logs jellygrail -f'")
+        logger.warning("  JELLYFIN/ seems absent... docker will now restart to retry. Please check logs with 'docker logs jellygrail -f'")
         return "ZERO-RUN"
     # Whole JF config --------------------------
     if proceedinjf and urllib.request.urlopen('http://localhost:8096/health').read() == b'Healthy':
@@ -270,8 +270,8 @@ def jfconfig():
                     logger.debug(". merging movies already disabled")
 
                 return "FIRST_RUN"
-            logger.info("  JELLYFIN/ Jellyfin setup and librairies configuration finished")
-            logger.warning("  JELLYFIN/ don't forget to configure : \n - encoder in /web/index.html#!/encodingsettings.html  \n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
+            logger.info("  JELLYFIN/ Repos and librairies configuration OK")
+            logger.warning("  JELLYFIN/ Manual configuration reminder:\n - encoder in /web/index.html#!/encodingsettings.html\n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
             
     return ""            
             

@@ -84,6 +84,8 @@ def fetch_nfo(nfopath):
 def nfo_loop_service():
 
     nbofmovieorepisode = 0
+    nbofmovie = 0
+    nbofepisode = 0
     nboftvshow = 0
 
     # stops if any dump fails as result won't be consistent anyway
@@ -126,7 +128,7 @@ def nfo_loop_service():
 
     # loop added and updated
     if items_added_and_updated_pre := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
-        logger.info("    JF-API| ...There are new NFOs to generate...")
+        logger.info("    JF-API| ...New NFOs: metadata JSON dump (can take a while)...")
         # 1st deduplication here
         items_added_and_updated_pre = list(set(items_added_and_updated_pre))
 
@@ -223,9 +225,14 @@ def nfo_loop_service():
                     if(item.get('Type') in "Movie Episode"):
                         jf_xml_create(item, is_updated)
                         nbofmovieorepisode += 1
+                        if item.get('Type') == "Movie":
+                            nbofmovie += 1
+                        else:
+                            nbofepisode += 1
+                        
                         if nbofmovieorepisode % 5 == 0:
-                            logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[0]")
-        logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[0]")
+                            logger.info(f"    JF-API| NFOs generating... Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
+        #logger.info(f"    JF-API| ...NFOs generated : Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
 
                     #already_seen.append(item_id)
 
@@ -246,8 +253,8 @@ def nfo_loop_service():
                         jf_xml_create(item, is_updated, sdata = s_data)   
                         nboftvshow += 1
                         if nboftvshow % 5 == 0:
-                            logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[{nboftvshow}]")
-        logger.info(f"    JF-API| NFOs generated : Movie/Episode[{nbofmovieorepisode}], TvShow[{nboftvshow}] ...completed")
+                            logger.info(f"    JF-API| NFOs generating... Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
+        logger.info(f"    JF-API| ...NFOs generated: Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}] ...completed")
                     #already_seen.append(item_id)         
 
         # toremove : already_seen complete remove

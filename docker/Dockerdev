@@ -184,6 +184,7 @@ RUN cd /usr/local/bin && \
 # mysql
 ENV MYSQL_DIR="/jellygrail/data/mariadb"
 ENV DATADIR=$MYSQL_DIR/databases
+ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=30000
 
 # expose nginx
 EXPOSE 8085

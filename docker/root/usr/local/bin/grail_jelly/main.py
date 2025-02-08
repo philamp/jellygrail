@@ -88,7 +88,6 @@ class RequestHandler(BaseHTTPRequestHandler):
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
 
-            '''
         elif url_path == '/kodi_scan':
             _kodirefresh_instance = ScriptRunner.get(refresh_all)
             _kodirefresh_instance.resetargs(2)
@@ -99,7 +98,6 @@ class RequestHandler(BaseHTTPRequestHandler):
                 message = "### refresh_mediacenters directly executed ! \n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
-            '''
 
         elif url_path == '/nfo_scan':
             _nfo_scan = ScriptRunner.get(refresh_all)
@@ -145,19 +143,6 @@ class RequestHandler(BaseHTTPRequestHandler):
                 message = "### nfo_merge directly executed ! \n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
-
-            '''
-        elif url_path == '/kodi_scan':
-            _kodi_scan = ScriptRunner.get(refresh_all)
-            _kodi_scan.resetargs(9)
-            _kodi_scan.run()
-            if _kodi_scan.queued_execution:
-                message = "### _kodi_scan queued for later ! \n"
-            else:
-                message = "### _kodi_scan directly executed ! \n"
-            self.standard_headers()
-            self.wfile.write(bytes(message, "utf8"))
-            '''
 
         elif url_path == '/rd_progress':
             _rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
