@@ -14,7 +14,7 @@ NGINX_HOST = os.getenv('WEBDAV_LAN_HOST')
 
 kodi_url = f"http://{KODI_MAIN_URL}:8080/jsonrpc"
 kodi_ws_url = f"ws://{KODI_MAIN_URL}:9090/jsonrpc"
-kodi_username = "kodi"  
+kodi_username = "kodi"
 kodi_password = "kodi"
 
 last_clean = 0

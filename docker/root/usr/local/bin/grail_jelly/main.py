@@ -278,7 +278,7 @@ def refresh_all(step):
                 if not at_least_once_done[2]:
                     logger.info("         2| Try DAILY Kodi refresh *if online*...")
                 else:
-                    logger.info("         2| Try fast Kodi incremental library refresh *if online*...")
+                    logger.info("         2| Try Kodi incremental library refresh *if online*...")
                 if not refresh_kodi():
                     retry_later = True
                 else:
@@ -338,7 +338,11 @@ def refresh_all(step):
                 at_least_once_done[2] = True
                 if post_kodi_run_step == 12:
                     post_kodi_run_step = 15
-                
+    else:
+        # consider it done
+        if post_kodi_run_step == 12:
+            post_kodi_run_step = 15
+
 
     # if step inferior or if specifically wanted with the webservice (6)
     if (step < 6 or (step > 10 and step < 16)) and retry_later == False:
