@@ -1,5 +1,14 @@
 > [!CAUTION]
-> Currently merging branches of dependencies. Do not try to compile it now ! Be right back !
+> - Next main branch release named "20240915":
+>   - breaking changes:
+>     - ./jellygrail/.bindfs_jelly.db is now stored in ./jellygrail/data/bindfs
+>     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
+>     - Merge versions Jellyfin add-on to be removed. It's confusing when deleting library items since some variants are within same folders while other are not. Removing that will remove this ambiguity.
+>   - Fixes:
+>     - fallbackdata items now displayed in all dynamically filtered folders (TODO)
+>     - real added date in virtual filesystem (so recently added lists are correct)
+>     - improved datamodel management
+>     - improved configuration wizard that remembers previous settings
 
 ----
 
