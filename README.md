@@ -1,5 +1,5 @@
 > [!CAUTION]
-> - New version named "20240915", **don't forget to RERUN PREPARE.SH !!!**
+> - New version named "20240915", **don't forget to RERUN PREPARE.SH !!!, also there are differents arguments in the docker run command**
 >   - breaking changes:
 >     - ./jellygrail/.bindfs_jelly.db is now stored in ./jellygrail/data/bindfs : **Jellygrail will rescan all your library**
 >     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
