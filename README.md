@@ -145,6 +145,7 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 --device /dev/dri/renderD128 \
 --device /dev/dri/card0 \
 --network host \
+-e S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000 \
 -v ${PWD}/jellygrail:/jellygrail \
 -v ${PWD}/Video_Library:/Video_Library:rshared \
 -v ${PWD}/fallbackdata:/mounts/fallback \
