@@ -1,4 +1,4 @@
 #!/command/execlineb -P
 # every folder that can't be created on build time (they would be overwritten by runtime mount, or it would require q complicated runtime mount) 
 # the /Video_Library folder (the root one not the one below) is created on buildtime and potentially overwritten on runtime which is not a problem since it's virtual filesystem recreated on demand
-sh -c "mkdir -p /jellygrail/config && mkdir -p /jellygrail/log && mkdir -p /jellygrail/data && mkdir -p /jellygrail/vfs_cache"
+sh -c "mkdir -p /jellygrail/jellyfin/config && mkdir -p /jellygrail/jellyfin/cache && mkdir -p /jellygrail/config && mkdir -p /jellygrail/log && mkdir -p /jellygrail/data/bindfs && mkdir -p /jellygrail/vfs_cache && chown -R www-data:root /jellygrail/jellyfin"

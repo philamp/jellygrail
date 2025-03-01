@@ -1,0 +1,2 @@
+#!/command/execlineb -P
+sh -c "bindfs -f -o allow_other --resolve-symlinks --display-nfo --map=root/www-data /mounts /Kodi_Video_Library > /jellygrail/log/kodi_bindfs 2>&1"

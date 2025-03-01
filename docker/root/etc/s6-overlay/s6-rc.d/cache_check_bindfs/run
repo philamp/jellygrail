@@ -1,2 +1,4 @@
 #!/command/execlineb -P
+redirfd -w 1 /dev/null
+redirfd -w 2 /dev/null
 bindfs -f -o allow_other --resolve-symlinks --map=root/www-data /mounts /Cache_Check_Video_Library

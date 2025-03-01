@@ -1,0 +1,19 @@
+#!/command/with-contenv bash
+# shellcheck shell=bash
+
+# make folders if required
+mkdir -p \
+    "${DATADIR}" \
+    /config/log/mysql \
+    /var/run/mysqld
+
+# configure mariadb-server.cnf
+sed -i "s|.*skip-networking.*|#skip-networking|g" /etc/mysql/my.cnf
+
+# setup custom cnf file
+rm -rf /etc/mysql/mariadb.conf.d/50-server.cnf
+ln -s /bash_templates/custom.cnf /etc/mysql/mariadb.conf.d/50-server.cnf
+
+# set permissions
+chmod -R 777 \
+    /var/run/mysqld

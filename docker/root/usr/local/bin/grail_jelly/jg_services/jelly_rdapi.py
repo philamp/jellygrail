@@ -9,15 +9,30 @@ import itertools
 from pathlib import Path
 
 
-class RD:
+class RDE:
     def __init__(self):
         self.rd_apitoken = os.getenv('RD_APITOKEN')
         self.base_url = 'https://api.real-debrid.com/rest/1.0'
         # self.base_url = 'http://localhost:6502/rest/1.0' # to test timeout looping itself is not a bad idea
         self.header = {'Authorization': "Bearer " + str(self.rd_apitoken)}   
         self.error_codes = json.load(open(os.path.join(Path(__file__).parent.absolute(), 'error_codes.json')))
-        self.sleep = int(os.getenv('SLEEP', 2000)) / 1000
-        self.long_sleep = int(os.getenv('LONG_SLEEP', 30000)) / 1000
+        self.sleep = int(os.getenv('SLEEP') or 2000)
+        self.long_sleep = int(os.getenv('LONG_SLEEP') or 30000)
+
+        # handle minimum to avoid RD issues
+        if self.sleep < 500:
+            self.sleep = 500 / 1000
+        else:
+            self.sleep = self.sleep / 1000
+
+        if self.long_sleep < 30000:
+            self.long_sleep = 30000 / 1000
+        else:
+            self.long_sleep = self.long_sleep / 1000
+
+        #SLEEP=500 # Delay (ms) between requests
+        #LONG_SLEEP=30000 # Long delay (ms) every 500 requests
+
         self.count_obj = itertools.cycle(range(0, 501))
         self.count = next(self.count_obj)
 
@@ -66,7 +81,7 @@ class RD:
             if 'error_code' in request.json():
                 code = request.json()['error_code']
                 message = error_codes.get(str(code), 'Unknown error')
-                logger.warning('%s: %s at %s', code, message, path)
+                logger.warning('RD-API| %s: %s at %s', code, message, path)
         except:
             pass
         self.handle_sleep()
@@ -74,7 +89,7 @@ class RD:
     
     def check_token(self):
         if self.rd_apitoken is None or self.rd_apitoken == 'your_token_here':
-            logger.warning('Add token to .env')
+            logger.warning('RD-API| Add token to .env')
 
     def handle_sleep(self):
         if self.count < 500:

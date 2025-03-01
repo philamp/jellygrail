@@ -1,28 +1,11 @@
 from base import *
+from base.littles import *
 import sqlite3
 # logger = logging.getLogger('jellygrail')
 
 conn = None
 
-db_path = "/jellygrail/.bindfs_jelly.db"
-
-create_table_sql = '''
-CREATE TABLE IF NOT EXISTS main_mapping (
-    virtual_fullpath TEXT PRIMARY KEY COLLATE SCLIST,
-    actual_fullpath TEXT,
-    jginfo_rd_torrent_folder TEXT,
-    jginfo_rclone_cache_item TEXT,
-    mediatype TEXT
-);
-'''
-
-update_table_sql_v2 = '''
-ALTER TABLE main_mapping ADD COLUMN last_updated INTEGER;
-'''
-
-create_index = '''
-CREATE INDEX IF NOT EXISTS rename_depth ON main_mapping (virtual_fullpath COLLATE SCDEPTH);
-'''
+db_path = "/jellygrail/data/bindfs/.bindfs_jelly.db"
 
 def sqcommit():
     """ Commit the transaction """
@@ -38,28 +21,69 @@ def sqrollback():
     global conn
     conn.rollback()
 
+def set_current_version(version):
+    # Mise à jour de la version dans la base de données
+    global conn
+    conn.execute('DELETE FROM schema_version')
+    conn.execute('INSERT INTO schema_version (version) VALUES (?)', (version,))
+
+def get_current_version():
+    global conn
+    cursor = conn.cursor()
+    # Lecture de la version actuelle depuis la base de données
+    try:
+        cursor.execute('SELECT version FROM schema_version')
+        row = cursor.fetchone()
+        return row[0] if row else 0
+    except sqlite3.OperationalError:
+        # Si la table schema_version n'existe pas encore, return default value
+        return 0
+
+def apply_migration(migration_file):
+    global conn
+    with open(migration_file, 'r') as file:
+        sql = file.read()
+    try:
+        conn.executescript(sql)
+    except sqlite3.OperationalError as e:
+        if "duplicate column name" in str(e):
+            logger.debug("jgscan/jgsql/apply_migration | The column already exists. Skipping addition.")
+            return True
+        else:
+            logger.critical("jgscan/jgsql/apply_migration | Migration failure, SQLite error is: ", e)
+            return False
+    else:
+        return True
+
+def jg_datamodel_migration():
+    global conn
+
+    # look for the current version if possible
+    incr = get_current_version()
+
+    sqlfiles_folder = os.path.join(os.path.dirname(os.path.abspath(__file__)), "datamodels")
+
+    for migration_file in sorted(os.listdir(sqlfiles_folder)):
+        migration_version = int(get_wo_ext(migration_file))
+        if migration_version > incr:
+            if apply_migration(os.path.join(sqlfiles_folder, migration_file)):
+                set_current_version(migration_version)
+                sqcommit()
+                logger.warning(f' DATAMODEL/ Applied {migration_file} migr. file and commited')
+            else:
+                logger.critical("Migration failure just happened")
+
+
 def init_database():
     """ Initialize the database connection """
     global conn
-    conn = sqlite3.connect(db_path, isolation_level='DEFERRED')
+    conn = sqlite3.connect(db_path, isolation_level='DEFERRED', check_same_thread=False, timeout=5)
     conn.enable_load_extension(True)
     conn.load_extension("/usr/local/share/bindfs-jelly/libsupercollate.so")
-    cursor = conn.cursor()
-    cursor.execute(create_table_sql)
-    cursor.execute(create_index)
-    sqcommit()
-    """ TABLE UPDATES : v2 """
-    try:
-        cursor.execute(update_table_sql_v2)
-        sqcommit()
-    except sqlite3.OperationalError as e:
-        if "duplicate column name" in str(e):
-            logger.info("> UPDATE DATAMODEL : The column already exists. Skipping addition.")
-        else:
-            logger.critical("> An operational error occurred:", e)
 
 
-def insert_data(virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype = None):
+
+def insert_data(virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype = None, ffprobe = None):
     """ Insert data into the database """
     global conn
     cursor = conn.cursor()
@@ -67,9 +91,9 @@ def insert_data(virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jgi
     # ... but to avoid downgrading a mediatype value from something to None, on conflict we don't insert if mediatype == none for the item we overwrite
     # (mediatype is then used in bindfs to do filtering based on virtual folders suffixes (virtual_dv, virtual_bdmv))
     if mediatype != None:
-        cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, last_updated) VALUES (depenc(?), ?, ?, depenc(?), ?, strftime('%s', 'now')) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), mediatype=?, last_updated=strftime('%s', 'now')", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype))
+        cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, last_updated, ffprobe) VALUES (depenc(?), ?, ?, depenc(?), ?, strftime('%s', 'now'), ?) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), mediatype=?, last_updated=strftime('%s', 'now'), ffprobe=?", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, ffprobe, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, ffprobe))
     else:
-        cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, last_updated) VALUES (depenc(?), ?, ?, depenc(?), strftime('%s', 'now')) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), last_updated=strftime('%s', 'now')", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item))
+        cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, last_updated, ffprobe) VALUES (depenc(?), ?, ?, depenc(?), strftime('%s', 'now'), ?) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), last_updated=strftime('%s', 'now'), ffprobe=?", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, ffprobe, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, ffprobe))
 
 
 def fetch_present_virtual_folders():
@@ -90,10 +114,23 @@ def ls_virtual_folder(folder_path):
     global conn
     cursor = conn.cursor()
     cursor.execute("SELECT depdec(virtual_fullpath) FROM main_mapping WHERE virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
+    # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite sollation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
     return cursor.fetchall()
 
-# ------ JF
+def get_path_props(path):
+    global conn
+    cursor = conn.cursor()
+    cursor.execute("SELECT ffprobe FROM main_mapping WHERE virtual_fullpath = depenc(?)", (path,))
+    return cursor.fetchall()
 
+def get_path_props_woext(path):
+    global conn
+    cursor = conn.cursor()
+    cursor.execute("SELECT ffprobe FROM main_mapping WHERE virtual_fullpath LIKE '%' || ? || '%'", (path,))
+    return cursor.fetchall()
+
+
+'''
 def init_jellyfin_db(path):
     """ Initialize the jf db connection """
     global connjf
@@ -111,3 +148,4 @@ def fetch_api_key():
     cursorjf = connjf.cursor()
     cursorjf.execute("SELECT * FROM ApiKeys WHERE Name = 'jellygrail'")
     return cursorjf.fetchall()
+'''

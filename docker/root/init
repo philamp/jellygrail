@@ -6,9 +6,6 @@
 # So this script needs to be entirely self-contained until it has
 # at least /command, /usr/bin and /bin in its PATH.
 
-# load dotenv
-. /jellygrail/config/settings.env
-
 # jellygrail custom function:
 create_service() {
   template_path=$1
@@ -67,7 +64,31 @@ addpath /usr/bin
 addpath /command
 export PATH
 
-  
+# --- Jellygrail env related ---
+
+. /jellygrail/config/settings.env
+if [ "$JF_WANTED" = "no" ]; then
+  rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
+fi
+
+if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ]; then
+  # Copy the example configuration file to the new configuration file
+  mkdir -p "/mounts/remote_realdebrid"
+  cp -f "/bash_templates/mounts/remote_realdebrid/rclone.conf.example" "/mounts/remote_realdebrid/rclone.conf"
+  # Replace the placeholder with the user-provided API key
+  sed -i "s/PASTE-YOUR-KEY-HERE/$RD_APITOKEN/" "/mounts/remote_realdebrid/rclone.conf"
+fi
+
+# Webdav conf according to settings.env
+if [ "$WEBDAV_LAN_HOST" != "PASTE-WEBDAV-LAN-HOST-HERE" ]; then
+  cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
+  sed -i "s/#WDLH#/$WEBDAV_LAN_HOST/" "/etc/nginx/nginx.conf"
+else
+  echo "CRITICAL : WEBDAV_LAN_HOST is not set in settings.env"
+fi
+
+
+# --- Jellygrail env related end ---
 
 # Jellygrail services install
 
@@ -110,14 +131,11 @@ for dir_path in /mounts/*; do
   esac
 done
 
-if [ "$JF_WANTED" = "no" ]; then
-  rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
-fi
-
 # this part triggers only if /root/devmode folder is found, it's for devleopment purposes only
 if [ -d "/root/devmode" ]; then
-  apt install openssh-server nano libsqlite3-dev sqlite3 cmake -y
+  apt-get install openssh-server libsqlite3-dev sqlite3 cmake -y
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/*
+  #rm -f /etc/s6-overlay/s6-rc.d/jellyfin/dependencies.d/bindfs
   service ssh stop
   mkdir -p /root/.ssh
   cp -R /root/devmode/* /root/.ssh/
@@ -125,10 +143,19 @@ if [ -d "/root/devmode" ]; then
   # echo "AuthorizedKeysFile /root/.ssh/authorized_keys" >> /etc/ssh/sshd_config
   service ssh start
   # dev-context services
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/remote_realdebrid
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_remote_realdebrid
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/remote_realdebrid
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_remote_realdebrid
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive1
   touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive2
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/bindfs
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/cache_check_bindfs
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-config
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-initdb
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-upgrade
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-mariadb
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/kodi_addons
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
   # disrupt normal execution
   cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/main.py
   mkdir -p /root/dev

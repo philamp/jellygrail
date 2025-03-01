@@ -1,12 +1,48 @@
 import requests
 from base import *
-import datetime
+from datetime import datetime
 
 
-BASE_URI = "http://localhost:8096"
+BASE_URI = "http://localhost:8096" 
 
 jfapikey = None
 
+
+
+def jellyfin(path, method='get', **kwargs):
+    response = getattr(requests, method)(
+        f'{BASE_URI}/{path}',
+        headers={'X-MediaBrowser-Token': jfapikey},
+        **kwargs
+    )
+    response.raise_for_status()
+    return response
+
+
+def wait_for_jfscan_to_finish():
+    # while libraryrunning dont do anything
+    if jfapikey is not None:
+        try:
+            tasks = jellyfin('ScheduledTasks').json()
+            tasks_name_mapping = {task.get('Key'): task for task in tasks}
+            ref_task_id = tasks_name_mapping.get('RefreshLibrary').get('Id')
+            while True:
+                time.sleep(2)
+                task = jellyfin(f'ScheduledTasks/{ref_task_id}').json()
+                if task.get('State') != "Running":
+                    break
+                else:
+                    time.sleep(8) #toimprove : retry every 8+2 seconds toimprove, jellyfin is overloaded, but fix it later in a more clever way
+        except Exception as e:
+            logger.warning("    JF-API| ... Jellyfin Library refreshed. (but API overloaded by status requests :( )")
+            return True
+
+    logger.info("    JF-API| ...Jellyfin Library refreshed")
+    return True
+
+
+# maybe deprecated
+'''
 def merge_versions():
     if jfapikey is not None:
         tasks = jellyfin('ScheduledTasks').json()
@@ -28,21 +64,16 @@ def merge_versions():
                     logger.info("> Videos variants merged (only for movies)")
                     break
                 time.sleep(3)
-
-def jellyfin(path, method='get', **kwargs):
-    return getattr(requests, method)(
-        f'{BASE_URI}/{path}',
-        headers={'X-MediaBrowser-Token': jfapikey},
-        **kwargs
-    )
+'''
 
 def lib_refresh_all():
     if jfapikey is not None:
         resp = jellyfin(f'Library/Refresh', method='post')
         if resp.status_code == 204:
-            logger.info("> Library update started successfully.")
+            #logger.info("TASK-START~ Jellyfin Library refresh ...")
+            pass
         else:
-            logger.critical(f"> FAILURE to update library. Status code: {resp.status_code}")
+            logger.critical(f"FAILURE to update library. Status code: {resp.status_code}")
 
 '''
 def restart_jellygrail_at(target_hour=6, target_minute=30):

@@ -1,20 +1,17 @@
 > [!CAUTION]
-> Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes impacting rclone_rd app. **This is now fixed in my fork, and with improvements** but looking at the rclone_rd code I realized that:
-> - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. Otherwise you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with all API endpoints beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4**.
-> - 2/ you should absolutely let a reasonable value for ``--dir-cache-time`` argument, such as ``10s``. If reduced rclone root refresh triggers /torrents endpoint too much -> **it seems to be a potential 2nd reason Real Debrid had issues with /torrents API endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 10s**.
-> - 3/ re-starting every rclone instance (jellygrail restarts overnight) is not optimal: **-> FIXED** with regular dump to file for ``/downloads`` and ``/torrent/info`` data. Only ``/torrents`` is fetched regularly.
-> - 4/ rclone_rd did not not know how to unrestrict links on the fly (or to fix bad unrestricted links). **-> FIXED**
->   - And it will unrestrict only on very first listing and then keep the old link untill the user really opens the file. Huge difference from original rclone_rd. It decreases unrestricting calls a lot. Combined with jellygrail cache for RAR, ISO and ffprobe data, API endpoints and remote assets are rarely requested.
-> - 5/ Log file ``/jellygrail/log/remote_realdebrid`` is still very verbose to track any issue or abnormal API calls.
-> - 6/ Note that my rclone_rd fork has a tuned cache system for random access on RAR and ISO file structures, thus avoiding multiple repetitive parallel HTTP sessions. Other solution to avoid these rate-limiting related issues would be to unrestrict a new link but it is surely not a fair-use practice. So Jellygrail won't do that.
->  
-> These Real Debrid related quirks are now **-> FIXED**.
-> 
-> The only remaining issue seems to be that accumulated unrestricted links (accumulation is on purpose) are deduplicated but not aligned upon refreshed torrents list, so this array grows a little bit too much over time, but nothing to worry about in terms of execution speed and RAM. This will be fixed way before it becomes a problem.
-
-
+> - Next main branch release named "20240915":
+>   - breaking changes:
+>     - ./jellygrail/.bindfs_jelly.db is now stored in ./jellygrail/data/bindfs
+>     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
+>     - Merge versions Jellyfin add-on to be removed. It's confusing when deleting library items since some variants are within same folders while other are not. Removing that will remove this ambiguity.
+>   - Fixes:
+>     - fallbackdata items now displayed in all dynamically filtered folders (TODO)
+>     - real added date in virtual filesystem (so recently added lists are correct)
+>     - improved datamodel management
+>     - improved configuration wizard that remembers previous settings
 
 <img src="jellygrail_logo.png">
+
 
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction.
@@ -26,6 +23,7 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
   - No more hassle to extract your local RAR downloads. 
   - No more hassle downloading and extracting Real-Debrid RAR torrents, now you can just stream and extract on-the-fly.
   - It provides an optimized cache to strongly mitigate Real-Debrid rate-limiting issues that can happen with ISO and RAR files (with my rclone_rd fork : https://github.com/philamp/rclone_jelly)
+> Note that:
 > RAR on-the-fly extract only works with "archive" mode (= no compression actually used). Other modes are very rarely used in this context anyway.
 
 - ✨ Auto-organized TV shows and movies in a virtual folder:
@@ -101,25 +99,18 @@ sudo docker build -t philamp/jellygrail .
 
 > If you upgrade, replace the ``git clone ...`` command by a ``git pull`` command inside the ``.`` folder
 
-## ✨ 3/ Configuration wizard
+## ✨ 3/ Configuration wizard for first install and upgrade
 
 > Grab your Real-Debrid API key : https://real-debrid.com/apitoken.
-
-### 3.1/ First install
 
 Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
 ````
 sudo chmod u+x PREPARE.SH
 sudo ./PREPARE.SH
 ````
+> [!TIP]
+> You can as well run ``sudo ./PREPARE.SH change`` if you want to change your settings
 
-### 3.2/ Upgrade
-
-Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
-````
-sudo chmod u+x PREPARE.SH
-sudo ./PREPARE.SH upgrade
-````
 
 This creates settings files and also prepares "rshared" mounted folder ``./Video_Library/`` (so its content reflects the magic ✨ happening inside the docker container and is available to the host system, not only inside the container)
 > Learn more about "rshared" here : https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759
@@ -144,7 +135,6 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 --network host \
 -v ${PWD}/jellygrail:/jellygrail \
 -v ${PWD}/Video_Library:/Video_Library:rshared \
--v ${PWD}/mounts/remote_realdebrid:/mounts/remote_realdebrid \
 -v ${PWD}/fallbackdata:/mounts/fallback \
 ...
 ````
@@ -178,9 +168,8 @@ philamp/jellygrail:latest
 ## 🚀 5/ Run
 
 1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
-2. Verify that ``./mounts/remote_realdebrid/rclone.conf`` is populated with proper values.
-3. Verify that your working directory is ``.`` (the folder containing _PREPARE.SH_ file).
-4. Paste your docker command in your bash prompt and hit enter !
+2. Verify that your working directory is ``.`` (the folder containing _PREPARE.SH_ file).
+3. Paste your docker command in your bash prompt and hit enter !
 
 ## 📡 6/ Tasks triggering 
 
@@ -253,7 +242,7 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 > ``./Video_Library/virtual_bdmv/`` is a dynamically filtered folder containing only DVDs and Blu-rays data.
 
 > [!CAUTION]
-> ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
+> ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/data/bindfs/.bindfs_jelly.db`` file, **restart the docker container** and trigger a new ``/scan``
 
 
 # ✅ Sanity checks / Troubleshooting
@@ -265,20 +254,19 @@ You can check it's running with following commands:
 ````
 sudo docker ps
 ````
+or
+````
+sudo ./PREPARE.SH
+````
+> Will output "Your jellygrail instance seems to be running already"
 
-## Jellygrail python service Logs
+## S6 Logs + Jellygrail python service logs
 
 ````
-tail -f ./jellygrail/log/jelly_update.log
+sudo docker logs -f jellygrail
 ````
 
-## Live container logs
-
-````
-sudo docker logs --follow jellygrail
-````
-
-## Python service 
+## Python service HTTP test
 
 ````
 curl http://localhost:6502/test
@@ -293,12 +281,15 @@ ___
 # Good to know / Known issues
 - Check **🚀 First and daily Usage** section above.
 - m2ts/ts files not inside a BDMV structure are ignored.
+- ⚠️ Deletion of a media item which is actually in a RAR file in the underlying file-system will cause the deletion of the whole RAR file.
 - **there can be some rare cases (bad .MKV, .TS, .ISO file or big complex .RAR file) where bindfs hangs (being mono-threaded) because of rclone hanged (due to lot of seeks and read in those bad files, causing somewhat undefined behavior in my rclone_rd fork) it causes nginx and jellyfin to possibily hang as well. Current workaround is a full restart of the docker.**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./STOPSTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
-- Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as the provided example used for real_debrid in ``./mounts/`` folder provided but follow this convention:
-  - name your rclone config title (in between [ ] ) the same as the parent folder containing this rclone config file.
-  - and name the file "rclone.conf".
+- Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as this: 
+  - create a "*name_of_your_cloud*" folder inside the ``.`` folder, and then create a "rclone.conf" file inside it.
+  - name your rclone config title (in between [ ] ) with *name_of_your_cloud* and fill the rest as you would do with rclone (you can generate a dummy config file with rclone).
+  - mount the "*name_of_your_cloud*" folder to "/mounts/name_of_your_cloud":
+    - (ex : ``-v ${PWD}/name_of_your_cloud:/mounts/name_of_your_cloud``) in the docker run command
   - the cloud mount source is not configurable (yet)
   - video files can't be directly located within the root of the mount (/mounts/remote_mycloud_provider/video.mkv will not be scanned it should rather be /mounts/remote_mycloud_provider/movies/Title/Title.mkv)
 - Underlying files deletion:

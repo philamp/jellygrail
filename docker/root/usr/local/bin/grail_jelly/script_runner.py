@@ -22,14 +22,23 @@ class ScriptRunnerSub:
 
     def resetargs(self, *args, **kwargs):
         #self.func = func
+        if (self.func.__name__ == "refresh_all"):
+
+            if self.queued_execution == True:
+                cmp_newargs = args[0] if args[0] > 10 else args[0] + 10
+                cmp_curargs = self.args[0] if self.args[0] > 10 else self.args[0] + 10
+
+            if self.queued_execution == True and cmp_curargs < cmp_newargs: #if the queud execution has set stronger refresh_all call (with lower step value than requested), don't change the step value
+                logger.debug(". refresh_all requested with higher step value, won't be applied")
+                return
         self.args = args
         self.kwargs = kwargs
 
     def run(self):
         # async bahavior parameters pre-check and set queud execution only if running
         if self.is_running:
-            self.queued_execution = True
-        else:
+            self.queued_execution = True if self.func.__name__ != "is_kodi_alive_loop" else False # this task does not need a queue
+        else: 
             self.is_running = True
             self.queued_execution = False
             # async is instanciated here
@@ -42,19 +51,25 @@ class ScriptRunnerSub:
         try:
             if self.func:
                 self.manytimes += 1
-                # TODO: pass it to debug when ok
-                logger.info(f"ASYNC CALL: {self.func.__name__} | TIMES CALLED (since last restart): {self.manytimes}")
+                if self.func.__name__ == "refresh_all":
+                    if len(self.args) < 1:
+                        self.args[0] = 1
+                    logger.info(f"[[[ Step@{self.args[0]}| #{self.manytimes} Started ~")
+                else:
+                    logger.debug(f"[Threadrun/ {self.func.__name__} #{self.manytimes}")
                 result = self.func(*self.args, **self.kwargs)
                 if result is not None:
                     self.output_queue.put(result)
             else:
-                raise ValueError("No function has been set to run in the async ScriptRunner.")
+                raise ValueError("> No function set to run as thread")
         except Exception as e:
-            logger.critical(f"An error occurred in thread: {self.func.__name__} error is: {e}", exc_info=True)
+            logger.critical(f" Threadrun| Error occurred in thread: {self.func.__name__}; error is: {e}", exc_info=True)
         finally:
             # async bahavior parameters management post-set
-            # TODO: pass it to debug when ok
-            logger.info(f"          : {self.func.__name__} FINISHED")
+            if self.func.__name__ == "refresh_all" and len(self.args):
+                logger.info(f"         ~| #{self.manytimes} completed ]]]")
+            else:
+                logger.info(f"[Threadrun/ {self.func.__name__} #{self.manytimes} done]")
             self.is_running = False
             if self.queued_execution:
                 self.queued_execution = False # set it to False ASAP right after flag was interrogated

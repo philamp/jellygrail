@@ -31,7 +31,7 @@ RUN ./rclone version
 
 # ---RCLONE EXPORT END----
 
-FROM jellyfin/jellyfin
+FROM jellyfin/jellyfin:10.9.9
 
 # Docker build runtime vars (ARG) and env vars
 ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
@@ -86,12 +86,6 @@ RUN cd /tmp && \
     wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz && \
     tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz
 
-# add h2static
-# RUN cd /tmp && \
-    # wget https://github.com/albertodonato/h2static/releases/download/2.4.6/h2static-2.4.6-linux-amd64.tar.gz && \
-    # tar -xzvf h2static-2.4.6-linux-amd64.tar.gz && \
-    # chmod ugo+rx ./h2static && \
-    # mv ./h2static /usr/bin/
 
 
 # add rclone fork
@@ -102,6 +96,7 @@ RUN cd /tmp && \
 RUN chmod ugo+rx /usr/bin/rclone-linux && \
     mkdir -p /Video_Library && \
     mkdir -p /Cache_Check_Video_Library && \
+    mkdir -p /Kodi_Video_Library && \
     mkdir -p /mounts/kodi/software && \
     mkdir -p /mounts/kodi/backups
     # mkdir -p /root/.config/rclone
@@ -109,12 +104,9 @@ RUN chmod ugo+rx /usr/bin/rclone-linux && \
     # mkdir -p /volumeG/rar2fs_fuse_volume &&\
     # mkdir -p /volumeG/bindfs_fuse_volume
 
-# KODI SOFT AND REPOS
-RUN cd /mounts/kodi/software && wget https://kodi.jellyfin.org/repository.jellyfin.kodi.zip 
-RUN cd /mounts/kodi/software && wget https://github.com/fandangos/JRE-Kodi-Android/releases/download/1.2-aarch64/script.service.jre-aarch64-v1.2.zip 
-RUN cd /mounts/kodi/software && wget https://jurialmunkey.github.io/repository.jurialmunkey/repository.jurialmunkey-3.4.zip
-RUN cd /mounts/kodi/software && wget https://a4k-openproject.github.io/a4kSubtitles/packages/a4kSubtitles-repository.zip
-RUN cd /mounts/kodi/software && wget https://abratchik.github.io/kodi.repository/leia/script.unlock.advancedsettings/script.unlock.advancedsettings-1.0.3.zip
+# kodi addons script copy into container
+COPY root/kodi_addons.sh /kodi_addons.sh
+RUN chmod +x /kodi_addons.sh
 
 # copy conf and s6 scripts from repo
 # COPY rclone.conf /root/.config/rclone/
@@ -131,14 +123,14 @@ ENV PATH="/opt/venv/bin:$PATH"
 # nginx
 RUN apt-get -y install nginx nginx-extras unzip
     
-COPY webdav.conf /etc/nginx/conf.d/default.conf
+# COPY webdav.conf /etc/nginx/conf.d/default.conf -- now done in init
 RUN rm /etc/nginx/sites-enabled/*
 
 # ADB
-RUN wget https://dl.google.com/android/repository/platform-tools-latest-linux.zip && \
-    unzip platform-tools-latest-linux.zip && \
-    rm platform-tools-latest-linux.zip
-    # cd platform-tools/
+# RUN wget https://dl.google.com/android/repository/platform-tools-latest-linux.zip && \
+    # unzip platform-tools-latest-linux.zip && \
+    # rm platform-tools-latest-linux.zip
+    ## cd platform-tools/
 
 # Get deps for bindfs build
 RUN apt-get update && \
@@ -157,32 +149,60 @@ ADD https://api.github.com/repos/philamp/bindfs_jelly/git/refs/heads/master bind
 # bindfs build 
 RUN WORKDIR=`mktemp -d` && \
     cd $WORKDIR && \
-    git clone https://github.com/philamp/bindfs_jelly.git . && \
+    git clone -b develop https://github.com/philamp/bindfs_jelly.git --single-branch . && \
     mkdir build && \
     cd build && \
     cmake .. && \
     make clean all install && \
     rm -rf $WORKDIR
 
-# create a ffprobe symlink
-RUN cd /usr/local/bin && \
-    ln -s /usr/lib/jellyfin-ffmpeg/ffprobe ffprobe
+# Mariadb package install
+RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server netcat-openbsd
     
 # copy the rest
 COPY root/ /
 RUN chmod u+x /init
+RUN chmod -R +x /etc/s6-overlay/s6-rc.d
+
+# ffprobew build
+RUN cd /usr/local/bin/ffprobe_wrapper && \
+    gcc -o ffprobew ffprobew.c
+
+# ffprobe becomes ffprober
+RUN mv /usr/lib/jellyfin-ffmpeg/ffprobe /usr/lib/jellyfin-ffmpeg/ffprober
+# ffprobew becomes ffprobe via cp
+RUN cp /usr/local/bin/ffprobe_wrapper/ffprobew /usr/lib/jellyfin-ffmpeg/ffprobe
+
+# ffprober and ffprobe(w) are available system wide
+RUN cd /usr/local/bin && \
+    ln -s /usr/lib/jellyfin-ffmpeg/ffprober ffprober && \
+    ln -s /usr/lib/jellyfin-ffmpeg/ffprobe ffprobe
+
+# Reduce image size
+# not in dev !! RUN apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# mysql
+ENV MYSQL_DIR="/jellygrail/data/mariadb"
+ENV DATADIR=$MYSQL_DIR/databases
+ENV JELLYFIN_FFMPEG__NOVALIDATION=true
+# seems that below does not work when implemented here, not sure though
+ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=30000 
 
 # expose nginx
 EXPOSE 8085
 
 # expose adb if needed
 # EXPOSE 5037
+# expose ssh for development
+# EXPOSE 23
 
 # expose 6502 jelly_update script
 EXPOSE 6502
+
+# expose mariadbd
+EXPOSE 6503
 
 # overwrite run jellyfin main original process as CMD instead of entrypoint
 ENTRYPOINT ["/init"]
 # CMD ["/bin/bash"]
 CMD ["python3", "/usr/local/bin/grail_jelly/main.py"]
-

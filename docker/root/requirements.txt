@@ -7,3 +7,5 @@ thefuzz
 colorlog
 pyinotify
 python-dotenv
+websocket-client
+mysql-connector-python

@@ -4,6 +4,36 @@ from base import *
 
 logger = logging.getLogger('jellygrail')
 
+
+def get_plain_ffprobe(file_path):
+    # this is plain ffprobe command call returning each part in separated vars, 
+    # not decoding stdout !!
+    # migrating to 6000000 analyse duration also
+    try:
+        command = [
+            "ffprober", 
+            "-v", "error",  # Hide logging
+            "-analyzeduration", '6000000',
+            "-print_format", "json",
+            "-show_streams",
+            "-show_format",
+            file_path
+        ]
+
+        # Execute the command
+        result = subprocess.run(command, capture_output=True, check=True, text=False)
+
+    except subprocess.CalledProcessError as e:
+        logger.warning(f"get_plain_ffprobe failure on {file_path}:\nReturn code:{e.returncode}\nstdout:{e.output}\nstderr:{e.stderr}")
+        return (e.output, e.stderr, e.returncode)
+    
+    #logger.info(f"get_plain_ffprobe success:\nReturn code:{result.returncode}\nstdout:{result.stdout}\nstderr:{result.stderr}")
+    return (result.stdout, result.stderr, result.returncode)
+
+
+    
+
+'''
 def get_ffprobe(file_path):
     # Construct the ffprobe command to get the format information, which includes the overall bitrate
     try:
@@ -21,6 +51,9 @@ def get_ffprobe(file_path):
         # Execute the command
         result = subprocess.run(command, capture_output=True, text=True)
         output = result.stdout
+
+
+    
         info = json.loads(output)
         bitrate = round(int(info["format"]["bit_rate"]) / 1000000)
         # Extract overall bitrate
@@ -38,12 +71,13 @@ def get_ffprobe(file_path):
         dvprofile = sideinfo[0].get('dv_profile')
 
     return ( f"{bitrate}Mbps", dvprofile)
+'''
 
 # RARs
 def unrar_to_void(rar_file_path):
 
     try:
-        logger.debug(f"      > Trying to void-unrar it ...")
+        logger.debug(f"      > Unrar it to cache ...")
         subprocess.run(['unrar', 't', "-sl34000000", "-y", "-ierr", rar_file_path], check=True, stderr=subprocess.PIPE)
 
     except subprocess.CalledProcessError as e:
@@ -60,13 +94,11 @@ def unrar_to_void(rar_file_path):
     except Exception as e:
         logger.error("      - The unrar command failed for unknown reason 2:", str(e))
         return "ERROR"
-    else:
-        logger.debug("      > ... SUCCESS !")
     return "OK"
 
 # ISOs
 def mount_iso(iso_path, mount_folder):
-    logger.debug(f"      > MOUNTING ISO to cache small metadata files in rclone: {iso_path}\n      ")
+    logger.debug(f"      > ISO Mounting to get structure and small files: {iso_path} ")
     # Create the mount folder if it doesn't exist
     if not os.path.exists(mount_folder):
         os.makedirs(mount_folder)
@@ -104,21 +136,30 @@ def read_file_with_timeout(file_path, timeout = 604):
     thread.join(timeout)
     
     if thread.is_alive():
-        logger.error(f" - FAILURE_read : Waited 604 seconds (10m) : Reading file {file_path} took too long and was aborted.")
+        logger.error(f" - FAILURE_read : Waited 604 seconds (10m) : Reading file {file_path} took too long and was aborted")
         return False
     elif not success:
         # Si `worker` a rencontré une exception, `success` aura été changé en False
         logger.error(f" - FAILURE_read : Reading file {file_path} failed due to an IO error.")
         return False
     else:
-        print("r", end="")
+        #print("r", end="")
         return True
 
 def read_small_files(src_folder):
+    isdvd = False
     for root, dirs, files in os.walk(src_folder):
         for file in files:
             file_path = os.path.join(root, file)
+
+            logger.debug(f"filename is {file}")
+
+            if file.endswith(".vob") or file.endswith(".VOB"):
+                isdvd = True
+                logger.debug("found a vob")
             
             # if os.path.getsize(file_path) <= max_size_bytes: -> removed to read all files including > 34000000 but read_file_with_timeout will only take the 34000000 first bytes
             if not read_file_with_timeout(file_path):
                 logger.error(f" - FAILURE_read : Abandoning due to timeout or IO Error on mounted iso on {src_folder}")
+                break # no need to try the other files if it fails at the first
+    return isdvd

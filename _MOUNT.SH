@@ -1,8 +1,6 @@
 #!/bin/bash
 cd "$(dirname "$0")"
 . ./jellygrail/config/settings.env # load settings
-mkdir -p ./jellygrail/jellyfin/config
-mkdir -p ./jellygrail/jellyfin/cache
 mkdir -p ./fallbackdata
 fusermount -uz ./Video_Library 2> /dev/null
 fusermount -uz ./Video_Library 2> /dev/null

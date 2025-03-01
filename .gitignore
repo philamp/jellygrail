@@ -10,5 +10,6 @@ RESTART.SH
 docker/root/usr/local/bin/grail_jelly/__pycache__/
 docker/root/usr/local/bin/grail_jelly/jg_services/__pycache__/
 docker/root/usr/local/bin/grail_jelly/base/__pycache__/
+docker/root/usr/local/bin/ffprobe_wrapper/ffprobew
 __pycache__/
 *.py[co]

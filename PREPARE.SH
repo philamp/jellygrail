@@ -1,4 +1,59 @@
 #!/bin/bash
+cd "$(dirname "$0")"
+# put back docker stop start commands in place
+# !!!!!!!!!!!!!!!! dev reminder : this version should be aligned to version in grail_jelly/main.py (change both at the same time !!!!)
+VERSION="20240915"
+
+SETTINGS_PATH="./jellygrail/config/settings.env"
+SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
+
+if [ -f "$SETTINGS_PATH" ]; then
+    source $SETTINGS_PATH
+    echo "Found previous settings values, loading them as default."
+    if [ "$1" = "change" ] && [ "$CONFIG_VERSION" = "$VERSION" ]; then
+        echo "If you have a running jellygrail container: "
+        echo " - named something else than 'jellygrail'" 
+        echo " - or managed with systemd" 
+        echo "-> please manually stop it"
+        if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
+            read -p $'\nYou want to change settings, It\'s mandatory to stop current container to take new settings into account.\nWould you like to stop the already running jellygrail container ? (yes/no) :\n>' upyesnochange
+            if [ $upyesnochange = "yes" ]; then
+                docker stop jellygrail 2> /dev/null
+                echo "Container stopped"
+                $HASTORESTART="yes"
+            fi
+        fi
+    fi
+    if [ "$CONFIG_VERSION" != "$VERSION" ]; then
+        echo "If you have a running jellygrail container: "
+        echo " - named something else than 'jellygrail'" 
+        echo " - or managed with systemd"
+        echo "-> maybe you'll need to stop it and remove it manually"
+        ONE="change"
+        if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" == "jellygrail" ]; then
+            read -p $'\nIt\'s recommanded that you stop and remove your current container as you have pulled a new version of JellyGrail.\nWould you like to stop and remove the already running jellygrail container ? (yes/no) :\n>' upyesno
+            if [ $upyesno = "yes" ]; then
+                docker stop jellygrail 2> /dev/null
+                docker rm jellygrail 2> /dev/null
+                echo "Container stopped and deleted"
+            fi
+        fi
+        #read -p $'\nWould you like to DELETE your current virtual-renaming database ? Read this version release note ('"$VERSION"$') to know if it\'s recommanded (yes/no):\n>' dbdelyesno
+        #if [ $dbdelyesno = "yes" ]; then
+            #cp ./jellygrail/data/bindfs/.bindfs_jelly.db ./jellygrail/data/bindfs/bindfs_jelly.db.$(date +"%Y%m%d-%H%M%S").backup
+            #rm ./jellygrail/data/bindfs/.bindfs_jelly.db
+            #echo "A datestamped backup has been created in ./jellygrail/data/bindfs folder."
+        #fi
+        echo "! Warning : this pulled version is: $VERSION"
+        echo "! Warning: Breaking change as of version 20240915 : Sqlite DB for storing virtual renaming has changed location (now in ./jellygrail/data/bindfs). So a full rescan will be done on first start."
+        echo "! Warning: Breaking change as of version 20240915 : Please delete the jellygrail/jellyfin/config folder before running the container."
+        echo "> We will now upgrade settings from version $CONFIG_VERSION to version $VERSION"
+    fi
+fi
+
+
+
+#----- 
 
 c_choices=("AF" "AL" "DZ" "AR" "AM" "AU" "AT" "AZ" "BH" "BD" "BY" "BE" "BZ" "VE" "BO" "BA" "BW" "BR" "BN" "BG" "KH" "CM" "CA" "029" "CL" "CO" "CD" "CR" "HR" "CZ" "DK" "DO" "EC" "EG" "SV" "ER" "EE" "ET" "FO" "FI" "FR" "GE" "DE" "GR" "GL" "GT" "HT" "HN" "HK" "HU" "IS" "IN" "ID" "IR" "IQ" "IE" "PK" "IL" "IT" "CI" "JM" "JP" "JO" "KZ" "KE" "KR" "KW" "KG" "LA" "419" "LV" "LB" "LY" "LI" "LT" "LU" "MO" "MK" "MY" "MV" "ML" "MT" "MX" "MN" "ME" "MA" "NP" "NL" "NZ" "NI" "NG" "NO" "OM" "PS" "PA" "PY" "CN" "PE" "PH" "PL" "PT" "MC" "PR" "QA" "MD" "RE" "RO" "RU" "RW" "SA" "SN" "RS" "CS" "SG" "SK" "SI" "SO" "ZA" "ES" "LK" "SE" "CH" "SY" "TW" "TJ" "TH" "TT" "TN" "TR" "TM" "AE" "UA" "GB" "US" "UY" "UZ" "VN" "YE" "ZW")
 
@@ -7,7 +62,7 @@ l_choices=("aa" "ab" "af" "ak" "sq" "am" "ar" "an" "hy" "as" "av" "ae" "ay" "az"
 #-----
 
 prompt_for_c_choice() {
-    echo "Start typing your country code (case insensitive, 2 chars max.) and press Enter to autocomplete: (default:US;leave empty to keep default)"
+    echo "Start typing your country code (case insensitive, 2 chars max.) and press Enter to autocomplete: (leave empty to keep default/current: $JF_COUNTRY )"
     while read -e -p "> " c_input; do
         # Use compgen to generate a list of matches
 
@@ -41,7 +96,7 @@ prompt_for_c_choice() {
             fi
 
         else
-            f_c_input="US"
+            f_c_input=""
             return
         fi
 
@@ -50,7 +105,7 @@ prompt_for_c_choice() {
 }
 
 prompt_for_l_choice() {
-    echo "Start typing your language code (case insensitive, 2 chars max.) and press Enter to autocomplete: (default:en;leave empty to keep default)"
+    echo "Start typing your language code (case insensitive, 2 chars max.) and press Enter to autocomplete: (leave empty to keep default/current: $JF_LANGUAGE )"
     while read -e -p "> " l_input; do
 
         if [ ! -z "$l_input" ]; then
@@ -85,7 +140,7 @@ prompt_for_l_choice() {
             fi
 
         else
-            f_l_input="en"
+            f_l_input=""
             return
         fi
 
@@ -94,42 +149,52 @@ prompt_for_l_choice() {
 
 #----
 
-# Path to the rclone configuration file and its example
-
-CONF_PATH="./mounts/remote_realdebrid/rclone.conf"
-CONF_EXAMPLE_PATH="./mounts/remote_realdebrid/rclone.conf.example"
-
-SETTINGS_PATH="./jellygrail/config/settings.env"
-SETTINGS_EXAMPLE_PATH="./jellygrail/config/settings.env.example"
-
-if [ "$1" = "upgrade" ]; then
-    read -p $'\nWould you like to stop and remove the already running JellyGrail container ? (yes/no) (needed for running a new one):\n>' upyesno
-    if [ $upyesno = "yes" ]; then
-        docker stop jellygrail
-        docker rm jellygrail
-    fi
-fi 
 
 # Check if the configuration file already exists
-if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ]; then
+if [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "change" ] || [ "$ONE" = "change" ]; then
 
     # Copy the example configuration file to the new configuration file
-    if [ -f "$SETTINGS_EXAMPLE_PATH" ]; then
+    if [ -f "$SETTINGS_EXAMPLE_PATH" ] ; then
         cp -f "$SETTINGS_EXAMPLE_PATH" "$SETTINGS_PATH"
     fi
         
     # Prompt the user for the API key
-    echo "-- Upgrade or creation of config files: $CONF_PATH and $SETTINGS_PATH will be created --"
     echo ""
-    read -p $'\nPlease enter your Real-Debrid API key (leave empty to ignore):\n> ' api_key
-    read -p $'\nPlease enter the remote JellyGrail instance location (ex: http://10.6.0.1:6502 ; leave empty to ignore):\n> ' remote_loc
+    read -p $'\nPlease enter your Real-Debrid API key (leave empty to keep default/current: '"$RD_APITOKEN"$' ):\n> ' api_key
+    read -p $'\nPlease enter the remote JellyGrail instance base URL, including protocol (ex: http://10.6.0.1:6502 ; leave empty to keep default/current: '"$REMOTE_RDUMP_BASE_LOCATION"$' ):\n> ' remote_loc
+    read -p $'\nPlease enter this docker webdav host:port as seen by an external device on the network, host + port, without protocol prefix ! \n(ex: your-nas-ip:8085 ; leave empty to keep default/current: '"$WEBDAV_LAN_HOST"$' ):\n> ' webdav_lan
 
     if [ ! -z "$remote_loc" ]; then
-        read -p $'\nPlease enter the default increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists BUT applies if the remote has changed a lot \n(default and recommanded: 0 ; leave empty to keep default):\n> ' default_incr
+        read -p $'\nPlease enter the default increment from which you want to synchronize remote torrents. \nIt does not apply if /jellygrail/data/rd_incr.txt already exists BUT applies if the remote has changed a lot \n(leave empty to keep default/current: '"$DEFAULT_INCR"$' ):\n> ' default_incr
         read -p $'\nFrom the remote JellyGrail instance, do you want to take the whole content of torrents, including folders ? yes/no (default: yes ; leave empty to keep default):\n> ' whole_content
     fi
 
-    read -p $'\nDo you want to use integrated Jellyfin ? \nyes/no (default: yes ; leave empty to keep default)\n> ' jf_wanted
+    read -p $'\nWhat is KODI player url ?, host only, without protocol prefix and port!\n(leave empty to keep default/current: '"$KODI_PLAYER_URL"$')\n> ' kodi_player
+
+    if [ ! -z "$KODI_PLAYER_URL" ] && [ -z "$kodi_player" ]; then
+        kodi_player="$KODI_PLAYER_URL"
+    fi
+
+    if [ ! -z "$kodi_player" ]; then
+        sed -i "s|KODI_PLAYER_URL=\"PASTE_KODIPLAYER_URL_HERE\"|KODI_PLAYER_URL=\"$kodi_player\"|" "$SETTINGS_PATH"
+    fi
+
+    read -p $'\nWhat is KODI main url ? (kodi headless url or can be the same as kodi player), host only, without protocol prefix and port! \n(leave empty to keep default/current: '"$KODI_MAIN_URL"$')\n> ' kodi_main
+
+    if [ ! -z "$KODI_MAIN_URL" ] && [ -z "$kodi_main" ]; then
+        kodi_main="$KODI_MAIN_URL"
+    fi
+
+    if [ ! -z "$kodi_main" ]; then
+        sed -i "s|KODI_MAIN_URL=\"PASTE_KODIMAIN_URL_HERE\"|KODI_MAIN_URL=\"$kodi_main\"|" "$SETTINGS_PATH"
+    fi
+
+
+    read -p $'\nDo you want to use integrated Jellyfin ? \nyes/no (leave empty to keep default/current: '"$JF_WANTED"$')\n> ' jf_wanted
+
+    if [ ! -z "$JF_WANTED" ] && [ -z "$jf_wanted" ]; then
+        jf_wanted="$JF_WANTED"
+    fi
 
     if [ "$jf_wanted" = "no" ]; then
 
@@ -139,9 +204,23 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
         echo "...then list your librairies sections ids (xx) : http://your_nas_ip:32400/library/sections?X-Plex-Token=YOUR_PLEX_TOKEN"
         echo "...then build your refresh URLs like that (replace xx) : http://your_nas_ip:32400/library/sections/xx/refresh?X-Plex-Token=YOUR_PLEX_TOKEN"
         read -p "...build all refresh urls and submit them in next prompt, press enter to continue" dummy
-        read -p $'\n1st Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_a
-        read -p $'\n2nd Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_b
-        read -p $'\n3rd Plex refresh URL (leave empty to ignore):\n> ' plex_refresh_c
+        read -p $'\n1st Plex refresh URL (leave empty to keep default/current):\n> ' plex_refresh_a
+        read -p $'\n2nd Plex refresh URL (leave empty to keep default/current):\n> ' plex_refresh_b
+        read -p $'\n3rd Plex refresh URL (leave empty to keep default/current):\n> ' plex_refresh_c
+
+        # prefill 
+
+        if [ ! -z "$PLEX_REFRESH_A" ] && [ -z "$plex_refresh_a" ]; then
+            plex_refresh_a="$PLEX_REFRESH_A"
+        fi
+
+        if [ ! -z "$PLEX_REFRESH_B" ] && [ -z "$plex_refresh_b" ]; then
+            plex_refresh_b="$PLEX_REFRESH_B"
+        fi
+
+        if [ ! -z "$PLEX_REFRESH_C" ] && [ -z "$plex_refresh_c" ]; then
+            plex_refresh_c="$PLEX_REFRESH_C"
+        fi
 
         if [ ! -z "$plex_refresh_a" ]; then
             sed -i "s|PLEX_REFRESH_A=\"PASTE_A_REFRESH_URL_HERE\"|PLEX_REFRESH_A=\"$plex_refresh_a\"|" "$SETTINGS_PATH"
@@ -154,36 +233,74 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
         fi
 
     else
+
+
+        echo ""
+        echo "Now configuring country and language. Please note that these settings can't be effective anymore after the first initialization of Jellyfin: In this case use the JF web interface instead"
         echo ""
         prompt_for_c_choice
         echo ""
         prompt_for_l_choice
-        sed -i "s/JF_COUNTRY=\"CH\"/JF_COUNTRY=\"$f_c_input\"/" "$SETTINGS_PATH"
-        sed -i "s/JF_LANGUAGE=\"fr\"/JF_LANGUAGE=\"$f_l_input\"/" "$SETTINGS_PATH"
+
+        # prefill
+
+        if [ ! -z "$JF_COUNTRY" ] && [ -z "$f_c_input" ]; then
+            f_c_input="$JF_COUNTRY"
+        fi
+
+        if [ ! -z "$JF_LANGUAGE" ] && [ -z "$f_l_input" ]; then
+            f_l_input="$JF_LANGUAGE"
+        fi
+
+        # defaults already taken into account in prompting part
+        if [ ! -z "$f_c_input" ]; then
+            sed -i "s/JF_COUNTRY=\"CH\"/JF_COUNTRY=\"$f_c_input\"/" "$SETTINGS_PATH"
+        fi
+        if [ ! -z "$f_l_input" ]; then
+            sed -i "s/JF_LANGUAGE=\"fr\"/JF_LANGUAGE=\"$f_l_input\"/" "$SETTINGS_PATH"
+        fi
+
     fi
 
-    read -p $'\nIf an additional custom host mount folder is needed type the full desired path here\n(leave empty to ignore)\n> ' add_host_mount
+    read -p $'\nIf an additional custom host mount folder is needed type the full desired path here\n(It should be a new path or empty folder !!)\n(leave empty to keep empty/current: '"$ADD_HOST_MOUNT"$' )\n> ' add_host_mount
+
+    if [ ! -z "$ADD_HOST_MOUNT" ] && [ -z "$add_host_mount" ]; then
+        add_host_mount="$ADD_HOST_MOUNT"
+    fi
+
     if [ ! -z "$add_host_mount" ]; then
         sed -i "s|ADD_HOST_MOUNT=\"\"|ADD_HOST_MOUNT=\"$add_host_mount\"|" "$SETTINGS_PATH"
     fi 
 
+    # prefill with existing values (webdav for kodi)
+
+    if [ ! -z "$WEBDAV_LAN_HOST" ] && [ -z "$webdav_lan" ]; then
+        webdav_lan="$WEBDAV_LAN_HOST"
+    fi
+
+    if [ ! -z "$webdav_lan" ]; then
+        sed -i "s|PASTE-WEBDAV-LAN-HOST-HERE|$webdav_lan|" "$SETTINGS_PATH"
+    fi
+
+    # prefill with existing values (RD part)
+
+    if [ ! -z "$RD_APITOKEN" ] && [ -z "$api_key" ]; then
+        api_key="$RD_APITOKEN"
+    fi
+
+    if [ ! -z "$REMOTE_RDUMP_BASE_LOCATION" ] && [ -z "$remote_loc" ]; then
+        remote_loc="$REMOTE_RDUMP_BASE_LOCATION"
+    fi
+
+    if [ ! -z "$DEFAULT_INCR" ] && [ -z "$default_incr" ]; then
+        default_incr="$DEFAULT_INCR"
+    fi
+
     # Check if the user input is empty
     if [ ! -z "$api_key" ]; then
-        # Make sure the example configuration file exists
-        if [ -f "$CONF_EXAMPLE_PATH" ]; then
-            # Copy the example configuration file to the new configuration file
-            cp -f "$CONF_EXAMPLE_PATH" "$CONF_PATH"
-    
-            # Replace the placeholder with the user-provided API key
-            sed -i "s/PASTE-YOUR-KEY-HERE/$api_key/" "$CONF_PATH"
-    
-            echo "The RD rclone configuration file has been created and the API key has been inserted."
-        else
-            echo "The RD rclone example configuration file does not exist. Please check the path."
-        fi
 
-        # Make sure the example configuration file exists
-        if [ -f "$SETTINGS_EXAMPLE_PATH" ]; then
+        # Make sure the configuration file exists
+        if [ -f "$SETTINGS_PATH" ]; then
 
             # Replace the placeholder with the user-provided API key
             sed -i "s/PASTE-YOUR-KEY-HERE/$api_key/" "$SETTINGS_PATH"
@@ -205,12 +322,29 @@ if [ ! -f "$CONF_PATH"  ] || [ ! -f "$SETTINGS_PATH"  ] || [ "$1" = "upgrade" ];
         echo "No API key entered. The configuration file will not be created. Real-Debrid implementation will not work"
     fi
 
+    sed -i "s/CONFIG_VERSION=/CONFIG_VERSION=\"$VERSION\"/" "$SETTINGS_PATH"
+
 else
-    echo "The configuration file already exists."
+    echo "The configuration file already exists, you have not prompted for a change and you have not pulled any new version."
+    echo "However if you want to force a change of settings, please rerun this script with parameter 'change'."
 fi
 
-echo "Proceeding with the script (creation of jf config folders and rshare mounting of Video_Library folder)"
-echo "------------------------------------------------------------------------------------------------------"
-./_MOUNT.SH mount
+if [ "$(docker ps -a --filter "name=^jellygrail$" --format '{{.Names}}')" != "jellygrail" ]; then
+    read -p $'It seems that a jellygrail container is not instanciated (could be wrong if your renamed it), Would you like to prepare the rshared mounted folders ? (yes/no ; recommanded:yes) :\n>' mountingrshared
+    if [ "$mountingrshared" = "yes" ]; then
+        ./_MOUNT.SH mount
+    fi
+    echo "You now have to instanciate the jellygrail container with 'docker run etc...' (explained in README)"
+else
+    echo "Your jellygrail instance seems to be running already, so _MOUNT.SH script won't be triggered automatically"
+fi  
+if [ "$HASTORESTART" = "yes" ]; then
+    read -p $'Would you like to restart the container now ? (yes/no ; if you manage it through systemd or renamed it, please do it manually and answer no) :\n>' restartcontainer
+    if [ "$restartcontainer" = "yes" ]; then
+        docker start jellygrail 2> /dev/null
+        echo "Existing jellygrail container has been started, it will load new settings"
+    fi
+fi
+echo "----------------"
 echo "SCRIPT COMPLETED"
 echo "----------------"
