@@ -223,14 +223,15 @@ This is a service to check if there are changes worth calling ``/scan`` subseque
 5. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
     - Initialize the user and language and don't do anoything else (don't add librairies)
     - You can also disable Jellyfin at config time and point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
-      - If you don't need the filesystem fallback functionnality and use Plex, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
+    - If you don't need the filesystem fallback functionnality and use Plex, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
 6. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
-7. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
-8. Beware to have a paid RD account:
+    - or Use the new Kodi integration, see [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail)
+8. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
+9. Beware to have a paid RD account:
     - configure ``/backup`` cron (See 📡 Tasks triggering section above).
     - if you forgot a payment or deleted torrents by mistake, you can find your RD hashes backup in ./jellygrail/data/backup/ and use the /restore service (See 📡 Tasks triggering section above).
-9. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
-10. JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability
+10. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
+11. JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability
 > [!TIP]
 > If you restart your NAS frequently, add STOP.SH script to your shutdown tasks and START.SH script to your startup tasks so that shared mount points are still accessible (alternatively, you can use fstab)
 
