@@ -68,19 +68,6 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
 > - There can be some rare cases where nginx/jellyfin hangs on readdir or readfile request. Workaround is a docker restart. See details below in ``Known issues`` section.
 > - I repeat that Jellygrail is experimental and that you should not submit any issues to the XBMC github using jellygrail as it could disrupt the way Kodi works by dealing with the database directly !
 
-Functionnalities/Solutions       | Plex w/ rclone_rd   | Jellyfin w/ rclone_rd + Kodi  |  File-System share + Kodi | Streamio      | JellyGrail + Kodi
-------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
-Play on request           | 🟠           | 🟠             | ❌                          | ✔️            | 🟠within few minutes  
-Video variants grouping         | ✔️           | ❌             | ❌                          | ✔️            | ✔️
-On-the-fly RAR extract.   | ❌           | ❌             | ❌                          | N/A            | ✔️
-File-System share fallback | ❌Media library / DLNA access only           | ❌Media library / DLNA access only             | N/A                         | ❌            | ✔️
-Subtitle management       | ✔️ | ✔️  | ✔️w/ kodi add-on or Bazarr  | 🟠            | ✔️with jellyfin add-on or kodi add-on
-Mobile streaming transcoding        | ✔️           | ✔️Including DoVi profile 5*              | ❌                          | N/A            | ✔️Including DoVi profile 5* 
-Remote&local storages merging  | ✔️           | ✔️   | ❌                          | N/A            | ✔️Also in WebDAV share fallback
-Open Source                | ❌           | ✔️             | ✔️                          | ❌            | ✔️
-Plays nearly every formats including BDMV & DVD ISOs  | ❌           | 🟠             | ✔️                       | ❌            | ✔️WebDAV share fallback
-Own curated library with unlimited storage | ✔️           | ✔️   | ❌                          | ❌            | ✔️
-High-Quality audio passthrough to Soundbars etc. | 🟠           | ✔️**   | ✔️**                          | ❌            | ✔️**
 
 🟠 = "more or less"
 > \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
