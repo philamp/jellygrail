@@ -1,31 +1,18 @@
 > [!CAUTION]
-> - Next main branch release named "20240915":
+> - New version named "20240915", **don't forget to RERUN PREPARE.SH !!!**
 >   - breaking changes:
->     - ./jellygrail/.bindfs_jelly.db is now stored in ./jellygrail/data/bindfs
+>     - ./jellygrail/.bindfs_jelly.db is now stored in ./jellygrail/data/bindfs : **Jellygrail will rescan all your library**
 >     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
 >     - Merge versions Jellyfin add-on to be removed. It's confusing when deleting library items since some variants are within same folders while other are not. Removing that will remove this ambiguity.
+>     - Added Kodi synchronization, you must use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) if interested
+>     - ffprobe wrapper to reduce remote storage queries (jellygrail stores ffprobe results and gives it back to Jellyfin when requested)
 >   - Fixes:
->     - fallbackdata items now displayed in all dynamically filtered folders (TODO)
+>     - fallbackdata items now displayed in all dynamically filtered folders
 >     - real added date in virtual filesystem (so recently added lists are correct)
->     - improved datamodel management
+>     - improved datamodel upgrade management
 >     - improved configuration wizard that remembers previous settings
 
 ----
-
-> [!CAUTION]
-> Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes impacting rclone_rd app. **This is now fixed in my fork, and with improvements** but looking at the rclone_rd code I realized that:
-> - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. Otherwise you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with all API endpoints beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4**.
-> - 2/ you should absolutely let a reasonable value for ``--dir-cache-time`` argument, such as ``10s``. If reduced rclone root refresh triggers /torrents endpoint too much -> **it seems to be a potential 2nd reason Real Debrid had issues with /torrents API endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 10s**.
-> - 3/ re-starting every rclone instance (jellygrail restarts overnight) is not optimal: **-> FIXED** with regular dump to file for ``/downloads`` and ``/torrent/info`` data. Only ``/torrents`` is fetched regularly.
-> - 4/ rclone_rd did not not know how to unrestrict links on the fly (or to fix bad unrestricted links). **-> FIXED**
->   - And it will unrestrict only on very first listing and then keep the old link untill the user really opens the file. Huge difference from original rclone_rd. It decreases unrestricting calls a lot. Combined with jellygrail cache for RAR, ISO and ffprobe data, API endpoints and remote assets are rarely requested.
-> - 5/ Log file ``/jellygrail/log/remote_realdebrid`` is still very verbose to track any issue or abnormal API calls.
-> - 6/ Note that my rclone_rd fork has a tuned cache system for random access on RAR and ISO file structures, thus avoiding multiple repetitive parallel HTTP sessions. Other solution to avoid these rate-limiting related issues would be to unrestrict a new link but it is surely not a fair-use practice. So Jellygrail won't do that.
->  
-> These Real Debrid related quirks are now **-> FIXED**.
-> 
-> The only remaining issue seems to be that accumulated unrestricted links (accumulation is on purpose) are deduplicated but not aligned upon refreshed torrents list, so this array grows a little bit too much over time, but nothing to worry about in terms of execution speed and RAM. This will be fixed way before it becomes a problem.
-
 
 
 <img src="jellygrail_logo.png">
@@ -50,17 +37,23 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
   - You can manage the virtual folder as if it were a real one (rename and move files the way you want).
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
 
+- ✨✨ Native Kodi synchronization (with SQL custom ops)
+  - Merging of Movie versions
+  - Merging of possibly splitted TV show
+  - MariaDB provided
+  - Use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) to make sure it will work
+    - Jellygrail log will tell you if it finds the database after Kodi has restarted. Only kodi can create the database.
+> [!CAUTION]
+> Jellygrail is experimental and that you should not submit any issues to the XBMC github using Jellygrail as it could disrupt the way Kodi works by dealing with the database directly !
 
 - ✨ Almost fully automatized Jellyfin configuration (except login/password) and scan triggering:
   - New items detection for Real-Debrid and local files (with rd_api_py and pyinotify), triggering Jellyfin or PLEX library refresh. (Jellyfin can also be disabled if another or no media center used).
-
 
 - ✨ Can be used without any media center while keeping some practicality:
   - "scrapper-less/offline-mode" filename cleaner for movies (https://github.com/platelminto/parse-torrent-title - accurate 99,8%). This improves filesystem browsing.  
   - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
   - Virtual folder can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085). 
   - Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly)
-
 
 - Real-Debrid magnet hashes management:
   - Automatic backup of all Real-Debrid torrents hashes + a service to restore them if RD account emptied by mistake.
@@ -72,7 +65,8 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
 > - This solution does not include any torrent indexer search. 
 > - Do not open ports 8085 and 6502 to the internet.
 > - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
-> - There can be some rare cases where nginx/jellyfin hangs on readdir or readfile request. Workaround is a docker restart. See details below in ``Known issues`` section. 
+> - There can be some rare cases where nginx/jellyfin hangs on readdir or readfile request. Workaround is a docker restart. See details below in ``Known issues`` section.
+> - I repeat that Jellygrail is experimental and that you should not submit any issues to the XBMC github using jellygrail as it could disrupt the way Kodi works by dealing with the database directly !
 
 Functionnalities/Solutions       | Plex w/ rclone_rd   | Jellyfin w/ rclone_rd + Kodi  |  File-System share + Kodi | Streamio      | JellyGrail + Kodi
 ------------------------- | ------------- | -------------- | ---------------------------- | --------------| -------------------
@@ -328,6 +322,22 @@ ___
 - When detected as extras, videos are moved into extras subfolder but without their corresponding subtitles if any
 
 ___
+
+# Archive stuff
+
+> [!CAUTION]
+> Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes impacting rclone_rd app. **This is now fixed in my fork, and with improvements** but looking at the rclone_rd code I realized that:
+> - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. Otherwise you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with all API endpoints beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4**.
+> - 2/ you should absolutely let a reasonable value for ``--dir-cache-time`` argument, such as ``10s``. If reduced rclone root refresh triggers /torrents endpoint too much -> **it seems to be a potential 2nd reason Real Debrid had issues with /torrents API endpoint beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 10s**.
+> - 3/ re-starting every rclone instance (jellygrail restarts overnight) is not optimal: **-> FIXED** with regular dump to file for ``/downloads`` and ``/torrent/info`` data. Only ``/torrents`` is fetched regularly.
+> - 4/ rclone_rd did not not know how to unrestrict links on the fly (or to fix bad unrestricted links). **-> FIXED**
+>   - And it will unrestrict only on very first listing and then keep the old link untill the user really opens the file. Huge difference from original rclone_rd. It decreases unrestricting calls a lot. Combined with jellygrail cache for RAR, ISO and ffprobe data, API endpoints and remote assets are rarely requested.
+> - 5/ Log file ``/jellygrail/log/remote_realdebrid`` is still very verbose to track any issue or abnormal API calls.
+> - 6/ Note that my rclone_rd fork has a tuned cache system for random access on RAR and ISO file structures, thus avoiding multiple repetitive parallel HTTP sessions. Other solution to avoid these rate-limiting related issues would be to unrestrict a new link but it is surely not a fair-use practice. So Jellygrail won't do that.
+>  
+> These Real Debrid related quirks are now **-> FIXED**.
+> 
+> The only remaining issue seems to be that accumulated unrestricted links (accumulation is on purpose) are deduplicated but not aligned upon refreshed torrents list, so this array grows a little bit too much over time, but nothing to worry about in terms of execution speed and RAM. This will be fixed way before it becomes a problem.
 
 # Kodi recommended setup
 
