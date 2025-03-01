@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # coding: utf-8
+# dotenv for RD API management
+from dotenv import load_dotenv
+load_dotenv('/jellygrail/config/settings.env')
 import time
 import threading
 import pyinotify
@@ -13,11 +16,6 @@ import socket
 import requests
 import struct
 from jg_services import premium_timeleft
-
-
-# dotenv for RD API management
-from dotenv import load_dotenv
-load_dotenv('/jellygrail/config/settings.env')
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
