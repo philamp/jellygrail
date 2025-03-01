@@ -1,6 +1,8 @@
 > [!CAUTION]
 > Currently merging branches of dependencies. Do not try to compile it now ! Be right back !
 
+----
+
 > [!CAUTION]
 > Since July 12 2024, JellyGrail could not work properly anymore due to Real Debrid API changes impacting rclone_rd app. **This is now fixed in my fork, and with improvements** but looking at the rclone_rd code I realized that:
 > - 1/ You should not not change or remove the rclone.tpl.sh ``--tpslimit 4`` argument. Otherwise you'll get 429 http errors from RD service.  **it seems to be the no.1 reason Real Debrid had issues with all API endpoints beeing overloaded because of bad rclone_rd implementations. Jellygrail always had this argument set to 4**.
