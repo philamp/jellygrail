@@ -16,6 +16,7 @@
 
 
 <img src="jellygrail_logo.png">
+
 _One compatibility layer to source them all and play them all in Kodi_
 
 # What is JellyGrail ?
