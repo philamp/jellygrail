@@ -20,7 +20,7 @@
 _One compatibility layer to source them all and play them all in Kodi_
 
 # What is JellyGrail ?
-JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction. And since march 2025, it also provides Kodi synchronization with jellyfin metadata
+JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction. And since march 2025, it also provides Kodi integration and synchronization with jellyfin metadata.
 > *Jellyfin is an opensource alternative to Plex.
 
 - Access remote and Real-Debrid files as if they were local (like https://github.com/itsToggle/rclone_RD and Zurg).
@@ -45,7 +45,7 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
   - Use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) to make sure it will work
     - Jellygrail log will tell you if it finds the database after Kodi has restarted. Only kodi can create the database.
 > [!CAUTION]
-> Jellygrail is experimental and that you should not submit any issues to the XBMC github using Jellygrail as it could disrupt the way Kodi works by dealing with the database directly !
+> Jellygrail is experimental and you should not submit any issues to the XBMC github using Jellygrail as it could disrupt the way Kodi works by dealing with the database directly !
 
 - ✨ Almost fully automatized Jellyfin configuration (except login/password) and scan triggering:
   - New items detection for Real-Debrid and local files (with rd_api_py and pyinotify), triggering Jellyfin or PLEX library refresh. (Jellyfin can also be disabled if another or no media center used).
