@@ -39,7 +39,7 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
 
 - ✨✨ Native Kodi synchronization (with SQL custom operations) *Metadata only, no Jellyfin userdata synchronised*
-  - Merging of Movie versions
+  - Merging of Movie versions (+synchronizing progress across all versions)
   - Merging of possibly splitted TV show
   - MariaDB server included
   - Use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) to make sure it will work
