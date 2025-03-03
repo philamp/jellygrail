@@ -69,12 +69,6 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
 > - There can be some rare cases where nginx/jellyfin hangs on readdir or readfile request. Workaround is a docker restart. See details below in ``Known issues`` section.
 > - I repeat that Jellygrail is experimental and that you should not submit any issues to the XBMC github using jellygrail as it could disrupt the way Kodi works by dealing with the database directly !
 
-
-🟠 = "more or less"
-> \* See requirements here: https://jellyfin.org/docs/general/administration/hardware-acceleration/#hardware-accelerated-tone-mapping
-
-> \** At least AC3+ (Atmos) and DTS with most Kodi platform versions and up to TrueHD DTS-MA with CoreELEC Kodi
-
 # 📥️ Installation (or upgrade)
 
 Follow sections 1/ to 7/
