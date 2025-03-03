@@ -39,11 +39,15 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
 
 - ✨✨ Native Kodi synchronization (with SQL custom operations) *Metadata only, no Jellyfin userdata synchronised*
-  - Merging of Movie versions (+synchronizing progress across all versions)
-  - Merging of possibly splitted TV show
-  - MariaDB server included
-  - Use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) to make sure it will work
+  - Merging of Movie versions (+synchronizing progress across all versions).
+  - Merging of possibly splitted TV show.
+  - MariaDB server included.
+  - Use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) to make sure it will work.
     - Jellygrail log will tell you if it finds the database after Kodi has restarted. Only Kodi can create the database.
+  - Plex server/player comparison:
+    - You can play copies of DVD/Blurays in Kodi (and manage them in Jellyfin).
+    - You can have multiple versions of a movie like in Plex.
+    - It's fully open source.
 
 > [!CAUTION]
 > Jellygrail is experimental so you should not submit any issues to the XBMC github (Jellygrail disrupts the way Kodi works by dealing with the database directly !)
@@ -56,6 +60,8 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
   - Movie variants merged into common folder when possible (with https://github.com/seatgeek/thefuzz).
   - Virtual folder can be shared on your local network through any protocol since it's like a regular file-system (+ WebDAV nginx server included on port 8085). 
   - Every storage is merged into this unique virtual folder (with my BindFS fork: https://github.com/philamp/bindfs_jelly)
+ 
+
 
 - Real-Debrid magnet hashes management:
   - Automatic backup of all Real-Debrid torrents hashes + a service to restore them if RD account emptied by mistake.
