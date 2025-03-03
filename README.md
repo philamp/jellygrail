@@ -308,6 +308,7 @@ ___
 TODO:
 - Fix interested language config
 - Fix versions sync progress if set to unwatched
+- Fix initialization of Jellyfin user VS. NFO generation and so on...
 - Update jellyfin version
 - Update rclone
 - Integration of other services
