@@ -165,7 +165,7 @@ philamp/jellygrail:latest
 1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
 2. Verify that your working directory is ``.`` (the folder containing _PREPARE.SH_ file).
 3. Paste your docker command in your bash prompt and hit enter !
-4. Run `sudo docker logs -f jellygrail` to mnotir the output
+4. Run `sudo docker logs -f jellygrail` to monitor the output
 
 ## 📡 6/ Tasks triggering 
 
