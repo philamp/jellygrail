@@ -38,7 +38,7 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
   - You can manage the virtual folder as if it were a real one (rename and move files the way you want).
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
 
-- ✨✨ Native Kodi synchronization (with SQL custom operations)
+- ✨✨ Native Kodi synchronization (with SQL custom operations) *Metadata only, no Jellyfin userdata synchronised*
   - Merging of Movie versions
   - Merging of possibly splitted TV show
   - MariaDB server included
