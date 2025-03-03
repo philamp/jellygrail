@@ -17,7 +17,7 @@
 
 <img src="jellygrail_logo.png">
 
-_One compatibility layer to source them all, manage them all in Jellyfin and play them all in Kodi_
+_One compatibility layer to merge them all, manage them all in Jellyfin and play them all in Kodi, and in their RAR continue to keep them_
 
 # What is JellyGrail ?
 JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction. And since march 2025, it also provides Kodi integration and synchronization with jellyfin metadata.
