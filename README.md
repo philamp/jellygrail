@@ -38,12 +38,13 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
   - You can manage the virtual folder as if it were a real one (rename and move files the way you want).
   - Smart deletion of actual assets behind virtual files (including rclone cache files).
 
-- ✨✨ Native Kodi synchronization (with SQL custom ops)
+- ✨✨ Native Kodi synchronization (with SQL custom operations)
   - Merging of Movie versions
   - Merging of possibly splitted TV show
-  - MariaDB provided
+  - MariaDB server included
   - Use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) to make sure it will work
-    - Jellygrail log will tell you if it finds the database after Kodi has restarted. Only kodi can create the database.
+    - Jellygrail log will tell you if it finds the database after Kodi has restarted. Only Kodi can create the database.
+
 > [!CAUTION]
 > Jellygrail is experimental and you should not submit any issues to the XBMC github using Jellygrail as it could disrupt the way Kodi works by dealing with the database directly !
 
@@ -117,7 +118,7 @@ Take a notepad and progressively paste portions of code in sub-sections 4.1 to 4
 ### 🐳 4.1/ Docker run base
 
 Example with common transcoding device access mounted and running in host mode (TODO: provide ports forwarding version)
-> The first time you launch this command, you can run with "run -it" instead of "run -d" if you want, so that you can see the output, once first tasks are finished it stops and restarts in deamonized mode anyway.
+> The first time you launch this command, you can run with "run -it" instead of "run -d" if you want, so that you can see the output right away, once first tasks are finished it stops and restarts in deamonized mode anyway.
 
 ````
 sudo docker run -d --privileged --security-opt apparmor=unconfined \
@@ -165,6 +166,7 @@ philamp/jellygrail:latest
 1. Verify that ``./jellygrail/config/settings.env`` is populated with proper values.
 2. Verify that your working directory is ``.`` (the folder containing _PREPARE.SH_ file).
 3. Paste your docker command in your bash prompt and hit enter !
+4. Run `sudo docker logs -f jellygrail` to mnotir the output
 
 ## 📡 6/ Tasks triggering 
 
