@@ -20,7 +20,7 @@
 _One compatibility layer to merge them all, manage them all in Jellyfin and play them all in Kodi ; and in their RAR continue to keep them_
 
 # What is JellyGrail ?
-JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction. And since march 2025, it also provides Kodi integration and synchronization with jellyfin metadata.
+JellyGrail is an **experimental** modified Jellyfin* docker image to manage all your video storages (local and cloud/remote) in one merged virtual folder that you can organize as if it were a real one. It's optimized for [Real-Debrid](https://real-debrid.com/) service and provides on-the-fly RAR extraction. And since march 2025, it also provides Kodi integration and synchronization with Jellyfin metadata.
 > *Jellyfin is an opensource alternative to Plex.
 
 - Access remote and Real-Debrid files as if they were local (like https://github.com/itsToggle/rclone_RD and Zurg).
@@ -285,7 +285,6 @@ ___
 - Check **🚀 First and daily Usage** section above.
 - m2ts/ts files not inside a BDMV structure are ignored.
 - ⚠️ Deletion of a media item which is actually in a RAR file in the underlying file-system will cause the deletion of the whole RAR file.
-- **there can be some rare cases (bad .MKV, .TS, .ISO file or big complex .RAR file) where bindfs hangs (being mono-threaded) because of rclone hanged (due to lot of seeks and read in those bad files, causing somewhat undefined behavior in my rclone_rd fork) it causes nginx and jellyfin to possibily hang as well. Current workaround is a full restart of the docker.**
 - ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./STOPSTART.SH`` to fix it.
 - JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
 - Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as this: 
@@ -299,7 +298,7 @@ ___
   - REMOTE : follows rclone RD fork system : Inside folders containing multiple video files, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion are sometimes uncomplete in this case.
   - LOCAL : Underlying files are deleted but not folders (TODO:fix)
 - RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
-- 3 Jellyfin plugins are pre-installed:
+- 2 Jellyfin plugins are pre-installed:
   - ``SubBuzz:``  not enabled on library scan but can be used on induvidual items. You can enable it on library scan if you want but beware it will cause additional download requests to Real-Debrid.
   - ``Kodi Sync Queue:`` to improve the experience with Jellyfin kodi add-on 
 - rclone_jelly is an experimental fork of https://github.com/itsToggle/rclone_RD to change the normal behavior of rclone's vfs_cache and thus it's not a "cache" anymore: it stores RAR/ISO file structure data to improve access reliability especially when using Real-Debrid service.
