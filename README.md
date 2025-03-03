@@ -46,7 +46,7 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
     - Jellygrail log will tell you if it finds the database after Kodi has restarted. Only Kodi can create the database.
 
 > [!CAUTION]
-> Jellygrail is experimental and you should not submit any issues to the XBMC github using Jellygrail as it could disrupt the way Kodi works by dealing with the database directly !
+> Jellygrail is experimental so you should not submit any issues to the XBMC github (Jellygrail disrupts the way Kodi works by dealing with the database directly !)
 
 - ✨ Almost fully automatized Jellyfin configuration (except login/password) and scan triggering:
   - New items detection for Real-Debrid and local files (with rd_api_py and pyinotify), triggering Jellyfin or PLEX library refresh. (Jellyfin can also be disabled if another or no media center used).
@@ -68,7 +68,7 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
 > - Do not open ports 8085 and 6502 to the internet.
 > - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
 > - There can be some rare cases where nginx/jellyfin hangs on readdir or readfile request. Workaround is a docker restart. See details below in ``Known issues`` section.
-> - I repeat that Jellygrail is experimental and that you should not submit any issues to the XBMC github using jellygrail as it could disrupt the way Kodi works by dealing with the database directly !
+> - I repeat that Jellygrail is experimental and that you should not submit any issues to the XBMC (Jellygrail disrupts the way Kodi works by dealing with the database directly !).
 
 # 📥️ Installation (or upgrade)
 
