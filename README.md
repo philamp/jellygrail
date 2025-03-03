@@ -324,27 +324,3 @@ ___
 > These Real Debrid related quirks are now **-> FIXED**.
 > 
 > The only remaining issue seems to be that accumulated unrestricted links (accumulation is on purpose) are deduplicated but not aligned upon refreshed torrents list, so this array grows a little bit too much over time, but nothing to worry about in terms of execution speed and RAM. This will be fixed way before it becomes a problem.
-
-# Kodi recommended setup
-
-## Devices
-- Nvidia Shield: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (arm64-v8a)) 
-- Chromecast with Google TV: https://www.kodinerds.net/thread/69428-maven-s-kodi-builds-f%C3%BCr-android/ -> Nexus release (armeabi-v7a)
-(to be completed...)
-- CoreElec compatible box
-
-## Add-ons
-- Jellyfin add-on ``*``
-  - with 'add-on' paths, not 'native' paths, otherwise you loose the functionnality to choose the video variant upon play.
-
-- Jellycon add-on
-  - works very well too and works without hacking the Kodi main db. Although last time I checked it only show variants as a merged item when they're merged in filesystem, not when dynamically merged with "merge versions" plugin
-
-- Artic Horizon 2 skin ``*``
-  - Allow third party default dependencies in add-on settings before instlaling the skin. (repository.jurialmunkey-3.4.zip)
-
-- a4k subtitles add-on ``*``
-- Up Next (optionnal)
-- Keymap editor add-on (optionnal)
-
-> ``*`` Kodi repo included (with "install from zip") in HTTP WebDAV server provided on port 8085 in ``./Video_Library/actual/kodi/software/``
