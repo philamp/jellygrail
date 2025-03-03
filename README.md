@@ -67,7 +67,6 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
 > - This solution does not include any torrent indexer search. 
 > - Do not open ports 8085 and 6502 to the internet.
 > - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
-> - There can be some rare cases where nginx/jellyfin hangs on readdir or readfile request. Workaround is a docker restart. See details below in ``Known issues`` section.
 > - I repeat that Jellygrail is experimental and that you should not submit any issues to the XBMC (Jellygrail disrupts the way Kodi works by dealing with the database directly !).
 
 # 📥️ Installation (or upgrade)
@@ -296,7 +295,6 @@ ___
 - RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
 - 3 Jellyfin plugins are pre-installed:
   - ``SubBuzz:``  not enabled on library scan but can be used on induvidual items. You can enable it on library scan if you want but beware it will cause additional download requests to Real-Debrid.
-  - ``Merge Versions:`` Movies not merged by initial scan can be merged thanks to this Jellyfin plugin. Shows episodes are not set to be merged because in this case it causes troubles (like whole season merged into one media item).
   - ``Kodi Sync Queue:`` to improve the experience with Jellyfin kodi add-on 
 - rclone_jelly is an experimental fork of https://github.com/itsToggle/rclone_RD to change the normal behavior of rclone's vfs_cache and thus it's not a "cache" anymore: it stores RAR/ISO file structure data to improve access reliability especially when using Real-Debrid service.
   - This cache will have a size equal to 0.5%~ of your real-debrid storage size, using it on an SSD is better (but not mandatory).
@@ -304,9 +302,15 @@ ___
   - Its sqlite DB is initialized through inluded Python service that scans mounted local and remote folders (upon first start the virtual folder is empty).
 - ⚠️ You can manage your assets *only* through the virtual folder (rename, delete, move) otherwise if you do it directly on the underlying filesystems, linkage will be lost between virtual tree and actual trees. TODO: autofix when linkage is dead between bindFS and underlying filesystems
 - You can use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and disable downloading files to host since you don't need to have these files stored locally anymore. Thus you also have to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
-- if the Video_Library folder is then accessed through a SMB protocol in windows, renaming does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (TODO: fix that in bindfs_jelly if possible).
+- if the Video_Library folder is then accessed through a SMB protocol, renaming/moving does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (TODO: fix that in bindfs_jelly if possible).
 - When detected as extras, videos are moved into extras subfolder but without their corresponding subtitles if any
 
+TODO:
+- Fix interested language config
+- Fix versions sync progress if set to unwatched
+- Update jellyfin version
+- Update rclone
+- Integration of other services
 ___
 
 # Archive stuff
