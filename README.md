@@ -318,6 +318,9 @@ TODO:
 - Update jellyfin version
 - Update rclone
 - Integration of other services
+- Code refactor of PREPARE.SH
+- Add DNLA server
+- Add sync of remote JG webdav local files
 ___
 
 # Archive stuff
