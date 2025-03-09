@@ -24,13 +24,16 @@ class ScriptRunnerSub:
         #self.func = func
         if (self.func.__name__ == "refresh_all"):
 
+            
+
+            # if the next queued execution has higher step value, don't take it, as it would bypass some jobs
             if self.queued_execution == True:
                 cmp_newargs = args[0] if args[0] > 10 else args[0] + 10
                 cmp_curargs = self.args[0] if self.args[0] > 10 else self.args[0] + 10
 
-            if self.queued_execution == True and cmp_curargs < cmp_newargs: #if the queud execution has set stronger refresh_all call (with lower step value than requested), don't change the step value
-                logger.debug(". refresh_all requested with higher step value, won't be applied")
-                return
+                if cmp_curargs < cmp_newargs: 
+                    logger.debug(". refresh_all requested with higher step value, won't be applied")
+                    return
         self.args = args
         self.kwargs = kwargs
 

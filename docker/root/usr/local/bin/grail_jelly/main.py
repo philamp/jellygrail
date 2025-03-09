@@ -39,6 +39,7 @@ RD_API_SET = os.getenv('RD_APITOKEN') != "PASTE-YOUR-KEY-HERE"
 JF_WANTED = os.getenv('JF_WANTED') != "no"
 socket_started = False
 at_least_once_done = [False, False, False, False, False, False, False, False]
+post_kodi_run_step = 12
 
 # ------ Contact points
 from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
@@ -232,12 +233,13 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 
 def is_kodi_alive_loop():
+    global post_kodi_run_step
 
     while True:
         if is_kodi_alive():
             #logger.info("KODI-ALIVE/ ...Main kodi up again.")
             _refreshkodi_thread = ScriptRunner.get(refresh_all)
-            #_refreshkodi_thread.resetargs(8) already set inrefresh_all itself
+            _refreshkodi_thread.resetargs(post_kodi_run_step)
             _refreshkodi_thread.run()
             break
         time.sleep(15)
@@ -245,7 +247,7 @@ def is_kodi_alive_loop():
 def refresh_all(step):
 
     global at_least_once_done # at least one run var
-
+    global post_kodi_run_step
 
     retry_later = False
     #toomany = False
@@ -326,20 +328,18 @@ def refresh_all(step):
                 step = 9 # if jfwanted but nfo gen fails stop here
                 logger.error("         4| Generating NFOs from Jellyfin does not work, refresh will stop there")
 
+    # it's the alternative kodi refresh
     # if toomany, kodi refresh is done after jellyfin 
-    if not nb_items < INCR_KODI_REFR_MAX:
-        if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("        2B| Try Kodi Batch library refresh *if online*")
-            if not refresh_kodi():
-                retry_later = True
-            else:
-                at_least_once_done[2] = True
-                if post_kodi_run_step == 12:
-                    post_kodi_run_step = 15
-    else:
-        # consider it done
-        if post_kodi_run_step == 12:
-            post_kodi_run_step = 15
+    if (step < 3 or (step > 10 and step < 13)): 
+        if not nb_items < INCR_KODI_REFR_MAX:
+            if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
+                logger.info("        2B| Try Kodi Batch library refresh *if online*")
+                if not refresh_kodi():
+                    retry_later = True
+                else:
+                    at_least_once_done[2] = True
+                    if post_kodi_run_step == 12:
+                        post_kodi_run_step = 15
 
 
     # if step inferior or if specifically wanted with the webservice (6)
@@ -354,8 +354,8 @@ def refresh_all(step):
                         post_kodi_run_step = 16
 
 
-    # is tep inferior or specifically wanted with the webservice (6 : nfo_merge)
-    if (step < 7 or (step > 10 and step < 17)) and (retry_later == False or not JF_WANTED):
+    # is step inferior or specifically wanted with the webservice (6 : nfo_merge)
+    if (step < 7 or (step > 10 and step < 17)) and retry_later == False:
         if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
             logger.info("         6| Try custom Kodi MySQL dB Operations *if online and new data*...")
             merge_kodi_versions()
@@ -365,8 +365,8 @@ def refresh_all(step):
 
     # 2 5 6 = 12 15 16 (>10)
     # potential refresh_all setup if run by kodi_alive_loop (if run by retry later or already run)
-    _prepare_kodi_dedicated_thread = ScriptRunner.get(refresh_all)
-    _prepare_kodi_dedicated_thread.resetargs(post_kodi_run_step)
+    # _prepare_kodi_dedicated_thread = ScriptRunner.get(refresh_all)
+    # _prepare_kodi_dedicated_thread.resetargs(post_kodi_run_step)
     if retry_later == True and kodi_mysql_init_and_verify(just_verify=True):
         logger.warning(" STEPS-256| Will be retried when Main Kodi is up again (15s retry-loop enabled)...")
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
