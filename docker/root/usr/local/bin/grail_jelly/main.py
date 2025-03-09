@@ -252,7 +252,14 @@ def refresh_all(step):
     retry_later = False
     #toomany = False
 
-    post_kodi_run_step = 12
+    step_string = "            2--56"
+
+
+    # reboot the post kodi steps to corrsponding step if previously complete
+    if step < 3:
+        post_kodi_run_step = 12
+    if step == 4 and post_kodi_run_step == 17:
+        post_kodi_run_step = 15
 
     nb_items = 1
 
@@ -362,13 +369,13 @@ def refresh_all(step):
             if post_kodi_run_step == 16:
                 post_kodi_run_step = 17
     
-
+    
     # 2 5 6 = 12 15 16 (>10)
     # potential refresh_all setup if run by kodi_alive_loop (if run by retry later or already run)
     # _prepare_kodi_dedicated_thread = ScriptRunner.get(refresh_all)
     # _prepare_kodi_dedicated_thread.resetargs(post_kodi_run_step)
     if retry_later == True and kodi_mysql_init_and_verify(just_verify=True):
-        logger.warning(" STEPS-256| Will be retried when Main Kodi is up again (15s retry-loop enabled)...")
+        logger.warning(f" Steps {step_string[post_kodi_run_step:]} Will be retried when Main Kodi is up again (15s retry-loop enabled)...")
         _is_kodi_alive_loop_thread = ScriptRunner.get(is_kodi_alive_loop)
         _is_kodi_alive_loop_thread.run() # will run only if not running, no queue
         # toimprove : ne need to queue this job ?
