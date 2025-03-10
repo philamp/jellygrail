@@ -32,9 +32,10 @@ def kodi_mysql_init_and_verify(just_verify=False):
         cursor.execute("SHOW DATABASES LIKE 'kodi_video%'")
         result = cursor.fetchall()
 
-        results = [res[0] for res in result]
+        if len(result) > 1:
+            logger.warning("  SQL-KODI| More than one KODI DB detected. You should drop the one Kodi is not using:\n - mysql -u kodi -pkodi\n - SHOW DATABASES\n - DROP DATABASE kodi_video***;")
 
-        
+        results = [res[0] for res in result]
 
         cursor.close() # important
         if results:

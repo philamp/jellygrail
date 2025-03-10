@@ -246,22 +246,22 @@ def is_kodi_alive_loop():
 
 def refresh_all(step):
 
-    global at_least_once_done # at least one run var
+    global at_least_once_done # at least one run per day var
     global post_kodi_run_step
 
     retry_later = False
-    #toomany = False
 
-    step_string = "            2--56"
+    nb_items = 1
 
-
-    # reboot the post kodi steps to corrsponding step if previously complete
+    # reboot the post kodi steps to wanted step if possible 
+    # at the beginning (1 or 2) -> ok anyway
+    # partial (4) -> only if previously completed
     if step < 3:
         post_kodi_run_step = 12
     if step == 4 and post_kodi_run_step == 17:
         post_kodi_run_step = 15
+    step_string = "            2--56"
 
-    nb_items = 1
 
     if step == 1: # triggered also with rd_progress_response == "PLEASE_SCAN":
         logger.info("         1| Main Scan...")
@@ -270,7 +270,7 @@ def refresh_all(step):
             #toomany = True
 
     
-        logger.info(f"       ...| Main Scan found {nb_items} new items")
+        logger.info(f"         1| ...Main Scan found {nb_items} new items")
 
 
         # --unit test nb of items
@@ -280,29 +280,23 @@ def refresh_all(step):
 
 
     if (step < 3 or (step > 10 and step < 13)): 
-        if nb_items < INCR_KODI_REFR_MAX and (not at_least_once_done[2] or nb_items > 0):
+        if (not at_least_once_done[2] or nb_items > 0) and nb_items < INCR_KODI_REFR_MAX:
             if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-                if not at_least_once_done[2]:
-                    logger.info("         2| Try DAILY Kodi refresh *if online*...")
-                else:
-                    logger.info("         2| Try Kodi incremental library refresh *if online*...")
+                logger.info("         2| Try Kodi INCREMENTAL library refresh *if online*...")
                 if not refresh_kodi():
                     retry_later = True
                 else:
                     at_least_once_done[2] = True
                     if post_kodi_run_step == 12:
                         post_kodi_run_step = 15
-        elif(nb_items > INCR_KODI_REFR_MAX):
-            logger.info("         2| Kodi refresh will be done after Jellyfin refresh")
+        elif(not nb_items < INCR_KODI_REFR_MAX):
+            logger.info(f"         2| Kodi library refresh will be done after Jellyfin refresh because there are more than {INCR_KODI_REFR_MAX-1} items")
         else:
             logger.info("         2| Kodi refresh bypassed")
 
     if step < 4:
         if not at_least_once_done[3] or nb_items > 0:
-            if not at_least_once_done[3]:
-                logger.info("         3| Jellyfin (or Plex) DAILY library refresh...")
-            else:
-                logger.info("         3| Jellyfin (or Plex) library refresh...")
+            logger.info("         3| Jellyfin (or Plex) library refresh...")
             if JF_WANTED:
                 # refresh the jellyfin library and merge variants
                 lib_refresh_all()
@@ -314,6 +308,8 @@ def refresh_all(step):
                         requests.get(PLEX_REFRESH_A, timeout=10)
                     except Exception as e:
                         logger.error("   REFRESH~ Plex refresh API unavailable")
+                else:
+                    logger.info("         3| Plex library can't be done because at least PLEX_REFRESH_A is not defined in setings.env")
                 if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
                     try:
                         requests.get(PLEX_REFRESH_B, timeout=10)
@@ -333,41 +329,47 @@ def refresh_all(step):
             logger.info("         4| Try generate Jellyfin NFOs *if any new items*...")
             if not nfo_loop_service():
                 step = 9 # if jfwanted but nfo gen fails stop here
-                logger.error("         4| Generating NFOs from Jellyfin does not work, refresh will stop there")
+                logger.warning("         4| Generating NFOs from Jellyfin does not work, refresh will stop there. Open jellyfin on your browser to create the primary user")
+        else:
+            logger.warning(" Step 4 Can't be done because JF_WANTED is not enabled in settings.env")
 
     # it's the alternative kodi refresh
-    # if toomany, kodi refresh is done after jellyfin 
-    if (step < 3 or (step > 10 and step < 13)): 
-        if not nb_items < INCR_KODI_REFR_MAX:
-            if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-                logger.info("        2B| Try Kodi Batch library refresh *if online*")
-                if not refresh_kodi():
-                    retry_later = True
+    # if toomany, kodi refresh is done after jellyfin
+
+    if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
+        if (step < 3 or (step > 10 and step < 13)): 
+            if not nb_items < INCR_KODI_REFR_MAX:
+                    logger.info("         2| Try Kodi BATCH library refresh *if online*")
+                    if not refresh_kodi():
+                        retry_later = True
+                    else:
+                        at_least_once_done[2] = True
+                        if post_kodi_run_step == 12:
+                            post_kodi_run_step = 15
+
+
+        # if step inferior or if specifically wanted with the webservice (6)
+        if (step < 6 or (step > 10 and step < 16)) and retry_later == False:
+                if JF_WANTED:
+                    logger.info("         5| Try sending NFOs to Kodi *if online and new NFOs present*...")
+                    if not send_nfo_to_kodi():
+                        retry_later = True
+                    else:
+                        if post_kodi_run_step == 15:
+                            post_kodi_run_step = 16
                 else:
-                    at_least_once_done[2] = True
-                    if post_kodi_run_step == 12:
-                        post_kodi_run_step = 15
+                    post_kodi_run_step = 17
 
 
-    # if step inferior or if specifically wanted with the webservice (6)
-    if (step < 6 or (step > 10 and step < 16)) and retry_later == False:
-        if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            if JF_WANTED:
-                logger.info("         5| Try sending NFOs to Kodi *if online and new NFOs present*...")
-                if not send_nfo_to_kodi():
-                    retry_later = True
-                else:
-                    if post_kodi_run_step == 15:
-                        post_kodi_run_step = 16
-
-
-    # is step inferior or specifically wanted with the webservice (6 : nfo_merge)
-    if (step < 7 or (step > 10 and step < 17)) and retry_later == False:
-        if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != ""):
-            logger.info("         6| Try custom Kodi MySQL dB Operations *if online and new data*...")
-            merge_kodi_versions()
-            if post_kodi_run_step == 16:
-                post_kodi_run_step = 17
+        # is step inferior or specifically wanted with the webservice (6 : nfo_merge)
+        if (step < 7 or (step > 10 and step < 17)) and retry_later == False:
+                logger.info("         6| Try custom Kodi MySQL dB Operations *if online and new data*...")
+                merge_kodi_versions()
+                if post_kodi_run_step == 16:
+                    post_kodi_run_step = 17
+    else:
+        post_kodi_run_step = 17
+        logger.warning(" Steps 2--56 Can't be done because KODI_MAIN_URL is not defined in settings.env")
     
     
     # 2 5 6 = 12 15 16 (>10)

@@ -97,7 +97,7 @@ def nfo_loop_service():
     try:
         users = jfapi.jellyfin('Users').json()
     except Exception as e:
-        logger.warning(f"    JF-API| Getting JF users failed. Open jellyfin on your browser to create the primary user. error is: {e}")
+        logger.error(f"    JF-API| Getting JF users failed. Open jellyfin on your browser to create the primary user. error is: {e}")
         #jfclose_ro()
         return False
 
