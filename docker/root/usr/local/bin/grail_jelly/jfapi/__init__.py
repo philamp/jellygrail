@@ -37,7 +37,7 @@ def wait_for_jfscan_to_finish():
             logger.warning("    JF-API| ... Jellyfin Library refreshed. (but API overloaded by status requests :( )")
             return True
 
-    logger.info("    JF-API| ...Jellyfin Library refreshed")
+    logger.info("         3| ...Jellyfin Library refresh complete")
     return True
 
 

@@ -100,6 +100,8 @@ def nfo_loop_service():
         logger.error(f"    JF-API| Getting JF users failed. Open jellyfin on your browser to create the primary user. error is: {e}")
         #jfclose_ro()
         return False
+    
+    logger.info("         4| Generate Jellyfin NFOs *if any new items*...")
 
     users_name_mapping = [user.get('Id') for user in users]
     user_id = users_name_mapping[0]
@@ -274,7 +276,7 @@ def nfo_loop_service():
         #jfclose_ro()
         save_jfsqdate_to_file(nowdate)
     else:
-        logger.info("    JF-API| ...no metadata to generate")
+        #logger.info("    JF-API| ...no metadata to generate")
         return True
     return True
     # ---- if finished correctly

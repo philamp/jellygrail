@@ -136,6 +136,8 @@ def refresh_kodi():
     if not is_kodi_alive() or not kodi_mysql_init_and_verify(just_verify=True):
         return False
 
+    logger.info("         2| Kodi library refresh...")
+
     global is_scanning
     global is_cleaning
     global last_clean
@@ -296,6 +298,8 @@ def send_nfo_to_kodi():
     if not is_kodi_alive() or not kodi_mysql_init_and_verify():
         return False
     
+    logger.info("         5| Sending NFOs to Kodi *if new NFOs present*...")
+
     files_to_rename = []
 
     already_sent_ids = []
@@ -312,7 +316,7 @@ def send_nfo_to_kodi():
                 
     if potential_nfo_to_send == 0:
         #notify_kodi("JG NFO refresh", f"No new iNFO to send", 3000)
-        logger.info("  KODI-API| ...no new NFO to send")
+        logger.debug("  KODI-API| ...no new NFO to send")
         pass
     else:
         notify_kodi("JG Metadata refresh", f"Sending {potential_nfo_to_send} metadatas...", 3000)
@@ -399,7 +403,7 @@ def send_nfo_to_kodi():
                             else:
                                 if response.status_code == 200:
                                     logger.debug(f"{xiem} / {potential_nfo_to_send} metadatas sent")
-                                    notify_kodi("JG Metadata refresh", f"{xiem} / {potential_nfo_to_send} metadatas sent", 3000)
+                                    notify_kodi("JG Metadata received: ", f"{xiem} / {potential_nfo_to_send} (screen may flicker)", 3000)
                                     already_sent_ids.append(result)
 
                                     #rename_to_done(root + "/" + filename)
@@ -469,8 +473,10 @@ def merge_kodi_versions():
     if not (( returned_max_played and returned_max_played != last_max_lastplayed) or ( returned_max_fileid and returned_max_fileid != last_max_fileid)):
         # do nothing if nothing changed
         #notify_kodi("JG Custom SQL ops", f"Bypassed.", 3000)
-        logger.info("  SQL-KODI| ...custom ops fully bypassed")
+        logger.debug("         6| Custom Kodi MySQL dB Operations bypassed")
         return True
+    
+    logger.info("         6| Custom Kodi MySQL dB Operations...")
 
     if is_kodi_alive():
         notify_kodi("JG Custom SQL ops", "Started...", 3000)
@@ -580,7 +586,7 @@ def merge_kodi_versions():
         kodi_ui_refresh()
         notify_kodi("JG Custom SQL ops", "...completed.", 3000)
     
-    logger.info("  SQL-KODI| ...custom ops completed")
+    logger.debug("  SQL-KODI| ...custom ops completed")
         
     mariadb_close()
     return True
