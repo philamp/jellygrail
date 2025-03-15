@@ -13,3 +13,4 @@ docker/root/usr/local/bin/grail_jelly/base/__pycache__/
 docker/root/usr/local/bin/ffprobe_wrapper/ffprobew
 __pycache__/
 *.py[co]
+TBD/settings.env
