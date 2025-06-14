@@ -105,7 +105,7 @@ sudo docker build -t philamp/jellygrail .
 
 Make sure you're back in the root ``.`` folder where _PREPARE.SH_ is located and run:
 ````
-sudo chmod u+x PREPARE.SH
+sudo chmod u+x PREPARE.SH _MOUNT.SH
 sudo ./PREPARE.SH
 ````
 > [!TIP]
