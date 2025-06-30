@@ -130,8 +130,7 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 --cap-add MKNOD \
 --cap-add SYS_ADMIN \
 --device /dev/fuse \
---device /dev/dri/renderD128 \
---device /dev/dri/card0 \
+--device /dev/dri \
 --network host \
 -e S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000 \
 -v ${PWD}/jellygrail:/jellygrail \
