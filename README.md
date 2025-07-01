@@ -129,6 +129,7 @@ Example with common transcoding device access mounted and running in host mode (
 sudo docker run -d --privileged --security-opt apparmor=unconfined \
 --cap-add MKNOD \
 --cap-add SYS_ADMIN \
+--memory="8g" \
 --device /dev/fuse \
 --device /dev/dri \
 --network host \
