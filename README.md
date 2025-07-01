@@ -130,6 +130,9 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 --cap-add MKNOD \
 --cap-add SYS_ADMIN \
 --memory="8g" \
+--log-driver json-file \
+--log-opt max-size=10m \
+--log-opt max-file=7 \
 --device /dev/fuse \
 --device /dev/dri \
 --network host \
