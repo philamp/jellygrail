@@ -31,7 +31,7 @@ RUN ./rclone version
 
 # ---RCLONE EXPORT END----
 
-FROM jellyfin/jellyfin:10.9.9
+FROM jellyfin/jellyfin:10.10.7
 
 # Docker build runtime vars (ARG) and env vars
 ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
@@ -42,9 +42,9 @@ ENV S6_OVERLAY_ARCH="x86_64"
 # ---RCLONE IMPORT----
 COPY --from=builder /go/src/github.com/rclone/rclone/rclone /usr/bin/rclone-linux
 
-# apt get stuff
+# apt get stuff (add jmalloc)
 RUN apt-get update && \
-    apt-get -y install xz-utils
+    apt-get -y install xz-utils libjemalloc2 
 
 # python3-venv is fix of https://github.com/philamp/jellygrail/issues/2 (+l123)
 RUN apt-get -y install python3 python3-pip python3-venv
@@ -184,15 +184,10 @@ RUN cd /usr/local/bin && \
 # mysql
 ENV MYSQL_DIR="/jellygrail/data/mariadb"
 ENV DATADIR=$MYSQL_DIR/databases
-ENV JELLYFIN_FFMPEG__NOVALIDATION=true
-# seems that below does not work when implemented here, not sure though
-ENV S6_CMD_WAIT_FOR_SERVICES_MAXTIME=30000 
 
 # expose nginx
 EXPOSE 8085
 
-# expose adb if needed
-# EXPOSE 5037
 # expose ssh for development
 # EXPOSE 23
 
