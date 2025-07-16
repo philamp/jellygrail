@@ -66,6 +66,33 @@ export PATH
 
 # --- Jellygrail env related ---
 
+# --- add www-data to graphic card groups (VAAPI etc..)
+for dev in /dev/dri/card* /dev/dri/renderD*; do
+  [ -e "$dev" ] || continue
+  gid=$(stat -c "%g" "$dev")
+
+  case "$dev" in
+    /dev/dri/card*)
+      groupname="video"
+      ;;
+    /dev/dri/renderD*)
+      groupname="render"
+      ;;
+    *)
+      continue
+      ;;
+  esac
+
+  # Crée le groupe avec ce nom s'il n'existe pas encore
+  if ! getent group "$groupname" >/dev/null; then
+    addgroup -g "$gid" "$groupname"
+  fi
+
+  # Ajoute www-data au groupe (sans erreur si déjà membre)
+  usermod -aG "$groupname" www-data
+done
+
+# --- read JS settings
 . /jellygrail/config/settings.env
 if [ "$JF_WANTED" = "no" ]; then
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
