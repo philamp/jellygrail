@@ -85,10 +85,15 @@ for dev in /dev/dri/card* /dev/dri/renderD*; do
 
   # Crée le groupe avec ce nom s'il n'existe pas encore
   if ! getent group "$groupname" >/dev/null; then
-    addgroup -g "$gid" "$groupname"
+    if ! getent group "$gid" >/dev/null; then
+      groupadd -g "$gid" "$groupname"
+    else
+      # Si un groupe existe déjà avec ce GID, utiliser son nom
+      groupname=$(getent group "$gid" | cut -d: -f1)
+    fi
   fi
 
-  # Ajoute www-data au groupe (sans erreur si déjà membre)
+  # Ajoute www-data au groupe
   usermod -aG "$groupname" www-data
 done
 
