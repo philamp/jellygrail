@@ -70,6 +70,7 @@ RUN WORKDIR=`mktemp -d` && \
     wget http://www.rarlab.com/rar/unrarsrc-${v_unrar}.tar.gz && \
     tar zxvf unrarsrc-${v_unrar}.tar.gz && \
     cd unrar && \
+    sed -i 's/^CXXFLAGS=\(.*\)/CXXFLAGS=\1 -fPIC/' makefile && \
     make && \
     make install && \
     make lib && \
