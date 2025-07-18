@@ -65,6 +65,7 @@ RUN WORKDIR=`mktemp -d` && \
     g++ \
     libfuse-dev \
     make \
+    autoconf automake libtool \
     wget && \
     # Get, make and install unrar
     wget http://www.rarlab.com/rar/unrarsrc-${v_unrar}.tar.gz && \
