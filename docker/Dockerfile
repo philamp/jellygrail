@@ -149,7 +149,7 @@ ADD https://api.github.com/repos/philamp/bindfs_jelly/git/refs/heads/master bind
 # bindfs build 
 RUN WORKDIR=`mktemp -d` && \
     cd $WORKDIR && \
-    git clone -b develop https://github.com/philamp/bindfs_jelly.git --single-branch . && \
+    git clone https://github.com/philamp/bindfs_jelly.git . && \
     mkdir build && \
     cd build && \
     cmake .. && \
