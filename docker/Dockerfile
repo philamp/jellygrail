@@ -34,22 +34,35 @@ RUN ./rclone version
 FROM jellyfin/jellyfin:10.10.7
 
 # Docker build runtime vars (ARG) and env vars
-ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
-ENV v_unrar=${UNRAR_VERSION:-6.0.7}
+ENV v_rar2fs=${RAR2FS_VERSION:-1.29.7}
+ENV v_unrar=${UNRAR_VERSION:-7.1.8}
 ENV S6_OVERLAY_VERSION="3.1.5.0"
 ENV S6_OVERLAY_ARCH="x86_64"
+
+# apt get stuff (add jmalloc to improve Jellyfin memory usage)
+RUN apt-get update && \
+    apt-get -y install xz-utils libjemalloc2 
+
+# add s6 overlay
+RUN cd /tmp && \
+    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz && \
+    tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
+    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz && \
+    tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz
 
 # ---RCLONE IMPORT----
 COPY --from=builder /go/src/github.com/rclone/rclone/rclone /usr/bin/rclone-linux
 
-# apt get stuff (add jmalloc)
-RUN apt-get update && \
-    apt-get -y install xz-utils libjemalloc2 
-
-# python3-venv is fix of https://github.com/philamp/jellygrail/issues/2 (+l123)
+# --- Python ---
+# python3-venv and co. is fix of https://github.com/philamp/jellygrail/issues/2
 RUN apt-get -y install python3 python3-pip python3-venv
+COPY root/requirements.txt /requirements.txt
+RUN python3 -m venv /opt/venv
+RUN /opt/venv/bin/pip install --upgrade pip
+RUN /opt/venv/bin/pip install -r /requirements.txt
+ENV PATH="/opt/venv/bin:$PATH"
 
-# RAR2FS build
+# --- RAR2FS build ---
 RUN WORKDIR=`mktemp -d` && \
     cd $WORKDIR && \
     # Get deps
@@ -70,7 +83,7 @@ RUN WORKDIR=`mktemp -d` && \
     make install-lib && \
     cd .. && \
     # Get, make and install rar2fs
-    wget https://github.com/hasse69/rar2fs/releases/download/v${v_rar2fs}/rar2fs-${v_rar2fs}.tar.gz -O rar2fs-${v_rar2fs}.tar.gz && \
+    wget https://github.com/hasse69/rar2fs/archive/refs/tags/v1.29.7.tar.gz -O rar2fs-${v_rar2fs}.tar.gz && \
     tar zxvf rar2fs-${v_rar2fs}.tar.gz && \
     cd rar2fs-${v_rar2fs} && \
     ./configure --with-unrar=../unrar --with-unrar-lib=/usr/lib/ && \
@@ -79,58 +92,23 @@ RUN WORKDIR=`mktemp -d` && \
     # Cleanup
     rm -rf $WORKDIR
 
-# add s6 overlay
-RUN cd /tmp && \
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz && \
-    tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz && \
-    tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz
-
-
-
-# add rclone fork
-# RUN cd /usr/bin && \
-    # wget https://github.com/itsToggle/rclone_RD/releases/download/v1.58.1-rd.2.2/rclone-linux
-
-# set folders and permissions
+# set JG folders and permissions
 RUN chmod ugo+rx /usr/bin/rclone-linux && \
     mkdir -p /Video_Library && \
     mkdir -p /Cache_Check_Video_Library && \
     mkdir -p /Kodi_Video_Library && \
     mkdir -p /mounts/kodi/software && \
     mkdir -p /mounts/kodi/backups
-    # mkdir -p /root/.config/rclone
-    # mkdir -p /volumeG/rd_fuse_volume && \
-    # mkdir -p /volumeG/rar2fs_fuse_volume &&\
-    # mkdir -p /volumeG/bindfs_fuse_volume
 
 # kodi addons script copy into container
 COPY root/kodi_addons.sh /kodi_addons.sh
 RUN chmod +x /kodi_addons.sh
-
-# copy conf and s6 scripts from repo
-# COPY rclone.conf /root/.config/rclone/
-COPY root/requirements.txt /requirements.txt
-
-# fix of https://github.com/philamp/jellygrail/issues/2 (+l49)
-RUN python3 -m venv /opt/venv
-RUN /opt/venv/bin/pip install --upgrade pip
-RUN /opt/venv/bin/pip install -r /requirements.txt
-
-# Définir le chemin de l'environnement virtuel
-ENV PATH="/opt/venv/bin:$PATH"
 
 # nginx
 RUN apt-get -y install nginx nginx-extras unzip
     
 # COPY webdav.conf /etc/nginx/conf.d/default.conf -- now done in init
 RUN rm /etc/nginx/sites-enabled/*
-
-# ADB
-# RUN wget https://dl.google.com/android/repository/platform-tools-latest-linux.zip && \
-    # unzip platform-tools-latest-linux.zip && \
-    # rm platform-tools-latest-linux.zip
-    ## cd platform-tools/
 
 # Get deps for bindfs build
 RUN apt-get update && \
@@ -189,7 +167,7 @@ ENV DATADIR=$MYSQL_DIR/databases
 EXPOSE 8085
 
 # expose ssh for development
-# EXPOSE 23
+EXPOSE 23
 
 # expose 6502 jelly_update script
 EXPOSE 6502
@@ -199,5 +177,6 @@ EXPOSE 6503
 
 # overwrite run jellyfin main original process as CMD instead of entrypoint
 ENTRYPOINT ["/init"]
-# CMD ["/bin/bash"]
 CMD ["python3", "/usr/local/bin/grail_jelly/main.py"]
+
+# CMD ["/bin/bash"]
