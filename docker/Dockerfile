@@ -43,13 +43,6 @@ ENV S6_OVERLAY_ARCH="x86_64"
 RUN apt-get update && \
     apt-get -y install xz-utils libjemalloc2 
 
-# add s6 overlay
-RUN cd /tmp && \
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz && \
-    tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz && \
-    tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz
-
 # ---RCLONE IMPORT----
 COPY --from=builder /go/src/github.com/rclone/rclone/rclone /usr/bin/rclone-linux
 
@@ -91,6 +84,13 @@ RUN WORKDIR=`mktemp -d` && \
     make install && \
     # Cleanup
     rm -rf $WORKDIR
+
+# add s6 overlay
+RUN cd /tmp && \
+    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz && \
+    tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
+    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz && \
+    tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz
 
 # set JG folders and permissions
 RUN chmod ugo+rx /usr/bin/rclone-linux && \
