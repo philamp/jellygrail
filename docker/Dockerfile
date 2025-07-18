@@ -35,7 +35,7 @@ FROM jellyfin/jellyfin:10.10.7
 
 # Docker build runtime vars (ARG) and env vars
 ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
-ENV v_unrar=${UNRAR_VERSION:-6.2.12}
+ENV v_unrar=${UNRAR_VERSION:-6.1.3}
 ENV S6_OVERLAY_VERSION="3.1.5.0"
 ENV S6_OVERLAY_ARCH="x86_64"
 
