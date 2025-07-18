@@ -34,8 +34,8 @@ RUN ./rclone version
 FROM jellyfin/jellyfin:10.10.7
 
 # Docker build runtime vars (ARG) and env vars
-ENV v_rar2fs=${RAR2FS_VERSION:-1.29.7}
-ENV v_unrar=${UNRAR_VERSION:-7.0.9}
+ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
+ENV v_unrar=${UNRAR_VERSION:-6.1.3}
 ENV S6_OVERLAY_VERSION="3.1.5.0"
 ENV S6_OVERLAY_ARCH="x86_64"
 
@@ -55,7 +55,7 @@ RUN /opt/venv/bin/pip install --upgrade pip
 RUN /opt/venv/bin/pip install -r /requirements.txt
 ENV PATH="/opt/venv/bin:$PATH"
 
-# --- RAR2FS build ---
+# RAR2FS build
 RUN WORKDIR=`mktemp -d` && \
     cd $WORKDIR && \
     # Get deps
@@ -65,23 +65,20 @@ RUN WORKDIR=`mktemp -d` && \
     g++ \
     libfuse-dev \
     make \
-    autoconf automake libtool \
     wget && \
     # Get, make and install unrar
     wget http://www.rarlab.com/rar/unrarsrc-${v_unrar}.tar.gz && \
     tar zxvf unrarsrc-${v_unrar}.tar.gz && \
     cd unrar && \
-    sed -i 's/^CXXFLAGS=\(.*\)/CXXFLAGS=\1 -fPIC/' makefile && \
     make && \
     make install && \
     make lib && \
     make install-lib && \
     cd .. && \
     # Get, make and install rar2fs
-    wget https://github.com/hasse69/rar2fs/archive/refs/tags/v1.29.7.tar.gz -O rar2fs-${v_rar2fs}.tar.gz && \
+    wget https://github.com/hasse69/rar2fs/releases/download/v${v_rar2fs}/rar2fs-${v_rar2fs}.tar.gz -O rar2fs-${v_rar2fs}.tar.gz && \
     tar zxvf rar2fs-${v_rar2fs}.tar.gz && \
     cd rar2fs-${v_rar2fs} && \
-    autoreconf -i && \
     ./configure --with-unrar=../unrar --with-unrar-lib=/usr/lib/ && \
     make && \
     make install && \
