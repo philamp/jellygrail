@@ -80,6 +80,7 @@ RUN WORKDIR=`mktemp -d` && \
     wget https://github.com/hasse69/rar2fs/archive/refs/tags/v1.29.7.tar.gz -O rar2fs-${v_rar2fs}.tar.gz && \
     tar zxvf rar2fs-${v_rar2fs}.tar.gz && \
     cd rar2fs-${v_rar2fs} && \
+    autoreconf -i && \
     ./configure --with-unrar=../unrar --with-unrar-lib=/usr/lib/ && \
     make && \
     make install && \
