@@ -166,29 +166,29 @@ done
 # this part triggers only if /root/devmode folder is found, it's for devleopment purposes only
 if [ -d "/root/devmode" ]; then
   apt-get install openssh-server libsqlite3-dev sqlite3 cmake -y
-  rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/*
-  #rm -f /etc/s6-overlay/s6-rc.d/jellyfin/dependencies.d/bindfs
+  rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/kodi_bindfs
+  # rm -f /etc/s6-overlay/s6-rc.d/jellyfin/dependencies.d/bindfs
   service ssh stop
   mkdir -p /root/.ssh
   cp -R /root/devmode/* /root/.ssh/
   sed -i 's/^#Port 22/Port 23/' /etc/ssh/sshd_config
   # echo "AuthorizedKeysFile /root/.ssh/authorized_keys" >> /etc/ssh/sshd_config
   service ssh start
-  # dev-context services
+  # ---dev-context services
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/remote_realdebrid
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_remote_realdebrid
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive1
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive2
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/bindfs
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/cache_check_bindfs
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-config
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-initdb
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-upgrade
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-mariadb
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive1
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive2
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/bindfs
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/cache_check_bindfs
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-config
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-initdb
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-upgrade
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-mariadb
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/kodi_addons
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
-  # disrupt normal execution
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
+  # disrupt normal python execution
   cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/main.py
   mkdir -p /root/dev
   # end dev-context services
