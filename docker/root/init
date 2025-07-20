@@ -167,6 +167,7 @@ done
 if [ -d "/root/devmode" ]; then
   apt-get install openssh-server libsqlite3-dev sqlite3 cmake -y
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/kodi_bindfs
+  rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
   # rm -f /etc/s6-overlay/s6-rc.d/jellyfin/dependencies.d/bindfs
   service ssh stop
   mkdir -p /root/.ssh
