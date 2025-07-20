@@ -24,7 +24,7 @@ RUN mkdir -p /go/src/github.com/rclone/rclone/
 
 WORKDIR /go/src/github.com/rclone/rclone/
 
-RUN git clone https://github.com/philamp/rclone_jelly.git .
+RUN git clone -b master https://github.com/philamp/rclone_jelly.git --single-branch .
 
 RUN CGO_ENABLED=0 make
 RUN ./rclone version
@@ -110,6 +110,7 @@ RUN apt-get -y install nginx nginx-extras unzip
 # COPY webdav.conf /etc/nginx/conf.d/default.conf -- now done in init
 RUN rm /etc/nginx/sites-enabled/*
 
+# --- BINDFS
 # Get deps for bindfs build
 RUN apt-get update && \
     apt-get -y install \
@@ -127,7 +128,7 @@ ADD https://api.github.com/repos/philamp/bindfs_jelly/git/refs/heads/master bind
 # bindfs build 
 RUN WORKDIR=`mktemp -d` && \
     cd $WORKDIR && \
-    git clone https://github.com/philamp/bindfs_jelly.git . && \
+    git clone -b master https://github.com/philamp/bindfs_jelly.git --single-branch . && \
     mkdir build && \
     cd build && \
     cmake .. && \
