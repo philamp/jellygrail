@@ -132,6 +132,7 @@ RUN rm /etc/nginx/sites-enabled/*
     # rm platform-tools-latest-linux.zip
     ## cd platform-tools/
 
+# --- BINDFS
 # Get deps for bindfs build
 RUN apt-get update && \
     apt-get -y install \
@@ -149,7 +150,7 @@ ADD https://api.github.com/repos/philamp/bindfs_jelly/git/refs/heads/master bind
 # bindfs build 
 RUN WORKDIR=`mktemp -d` && \
     cd $WORKDIR && \
-    git clone https://github.com/philamp/bindfs_jelly.git . && \
+    git clone -b master https://github.com/philamp/bindfs_jelly.git --single-branch . && \
     mkdir build && \
     cd build && \
     cmake .. && \
