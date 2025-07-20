@@ -24,7 +24,7 @@ RUN mkdir -p /go/src/github.com/rclone/rclone/
 
 WORKDIR /go/src/github.com/rclone/rclone/
 
-RUN git clone https://github.com/philamp/rclone_jelly.git .
+RUN git clone -b master https://github.com/philamp/rclone_jelly.git --single-branch .
 
 RUN CGO_ENABLED=0 make
 RUN ./rclone version
@@ -44,7 +44,7 @@ COPY --from=builder /go/src/github.com/rclone/rclone/rclone /usr/bin/rclone-linu
 
 # apt get stuff (add jmalloc)
 RUN apt-get update && \
-    apt-get -y install xz-utils libjemalloc2 
+    apt-get -y install xz-utils libjemalloc2 erdtemps2
 
 # python3-venv is fix of https://github.com/philamp/jellygrail/issues/2 (+l123)
 RUN apt-get -y install python3 python3-pip python3-venv
