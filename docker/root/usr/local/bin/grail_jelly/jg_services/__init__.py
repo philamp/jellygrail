@@ -17,8 +17,8 @@ lastrddump = 0
 
 # rd remote location
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
-DEFAULT_INCR = os.getenv('DEFAULT_INCR')
-WHOLE_CONTENT = os.getenv('ALL_FILES_INCLUDING_STRUCTURE') != "no"
+DEFAULT_INCR = 0 # os.getenv('DEFAULT_INCR')
+WHOLE_CONTENT = True
 
 
 def premium_timeleft():

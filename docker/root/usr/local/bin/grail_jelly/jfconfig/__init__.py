@@ -3,11 +3,12 @@ import time
 import jfapi
 from jfconfig.jfsql import *
 from base import *
+from base.constants import *
 
 base_v_root = "/Video_Library/virtual"
 
-JF_COUNTRY = os.getenv('JF_COUNTRY')
-JF_LANGUAGE = os.getenv('JF_LANGUAGE')
+JF_COUNTRY = os.getenv('JF_COUNTRY') or DEFAULT_JF_COUNTRY
+JF_LANGUAGE = os.getenv('JF_LANGUAGE') or DEFAULT_JF_LANGUAGE
 
 def jfconfig():
     #global jfapikey
@@ -15,7 +16,7 @@ def jfconfig():
     # check if /jellygrail/jellyfin/config/data/jellyfin.db exists
     triggerdata = []
     proceedinjf = None
-    logger.info("  JELLYFIN/ Starting... (waiting API up to 2mn max)")
+    logger.info("  JELLYFIN/ Starting... (waiting API up to 2mn max)")
     iwait = 0
     while iwait < 40:
         iwait += 1

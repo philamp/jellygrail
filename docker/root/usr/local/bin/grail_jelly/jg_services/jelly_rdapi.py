@@ -16,19 +16,8 @@ class RDE:
         # self.base_url = 'http://localhost:6502/rest/1.0' # to test timeout looping itself is not a bad idea
         self.header = {'Authorization': "Bearer " + str(self.rd_apitoken)}   
         self.error_codes = json.load(open(os.path.join(Path(__file__).parent.absolute(), 'error_codes.json')))
-        self.sleep = int(os.getenv('SLEEP') or 2000)
-        self.long_sleep = int(os.getenv('LONG_SLEEP') or 30000)
-
-        # handle minimum to avoid RD issues
-        if self.sleep < 500:
-            self.sleep = 500 / 1000
-        else:
-            self.sleep = self.sleep / 1000
-
-        if self.long_sleep < 30000:
-            self.long_sleep = 30000 / 1000
-        else:
-            self.long_sleep = self.long_sleep / 1000
+        self.sleep = int(os.getenv('SLEEP') or 500) / 1000  # default 500ms
+        self.long_sleep = int(os.getenv('LONG_SLEEP') or 30000) / 1000  # default 30000ms
 
         #SLEEP=500 # Delay (ms) between requests
         #LONG_SLEEP=30000 # Long delay (ms) every 500 requests

@@ -20,7 +20,7 @@ from jg_services import premium_timeleft
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
 # !!!!!!!!!!!!! dev reminder : this version should be aligned to version in PREPARE.SH (change both at the same time !!!!)
-VERSION = "20240915"
+VERSION = "20250808"
 
 INCR_KODI_REFR_MAX = 8
 
@@ -40,6 +40,8 @@ JF_WANTED = os.getenv('JF_WANTED') != "no"
 KODI_MAIN_WANTED = True if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") else False
 
 
+
+#default filling
 socket_started = False
 at_least_once_done = [False, False, False, False, False, False, False, False]
 post_kodi_run_step = 12
