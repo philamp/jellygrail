@@ -161,47 +161,6 @@ def jfconfig():
                     name='Movies', collectionType="movies", paths=f"{base_v_root}/movies", refreshLibrary=False
                 ))
 
-                concertlib = {
-                    "LibraryOptions": {
-                        "PreferredMetadataLanguage": JF_LANGUAGE,
-                        "MetadataCountryCode": JF_COUNTRY,
-                        "EnableRealtimeMonitor": False,
-                        "EnableChapterImageExtraction": False,
-                        "ExtractChapterImagesDuringLibraryScan": False,
-                        "AutomaticallyAddToCollection": False,
-                        "MetadataSavers": [],
-                        "DisabledSubtitleFetchers": [
-                            "subbuzz"
-                        ],
-                        "SubtitleDownloadLanguages": [
-                            "eng",
-                            "fre"
-                        ],
-                        "RequirePerfectSubtitleMatch": False,
-                        "SaveSubtitlesWithMedia": True,
-                        "AllowEmbeddedSubtitles": "AllowAll",
-                        "PathInfos": [
-                            {
-                                "Path": f"{base_v_root}/concerts",
-                                "NetworkPath": ""
-                            }
-                        ],
-                        "TypeOptions": [
-                            {
-                                "Type": "Movie",
-                                "MetadataFetchers": MetaSwitch,
-                                "MetadataFetcherOrder": MetaSwitch,
-                                "ImageFetchers": MetaSwitch,
-                                "ImageFetcherOrder": MetaSwitch,
-                                "ImageOptions": []
-                            }
-                        ]
-                    }
-                }
-                jfapi.jellyfin(f'Library/VirtualFolders', json=concertlib, method='post', params=dict(
-                    name='Concerts', collectionType="movies", paths=f"{base_v_root}/concerts", refreshLibrary=False
-                ))
-
                 tvshowlib = {
                     "LibraryOptions": {
                         
