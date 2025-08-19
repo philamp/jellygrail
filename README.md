@@ -4,7 +4,7 @@
 >     - ./jellygrail/.bindfs_jelly.db is now stored in ./jellygrail/data/bindfs : **Jellygrail will rescan all your library**
 >     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
 >     - Merge versions Jellyfin add-on to be removed. It's confusing when deleting library items since some variants are within same folders while other are not. Removing that will remove this ambiguity.
->     - Added Kodi synchronization, you must use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) if interested
+>     - Added Kodi synchronization, you must use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi) if interested
 >     - ffprobe wrapper to reduce remote storage queries (jellygrail stores ffprobe results and gives it back to Jellyfin when requested)
 >   - Fixes:
 >     - fallbackdata items now displayed in all dynamically filtered folders
