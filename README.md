@@ -42,7 +42,7 @@ JellyGrail is an **experimental** modified Jellyfin* docker image to manage all 
   - Merging of Movie versions (+synchronizing progress across all versions).
   - Merging of possibly splitted TV show.
   - MariaDB server included.
-  - Use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) to make sure it will work.
+  - Use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi) to make sure it will work. 
     - Jellygrail log will tell you if it finds the database after Kodi has restarted. Only Kodi can create the database.
   - Plex server/player comparison:
     - You can play copies of DVD/Blurays in Kodi (and manage them in Jellyfin).
