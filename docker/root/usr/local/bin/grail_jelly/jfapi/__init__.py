@@ -3,21 +3,72 @@ from base import *
 from datetime import datetime
 
 
-BASE_URI = "http://localhost:8096" 
+BASE_URI = "http://localhost:8096"
+BASE_AUTH_STR = 'MediaBrowser Client="JellyGrail Agent", Device="JellyGrail Docker", DeviceId="jellygrail001", Version="3"'
+JF_LOGIN = os.getenv('JF_LOGIN') or "admin"
+JF_PASSWORD = os.getenv('JF_PASSWORD')
 
 jfapikey = None
 
+def AUTHSTRING():
+    global jfapikey
+    if jfapikey is not None:
+        return f'{BASE_AUTH_STR}, Token="{jfapikey}"'
+    else:
+        return BASE_AUTH_STR
+
+def authByName():
+    global jfapikey
+    json_payload = {
+        "Username": JF_LOGIN,
+        "Pw": JF_PASSWORD
+    }
+    resp = jellyfin_req('Users/AuthenticateByName', method='post', json=json_payload)
+    if resp.status_code != 200:
+        logger.critical("    JF-API/ FAILURE to authenticate to Jellyfin API, check your JF_LOGIN and JF_PASSWORD settings.env variables")
+        return False
+    jfapikey = resp.json().get('AccessToken')
+    logger.info("    JF-API/ ... Authenticated to Jellyfin API")
+    return True
 
 
 def jellyfin(path, method='get', **kwargs):
-    response = getattr(requests, method)(
-        f'{BASE_URI}/{path}',
-        headers={'X-MediaBrowser-Token': jfapikey},
-        **kwargs
-    )
+    if jfapikey is None:
+        if authByName():
+            return jellyfin_req(path, method, **kwargs)
+        else:
+            return None
+    else:
+        return jellyfin_req(path, method, **kwargs)
+
+
+def jellyfin_req(path, method='get', **kwargs):
+    retries = 3
+    delay = 2
+    url = f'{BASE_URI}/{path}'
+    headers = {'Authorization': AUTHSTRING()}
+    retryable = {500, 502, 503, 504}
+
+    for attempt in range(1, retries + 1):
+        try:
+            response = getattr(requests, method)(url, headers=headers, **kwargs)
+            if response.status_code == 200:
+                return response
+            elif response.status_code in retryable:
+                logger.debug(f"    JF-API/ Attempt {attempt}: Received retryable status {response.status_code}")
+            else:
+                # Don't retry for 404, 400, 401, etc.
+                response.raise_for_status()
+                return response
+        except requests.RequestException as e:
+            logger.debug(f"    JF-API/ Attempt {attempt}: Exception occurred: {e}")
+        
+        if attempt < retries:
+            time.sleep(delay)
+
+    # Final attempt failed
     response.raise_for_status()
     return response
-
 
 def wait_for_jfscan_to_finish():
     # while libraryrunning dont do anything

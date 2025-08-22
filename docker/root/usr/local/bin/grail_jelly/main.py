@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 # coding: utf-8
-# dotenv for RD API management
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
 import time
@@ -17,29 +16,22 @@ import requests
 import struct
 from jg_services import premium_timeleft
 
-KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
-# !!!!!!!!!!!!! dev reminder : this version should be aligned to version in PREPARE.SH (change both at the same time !!!!)
-VERSION = "20250808"
+### SETTINGS LOADING ###
 
+VERSION = "20250808" # !!!!!!!!!! Should be aligned to settings.env.template !!!!!!!!!!
 INCR_KODI_REFR_MAX = 8
-
 CONFIG_VERSION = os.getenv('CONFIG_VERSION')
-
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
-
 JF_WANTED = os.getenv('JF_WANTED') != "no"
-
-PLEX_REFRESH_A = os.getenv('PLEX_REFRESH_A')
-PLEX_REFRESH_B = os.getenv('PLEX_REFRESH_B')
-PLEX_REFRESH_C = os.getenv('PLEX_REFRESH_C')
-
-# dotenv gathering
-RD_API_SET = os.getenv('RD_APITOKEN') != "PASTE-YOUR-KEY-HERE"
-JF_WANTED = os.getenv('JF_WANTED') != "no"
+RD_APITOKEN = os.getenv('RD_APITOKEN')
+KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
+# Pre-compute serialized settings
+PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')
+# Pre-compute some flags
+RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
+JF_WANTED = os.getenv('JF_WANTED') == "y"
 KODI_MAIN_WANTED = True if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") else False
-
-
 
 #default filling
 socket_started = False
@@ -300,37 +292,25 @@ def refresh_all(step):
 
     if step < 4:
         if not at_least_once_done[3] or nb_items > 0:
-            
             if JF_WANTED:
                 logger.info("         3| Jellyfin library refresh...")
                 # refresh the jellyfin library and merge variants
                 lib_refresh_all()
                 wait_for_jfscan_to_finish()
                 pass
-            else:
+            
+            if PLEX_URLS_ARRAY:
                 logger.info("         3| Plex library refresh...")
-                if PLEX_REFRESH_A != 'PASTE_A_REFRESH_URL_HERE':
+                for plex_url in PLEX_URLS_ARRAY:
                     try:
-                        requests.get(PLEX_REFRESH_A, timeout=10)
+                        requests.get(plex_url, timeout=10)
                     except Exception as e:
-                        logger.error("   REFRESH~ Plex refresh API unavailable")
-                else:
-                    logger.info("         3| Plex library can't be done because at least PLEX_REFRESH_A is not defined in setings.env")
-                if PLEX_REFRESH_B != 'PASTE_B_REFRESH_URL_HERE':
-                    try:
-                        requests.get(PLEX_REFRESH_B, timeout=10)
-                    except Exception as e:
-                        logger.error("   REFRESH~ Plex refresh API unavailable")
-                if PLEX_REFRESH_C != 'PASTE_C_REFRESH_URL_HERE':
-                    try:
-                        requests.get(PLEX_REFRESH_C, timeout=10)
-                    except Exception as e:
-                        logger.error("   REFRESH~ Plex refresh API unavailable")
+                        logger.error(f"   REFRESH~ Plex refresh API unavailable for {plex_url}")
             at_least_once_done[3] = True
         else:
             if JF_WANTED:
                 logger.info("         3| Library refresh bypassed")
-            else:
+            if PLEX_URLS_ARRAY:
                 logger.info("         3| Plex refresh bypassed")
 
     if step < 5:

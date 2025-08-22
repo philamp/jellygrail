@@ -5,17 +5,19 @@ from jfconfig.jfsql import *
 from base import *
 from base.constants import *
 
-base_v_root = "/Video_Library/virtual"
-
 JF_COUNTRY = os.getenv('JF_COUNTRY') or DEFAULT_JF_COUNTRY
 JF_LANGUAGE = os.getenv('JF_LANGUAGE') or DEFAULT_JF_LANGUAGE
+JF_LOGIN = os.getenv('JF_LOGIN') or "admin"
+JF_PASSWORD = os.getenv('JF_PASSWORD')
 
 def jfconfig():
-    #global jfapikey
+    # check if Jellyfin is available
+    if is_jf_available():
+        return jfsetup_req()
+    else:
+        return "ZERO-RUN"
 
-    # check if /jellygrail/jellyfin/config/data/jellyfin.db exists
-    triggerdata = []
-    proceedinjf = None
+def is_jf_available():
     logger.info("  JELLYFIN/ Starting... (waiting API up to 2mn max)")
     iwait = 0
     while iwait < 40:
@@ -28,39 +30,67 @@ def jfconfig():
         except OSError as e:
             logger.debug(f". Waiting for Jellyfin to be available: try {iwait} ...")
         else:
-            proceedinjf = True
             logger.info("  JELLYFIN/ ...Successfully started")
-            break
+            return True
         time.sleep(3)
 
     if iwait >= 20:
         logger.warning("  JELLYFIN/ seems absent... docker will now restart to retry. Please check logs with 'docker logs jellygrail -f'")
-        return "ZERO-RUN"
+    return False
+
+def jfsetup_req():
+    if jfapi.jellyfin_req(method='get', path='Startup/Configuration').status_code != 200:
+
+        logger.info("  JELLYFIN/ First setup...")
+
+        # set language and country
+        json_payload = {
+            "UICulture": "en-US",
+            "MetadataCountryCode": JF_COUNTRY,
+            "PreferredMetadataLanguage": JF_LANGUAGE
+        }
+        try:
+            jfapi.jellyfin_req('Startup/Configuration', method='post', json=json_payload)
+        except Exception as e:
+            logger.critical(f"  JELLYFIN/ FAILURE to set language and country: {e}")
+            return "ZERO-RUN"
+        time.sleep(1)
+
+        # set username and password
+        json_payload = {
+            "Name": JF_LOGIN,
+            "Password": JF_PASSWORD
+        }
+        try:
+            jfapi.jellyfin_req('Startup/User', method='post', json=json_payload)
+        except Exception as e:
+            logger.critical(f"  JELLYFIN/ FAILURE to set username and password: {e}")
+            return "ZERO-RUN"
+        time.sleep(1)
+
+        # complete setup
+        try:
+            jfapi.jellyfin_req('Startup/Complete', method='post')
+        except Exception as e:
+            logger.critical(f"  JELLYFIN/ FAILURE to set username and password: {e}")
+            return "ZERO-RUN"
+        time.sleep(1)
+
+    else:
+        logger.info("  JELLYFIN/ First setup already done")
+
+    # go on with config
+    return jfconfig_forjg()
+
+
+# get Token and forced config
+def jfconfig_forjg():
+
+
+    triggerdata = []
+
     # Whole JF config --------------------------
-    if proceedinjf and urllib.request.urlopen('http://localhost:8096/health').read() == b'Healthy':
-    
-        if os.path.exists("/jellygrail/jellyfin/config/data/jellyfin.db"):
-
-            init_jellyfin_db("/jellygrail/jellyfin/config/data/jellyfin.db")
-            
-            array = [item[4] for item in fetch_api_key()]
-
-            if len(array) > 0:
-                
-                jfapi.jfapikey = array[0]
-                logger.info(f"  JELLYFIN/ API Key fetched from dB")
-            
-            else:
-                key = ''.join(random.choice('0123456789abcdef') for _ in range(32))
-                insert_api_key(key)
-                # logger.info(f"> Api Key {key} inserted")
-                logger.info(f"  JELLYFIN/ API Key inserted in dB")
-                jfapi.jfapikey = key
-
-            jfclose()
-        
-        else:
-            logger.critical("Jellyfin config dB file does not exist!")
+    if urllib.request.urlopen('http://localhost:8096/health').read() == b'Healthy':
 
         # 1 - Install repo if necessary
         # get list of repos, if len < 3, re-declare
@@ -74,11 +104,6 @@ def jfconfig():
                     "Url": "https://repo.jellyfin.org/releases/plugin/manifest-stable.json",
                     "Enabled": True
                 },
-                # {
-                    # "Name": "Merge",
-                    # "Url": "https://raw.githubusercontent.com/danieladov/JellyfinPluginManifest/master/manifest.json",
-                    # "Enabled": True
-                # },
                 {
                     "Name": "subbuzz",
                     "Url": "https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.8.json",
@@ -94,11 +119,7 @@ def jfconfig():
             #install subbuzz
             jfapi.jellyfin(f'Packages/Installed/subbuzz', method='post')
 
-            #install merge
-            # jfapi.jellyfin(f'Packages/Installed/Merge%20Versions', method='post')
-
             #delete unwanted triggers (chapter images and auto subtitle dl)
-
             jfapi.jellyfin(f'ScheduledTasks/4e6637c832ed644d1af3370a2506e80a/Triggers', json=triggerdata, method='post')
             jfapi.jellyfin(f'ScheduledTasks/2c66a88bca43e565d7f8099f825478f1/Triggers', json=triggerdata, method='post')
 
@@ -142,7 +163,7 @@ def jfconfig():
                         "AllowEmbeddedSubtitles": "AllowAll",
                         "PathInfos": [
                             {
-                                "Path": f"{base_v_root}/movies",
+                                "Path": f"{JG_VIRTUAL}/movies",
                                 "NetworkPath": ""
                             }
                         ],
@@ -159,7 +180,7 @@ def jfconfig():
                     }
                 }
                 jfapi.jellyfin(f'Library/VirtualFolders', json=movielib, method='post', params=dict(
-                    name='Movies', collectionType="movies", paths=f"{base_v_root}/movies", refreshLibrary=False
+                    name='Movies', collectionType="movies", paths=f"{JG_VIRTUAL}/movies", refreshLibrary=False
                 ))
 
                 concertlib = {
@@ -183,7 +204,7 @@ def jfconfig():
                         "AllowEmbeddedSubtitles": "AllowAll",
                         "PathInfos": [
                             {
-                                "Path": f"{base_v_root}/concerts",
+                                "Path": f"{JG_VIRTUAL}/concerts",
                                 "NetworkPath": ""
                             }
                         ],
@@ -200,7 +221,7 @@ def jfconfig():
                     }
                 }
                 jfapi.jellyfin(f'Library/VirtualFolders', json=concertlib, method='post', params=dict(
-                    name='Concerts', collectionType="movies", paths=f"{base_v_root}/concerts", refreshLibrary=False
+                    name='Concerts', collectionType="movies", paths=f"{JG_VIRTUAL}/concerts", refreshLibrary=False
                 ))
 
                 tvshowlib = {
@@ -225,7 +246,7 @@ def jfconfig():
                         "AllowEmbeddedSubtitles": "AllowAll",
                         "PathInfos": [
                             {
-                                "Path": f"{base_v_root}/shows",
+                                "Path": f"{JG_VIRTUAL}/shows",
                                 "NetworkPath": ""
                             }
                         ],
@@ -258,7 +279,7 @@ def jfconfig():
                     }
                 }
                 jfapi.jellyfin(f'Library/VirtualFolders', json=tvshowlib, method='post', params=dict(
-                    name='Shows', collectionType="tvshows", paths=f"{base_v_root}/shows", refreshLibrary=False
+                    name='Shows', collectionType="tvshows", paths=f"{JG_VIRTUAL}/shows", refreshLibrary=False
                 ))
                 jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
                 try:

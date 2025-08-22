@@ -15,9 +15,11 @@ oneshot_token = None
 rs_working = False
 lastrddump = 0
 
-# rd remote location
+# rd remote location:
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
-DEFAULT_INCR = 0 # os.getenv('DEFAULT_INCR')
+
+# now hardcoded:
+DEFAULT_INCR = 0
 WHOLE_CONTENT = True
 
 

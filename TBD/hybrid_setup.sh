@@ -1,6 +1,8 @@
 #!/bin/bash
 
 ### CONSTANTS and declarations ###
+
+# fields
 declare -A FIELD_DESCRIPTIONS
 declare -A FIELD_DEPENDENCIES
 declare -A FIELD_REGEX
@@ -8,6 +10,8 @@ declare -A FIELD_FUNCS
 declare -A VALUES
 FIELDS=()
 func_output=""
+
+# colors
 RED='\033[0;31m'
 CYAN='\033[0;36m'
 NC='\033[0m'
@@ -16,11 +20,12 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 MAGENTA='\033[0;35m'
 
-#----- 
+# languages and countries
 c_choices=("AF" "AL" "DZ" "AR" "AM" "AU" "AT" "AZ" "BH" "BD" "BY" "BE" "BZ" "VE" "BO" "BA" "BW" "BR" "BN" "BG" "KH" "CM" "CA" "029" "CL" "CO" "CD" "CR" "HR" "CZ" "DK" "DO" "EC" "EG" "SV" "ER" "EE" "ET" "FO" "FI" "FR" "GE" "DE" "GR" "GL" "GT" "HT" "HN" "HK" "HU" "IS" "IN" "ID" "IR" "IQ" "IE" "PK" "IL" "IT" "CI" "JM" "JP" "JO" "KZ" "KE" "KR" "KW" "KG" "LA" "419" "LV" "LB" "LY" "LI" "LT" "LU" "MO" "MK" "MY" "MV" "ML" "MT" "MX" "MN" "ME" "MA" "NP" "NL" "NZ" "NI" "NG" "NO" "OM" "PS" "PA" "PY" "CN" "PE" "PH" "PL" "PT" "MC" "PR" "QA" "MD" "RE" "RO" "RU" "RW" "SA" "SN" "RS" "CS" "SG" "SK" "SI" "SO" "ZA" "ES" "LK" "SE" "CH" "SY" "TW" "TJ" "TH" "TT" "TN" "TR" "TM" "AE" "UA" "GB" "US" "UY" "UZ" "VN" "YE" "ZW")
 l_choices=("aa" "ab" "af" "ak" "sq" "am" "ar" "an" "hy" "as" "av" "ae" "ay" "az" "ba" "bm" "eu" "be" "bn" "bh" "bi" "bs" "br" "bg" "my" "ca" "ch" "ce" "zh" "zh-tw" "zh-hk" "cu" "cv" "kw" "co" "cr" "cs" "da" "dv" "nl" "dz" "en" "eo" "et" "ee" "fo" "fj" "fi" "fr" "fr-ca" "fy" "ff" "ka" "de" "gd" "ga" "gl" "gv" "el" "gn" "gu" "ht" "ha" "he" "hz" "hi" "ho" "hr" "hu" "ig" "is" "io" "ii" "iu" "ie" "ia" "id" "ik" "it" "jv" "ja" "kl" "kn" "ks" "kr" "kk" "km" "ki" "rw" "ky" "kv" "kg" "ko" "kj" "ku" "lo" "la" "lv" "li" "ln" "lt" "lb" "lu" "lg" "mk" "mh" "ml" "mi" "mr" "ms" "mg" "mt" "mn" "na" "nv" "nr" "nd" "ng" "ne" "nn" "nb" "no" "ny" "oc" "oj" "or" "om" "os" "pa" "fa" "pi" "pl" "pt" "pt-pt" "pt-br" "ps" "qu" "rm" "ro" "rn" "ru" "sg" "sa" "si" "sk" "sl" "se" "sm" "sn" "sd" "so" "st" "es-mx" "es" "sc" "sr" "ss" "su" "sw" "sv" "ty" "ta" "tt" "te" "tg" "tl" "th" "bo" "ti" "to" "tn" "ts" "tk" "tr" "tw" "ug" "uk" "ur" "uz" "ve" "vi" "vo" "cy" "wa" "wo" "xh" "yi" "yo" "za" "zu")
 threechars_languages_codes=(aar abk ace ach ada ady afa afh afr ain aka akk alb sqi ale alg alt amh ang anp apa ara arc arg arm hye arn arp art arw asm ast ath aus ava ave awa aym aze bad bai bak bal bam ban baq eus bas bat bej bel bem ben ber bho bih bik bin bis bla bnt tib bod bos bra bre btk bua bug bul bur mya byn cad cai car cat cau ceb cel cze ces cha chb che chg chi zho chk chm chn cho chp chr chu chv chy cmc cnr cop cor cos cpe cpf cpp cre crh crp csb cus wel cym cze ces dak dan dar day del den ger deu dgr din div doi dra dsb dua dum dut nld dyu dzo efi egy eka gre ell elx eng enm epo est baq eus ewe ewo fan fao per fas fat fij fil fin fiu fon fre fra fre fra frm fro frr frs fry ful fur gaa gay gba gem geo kat ger deu gez gil gla gle glg glv gmh goh gon gor got grb grc gre ell grn gsw guj gwi hai hat hau haw heb her hil him hin hit hmn hmo hrv hsb hun hup arm hye iba ibo ice isl ido iii ijo iku ile ilo ina inc ind ine inh ipk ira iro ice isl ita jav jbo jpn jpr jrb kaa kab kac kal kam kan kar kas geo kat kau kaw kaz kbd kha khi khm kho kik kin kir kmb kok kom kon kor kos kpe krc krl kro kru kua kum kur kut lad lah lam lao lat lav lez lim lin lit lol loz ltz lua lub lug lui lun luo lus mac mkd mad mag mah mai mak mal man mao mri map mar mas may msa mdf mdr men mga mic min mis mac mkd mkh mlg mlt mnc mni mno moh mon mos mao mri may msa mul mun mus mwl mwr bur mya myn myv nah nai nap nau nav nbl nde ndo nds nep new nia nic niu dut nld nno nob nog non nor nqo nso nub nwc nya nym nyn nyo nzi oci oji ori orm osa oss ota oto paa pag pal pam pan pap pau peo per fas phi phn pli pol pon por pra pro pus qaa-qtz que raj rap rar roa roh rom rum ron rum ron run rup rus sad sag sah sai sal sam san sas sat scn sco sel sem sga sgn shn sid sin sio sit sla slo slk slo slk slv sma sme smi smj smn smo sms sna snd snk sog som son sot spa alb sqi srd srn srp srr ssa ssw suk sun sus sux swa swe syc syr tah tai tam tat tel tem ter tet tgk tgl tha tib bod tig tir tiv tkl tlh tli tmh tog ton tpi tsi tsn tso tuk tum tup tur tut tvl twi tyv udm uga uig ukr umb und urd uzb vai ven vie vol vot wak wal war was wel cym wen wln wol xal xho yao yap yid yor ypk zap zbl zen zgh zha chi zho znd zul zun zxx zza)
-#-----
+
+### FILE SYSTEM RELATED ###
 
 # Change dir to the script's directory 
 cd "$(dirname "$0")"
@@ -32,7 +37,73 @@ touch "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 
 
-### PROMPTING FUNCTIONS ###FIELD_FUNCS
+### PROMPTING FUNCTIONS AKA FIELD_FUNCS ###
+
+# for any list of URLs
+prompt_for_urls() {    
+    while true; do
+        read -e -p "URL ▶ " url_input
+
+        if [ -z "$url_input" ]; then
+            # Finish if empty input
+            break
+        fi
+
+        # Optional: validate basic URL format
+        if [[ "$url_input" =~ ^https?:// ]]; then
+            func_output+="$url_input|"
+        else
+            echo "Invalid URL format (must start with http:// or https://)"
+        fi
+    done
+}
+
+# for a list of interested languages
+prompt_for_i_choice() {
+    while true; do
+        read -e -p "▶ " i_input
+
+        if [ -z "$i_input" ]; then
+            # User pressed Enter with empty input: finish
+            return
+        fi
+
+        #i_input=${i_input^^}  # Uppercase
+
+        # Check for exact match
+        exact_match=false
+        for choice in "${threechars_languages_codes[@]}"; do
+            if [[ "$i_input" == "$choice" ]]; then
+                if [[ " $func_output " != *" $choice "* ]]; then
+                    echo "Added: $choice"
+                    func_output+="$choice "
+                else
+                    echo "Already added: $choice"
+                fi
+                exact_match=true
+                break
+            fi
+        done
+
+        if ! $exact_match; then
+            c_matches=($(compgen -W "${threechars_languages_codes[*]}" -- "$i_input"))
+
+            if [[ ${#c_matches[@]} -eq 1 ]]; then
+                match="${c_matches[0]}"
+                if [[ " $func_output " != *" $match "* ]]; then
+                    echo "Auto-completed and added: $match"
+                    func_output+="$match "
+                else
+                    echo "Already added: $match"
+                fi
+            elif [[ ${#c_matches[@]} -gt 1 ]]; then
+                echo "Multiple matches for '$i_input': ${c_matches[*]}"
+            else
+                echo "No match found for '$i_input'. Try again."
+            fi
+        fi
+    done
+}
 
 prompt_for_c_choice() {
     #echo "Start typing your country code (case insensitive, 2 chars max.) and press Enter to autocomplete: (leave empty to keep default/current: $JF_COUNTRY )"
@@ -95,8 +166,6 @@ prompt_for_l_choice() {
 
             l_matches=($(compgen -W "${l_choices[*]}" -- "$l_input"))
 
-
-            
             # Check the number of matches
             if [[ ${#l_matches[@]} -eq 1 ]]; then
                 # If there's exactly one match, select it
@@ -122,7 +191,9 @@ prompt_for_l_choice() {
 
 
 
-### LOAD EXISTING ###
+### LOAD, parse, prompt ###
+
+# LOAD
 load_env() {
     if [ -f "$ENV_FILE" ]; then
         while IFS='=' read -r key value; do
@@ -135,9 +206,7 @@ load_env() {
     fi
 }
 
-
-
-### PARSING TPL ###
+# PARSE
 parse_template() {
     if [ ! -f "$TEMPLATE_FILE" ] || [ ! -r "$TEMPLATE_FILE" ]; then
         echo "Error: Template file $TEMPLATE_FILE not found or not readable"
@@ -147,7 +216,7 @@ parse_template() {
     # loop through comment+assignation 2-lines pairs
     while IFS= read -r line || [[ -n "$line" ]]; do
 
-        if [[ "$line" =~ ^# ]]; then
+        if [[ "$line" =~ ^# ]] && [[ ! "$line" =~ ^#\ Manually: ]]; then
             # Regex validation handling: look for regex:... in comment
             if [[ "$line" =~ @(.*) ]]; then
                 CUR_FUNC="${BASH_REMATCH[1]}"
@@ -189,7 +258,7 @@ parse_template() {
     done < "$TEMPLATE_FILE"
 }
 
-### PROMPTING ROOT ###
+# PROMPT
 prompt_terminal() {
     for VAR in "${FIELDS[@]}"; do
 
@@ -216,9 +285,10 @@ prompt_terminal() {
             if declare -f "$FUNC_NAME" &>/dev/null; then
                 echo ""
                 echo -e "$CLEAN_DESCRIPTION [${CYAN}${VALUES[$VAR]}${NC}] "
+                echo "💡 Press Enter on an empty line to finish."
                 "$FUNC_NAME"  # Call the function
                 if [[ -n "$func_output" ]]; then    
-                    VALUES["$VAR"]="$func_output"
+                    VALUES["$VAR"]="\"$(echo "$func_output" | sed 's/ *$//' | sed 's/|$//')\""
                 fi
             else
                 echo "Warning: Function '$FUNC_NAME' not defined, skipping..."
@@ -261,12 +331,12 @@ prompt_terminal() {
 
 
 ### MAIN EXECUTION ###
+
 load_env
 parse_template
 
-### FIGLET ###
-
-echo -e "${YELLOW}"
+# FIGLET
+echo -e "${CYAN}"
 cat <<'EOF'
      _      _ _        ____           _ _ 
     | | ___| | |_   _ / ___|_ __ __ _(_) |
@@ -275,13 +345,23 @@ cat <<'EOF'
  \___/ \___|_|_|\__, |\____|_|  \__,_|_|_|
                 |___/       
                              
-                      Config Setup Wizard.
+                            Config Wizard.
+   💡 Press enter if blue default is good.
 EOF
 echo -e "${NC}"
 
 # Launch the terminal prompt if running in a terminal
 if [[ -t 1 ]]; then
     prompt_terminal
+    read -r -n 1 -p "❓ Do you want to proceed with the build script? (y/n) ▶" answer
+    if [[ "$answer" =~ ^[Yy]$ ]]; then
+        echo -e "${GREEN}▶ Proceeding with the run script...${NC}"
+        # Call the build script here, e.g.:
+        # ./build_script.sh
+    else
+        echo -e "${RED}💡 You can run the run script manually: ./run_script.sh ${NC}"
+        exit 0
+    fi
 else
     # if not terminal, throw an error
     echo "This script must be run in a terminal"
