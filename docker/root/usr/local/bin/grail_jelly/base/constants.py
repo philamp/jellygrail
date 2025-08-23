@@ -1,3 +1,4 @@
+import os
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
 
@@ -171,3 +172,13 @@ RDINCR_FILE = '/jellygrail/data/rd_incr.txt'
 
 # remote rd pile key
 REMOTE_PILE_KEY_FILE = '/jellygrail/data/remote_pile_key.txt'
+
+INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
+
+codes = set(INTERESTED_LANGUAGES.split())
+USED_LANGS = set(codes) # the result
+USED_LANGS_JF = USED_LANGS.copy()
+for code in codes:
+    if code in SUB_LANG_EQUIVALENTS:
+        USED_LANGS.add(SUB_LANG_EQUIVALENTS[code])
+USED_LANGS.add("und")

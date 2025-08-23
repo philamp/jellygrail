@@ -581,9 +581,8 @@ if __name__ == "__main__":
 
     # Config JF before starting threads and server threads      
     if JF_WANTED:
-        jf_config_result = jfconfig()
-        if jf_config_result == "ZERO-RUN":
-            logger.warning(f"   RESTART/ JellyGrail now restarts if '--restart unless-stopped' was set, otherwise please start it manually.")
+        if not jfconfig():
+            logger.critical("   JELLYFIN/ Config failed, container will now restart, but please stop it and fix the error (likely JF_LOGIN or JF_PASSWORD missing or wrong) in settings.env. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders")
             full_run = False
 
     # config checkups

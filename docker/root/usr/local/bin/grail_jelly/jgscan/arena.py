@@ -6,14 +6,16 @@ import pycountry
 from thefuzz import process
 from base.constants import *
 
+'''
 INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
 
 codes = set(INTERESTED_LANGUAGES.split())
-used_langs = set(codes) # the result
+USED_LANGS = set(codes) # the result
 for code in codes:
     if code in SUB_LANG_EQUIVALENTS:
-        used_langs.add(SUB_LANG_EQUIVALENTS[code])
-used_langs.add("und")
+        USED_LANGS.add(SUB_LANG_EQUIVALENTS[code])
+USED_LANGS.add("und")
+'''
 
 # Create a single regex pattern to match any language name in similarly named tv shows
 def find_language_in_string(input_string):
@@ -145,7 +147,7 @@ def parse_ffprobe(stdout, filepathnotice):
                     ####
                     elif stream.get('codec_type') == "audio":
                         if alang := (stream.get('tags') or {}).get('language', '').lower():
-                            if alang in used_langs: #toimprove : pur here the prefered languages of the user +eng
+                            if alang in USED_LANGS: #toimprove : pur here the prefered languages of the user +eng
                                 alang_arr.append(f"{alang[:3].capitalize()}")
                             #if first_audio == "":
                                 #first_audio = f" {{{alang[:3].capitalize()}}}"
@@ -167,7 +169,7 @@ def parse_ffprobe(stdout, filepathnotice):
                     ####
                     elif stream.get('codec_type') == "subtitle":
                         if slang := (stream.get('tags') or {}).get('language', '').lower():
-                            if slang in used_langs: 
+                            if slang in USED_LANGS: 
                                 slang_arr.append(f"{slang[:3].capitalize()}")
     
     

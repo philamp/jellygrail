@@ -10,14 +10,15 @@ JF_LANGUAGE = os.getenv('JF_LANGUAGE') or DEFAULT_JF_LANGUAGE
 JF_LOGIN = os.getenv('JF_LOGIN') or "admin"
 JF_PASSWORD = os.getenv('JF_PASSWORD') or "admin"
 
-def jfconfig():
-    jfapi.jf_login = JF_LOGIN
-    jfapi.jf_password = JF_PASSWORD
-    # check if Jellyfin is available
-    if is_jf_available():
-        return jfsetup_req()
-    else:
-        return "ZERO-RUN"
+def jellystart(path, method='get', **kwargs):
+    
+    resp = jfapi.jellyfin_req(path, method, **kwargs)
+    if resp is not None and (resp.status_code == 200 or resp.status_code == 204):
+        logger.info(f"  JELLYFIN/ First setup step at {path} done.")
+        return True
+
+    logger.critical(f"  JELLYFIN/ First setup failed at {path}, status code: {resp.status_code}.")
+    return False
 
 def is_jf_available():
     logger.info("  JELLYFIN/ Starting... (waiting API up to 2mn max)")
@@ -40,18 +41,17 @@ def is_jf_available():
         logger.warning("  JELLYFIN/ seems absent... docker will now restart to retry. Please check logs with 'docker logs jellygrail -f'")
     return False
 
-def jellystart(path, method='get', **kwargs):
+# ----
+
+def jfconfig():
+    jfapi.jf_login = JF_LOGIN
+    jfapi.jf_password = JF_PASSWORD
+    # check if Jellyfin is available
+    if is_jf_available():
+        return jfsetup_req()
+    else:
+        return False
     
-    resp = jfapi.jellyfin_req(path, method, **kwargs)
-    if resp is not None and (resp.status_code == 200 or resp.status_code == 204):
-        logger.info(f"  JELLYFIN/ First setup step at {path} done.")
-        return True
-
-    logger.critical(f"  JELLYFIN/ First setup failed at {path}, status code: {resp.status_code}.")
-    return False
-
-
-
 def jfsetup_req():
     # at this point, jfapikey is None, so we are not authenticated yet, so jellyfin_req will not add a token to the header
     if jfapi.jellyfin_req(method='get', path='Startup/Configuration').status_code == 200:
@@ -71,7 +71,7 @@ def jfsetup_req():
             jellystart('Startup/Complete', method='post')
         ):
             logger.critical("  JELLYFIN/ First setup globally failed.")
-            return "ZERO-RUN"
+            return False
 
     else:
         logger.info("  JELLYFIN/ First setup already done")
@@ -79,177 +79,164 @@ def jfsetup_req():
     # go on with config for JG
     return jfconfig_forjg()
 
-
-# get Token and forced config
 def jfconfig_forjg():
 
+    if not install_addons():
+        return False
+    
+    if is_jf_available(): # cause we restrarted jellyfin
+        if not install_librairies():
+            return False
+    else:
+        return False
+    
+    return True
 
-    triggerdata = []
 
-    # Whole JF config --------------------------
-    if urllib.request.urlopen('http://localhost:8096/health').read() == b'Healthy':
 
-        # 1 - Install repo if necessary
-        # get list of repos, if len < 3, re-declare
-        declaredrepos = jfapi.jellyfin(f'Repositories', method='get').json()
+def install_addons():
+
+    if declaredrepos := jfapi.jellyfin(f'Repositories', method='get').json():
         if len(declaredrepos) < 2:
-            #declare all repos
-            repodata = [
-                {
-                    "Name": "Jellyfin Stable",
-                    "Url": "https://repo.jellyfin.org/releases/plugin/manifest-stable.json",
-                    "Enabled": True
-                },
-                {
-                    "Name": "subbuzz",
-                    "Url": "https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.8.json",
-                    "Enabled": True
-                }
-            ]
+            #add subbuzz
+            declaredrepos.append({
+                "Name": "subbuzz",
+                "Url": "https://raw.githubusercontent.com/josdion/subbuzz/master/repo/jellyfin_10.10.json",
+                "Enabled": True
+            })
 
-            jfapi.jellyfin(f'Repositories', json=repodata, method='post')
-
-            #install KSQ
-            jfapi.jellyfin(f'Packages/Installed/Kodi%20Sync%20Queue', method='post')
-
-            #install subbuzz
-            jfapi.jellyfin(f'Packages/Installed/subbuzz', method='post')
-
-            #delete unwanted triggers (chapter images and auto subtitle dl)
-            jfapi.jellyfin(f'ScheduledTasks/4e6637c832ed644d1af3370a2506e80a/Triggers', json=triggerdata, method='post')
-            jfapi.jellyfin(f'ScheduledTasks/2c66a88bca43e565d7f8099f825478f1/Triggers', json=triggerdata, method='post')
-
-            logger.warning("  JELLYFIN/ Add-ons installed, \nThe container will now restart. \nBut if you did not put --restart unless-stopped in your run command, please execute: 'docker start thenameyougiven'")
-
-            return "ZERO-RUN"
-            # thanks to --restart unless-stopped, drawback: it will restart in a loop if it does not find 2 declared repos (toimprove: find a more resilient way to test it)
-            # jfapi.jellyfin(f'System/Shutdown', method='post')
-
-
-        else:
-            declaredlibs = jfapi.jellyfin(f'Library/VirtualFolders', method='get').json()
-            # (toimprove: find a more resilient way to test if libraries are declared)
-            if len(declaredlibs) < 2:
-                MetaSwitch = [
-                    "TheMovieDb",
-                    "The Open Movie Database",
-                ]
-                MetaSwitchTMDBonly = [
-                    "TheMovieDb",
-                ]
-                #logger.info("> Now we can add Librariries")
-                movielib = {
-                    "LibraryOptions": {
-                        "PreferredMetadataLanguage": JF_LANGUAGE,
-                        "MetadataCountryCode": JF_COUNTRY,
-                        "EnableRealtimeMonitor": False,
-                        "EnableChapterImageExtraction": False,
-                        "ExtractChapterImagesDuringLibraryScan": False,
-                        "AutomaticallyAddToCollection": True,
-                        "MetadataSavers": [],
-                        "DisabledSubtitleFetchers": [
-                            "subbuzz"
-                        ],
-                        "SubtitleDownloadLanguages": [
-                            "eng",
-                            "fre"
-                        ],
-                        "RequirePerfectSubtitleMatch": False,
-                        "SaveSubtitlesWithMedia": True,
-                        "AllowEmbeddedSubtitles": "AllowAll",
-                        "PathInfos": [
-                            {
-                                "Path": f"{JG_VIRTUAL}/movies",
-                                "NetworkPath": ""
-                            }
-                        ],
-                        "TypeOptions": [
-                            {
-                                "Type": "Movie",
-                                "MetadataFetchers": MetaSwitch,
-                                "MetadataFetcherOrder": MetaSwitch,
-                                "ImageFetchers": MetaSwitch,
-                                "ImageFetcherOrder": MetaSwitch,
-                                "ImageOptions": []
-                            }
-                        ]
-                    }
-                }
-                jfapi.jellyfin(f'Library/VirtualFolders', json=movielib, method='post', params=dict(
-                    name='Movies', collectionType="movies", paths=f"{JG_VIRTUAL}/movies", refreshLibrary=False
-                ))
-
-                tvshowlib = {
-                    "LibraryOptions": {
-                        
-                        "PreferredMetadataLanguage": "fr",
-                        "MetadataCountryCode": "FR",
-                        "EnableRealtimeMonitor": False,
-                        "EnableAutomaticSeriesGrouping": False, #otherwise a metadata mistake is impossible to fix
-                        "EnableChapterImageExtraction": False,
-                        "ExtractChapterImagesDuringLibraryScan": False,
-                        "MetadataSavers": [],
-                        "DisabledSubtitleFetchers": [
-                            "subbuzz"
-                        ],
-                        "SubtitleDownloadLanguages": [
-                            "eng",
-                            "fre"
-                        ],
-                        "RequirePerfectSubtitleMatch": False,
-                        "SaveSubtitlesWithMedia": True,
-                        "AllowEmbeddedSubtitles": "AllowAll",
-                        "PathInfos": [
-                            {
-                                "Path": f"{JG_VIRTUAL}/shows",
-                                "NetworkPath": ""
-                            }
-                        ],
-                        "TypeOptions": [
-                            {
-                                "Type": "Series",
-                                 "MetadataFetchers": MetaSwitch,
-                                "MetadataFetcherOrder": MetaSwitch,
-                                "ImageFetchers": MetaSwitchTMDBonly,
-                                "ImageFetcherOrder": MetaSwitchTMDBonly,
-                                "ImageOptions": []
-                            },
-                            {
-                                "Type": "Season",
-                                "MetadataFetchers": MetaSwitchTMDBonly,
-                                "MetadataFetcherOrder": MetaSwitchTMDBonly,
-                                "ImageFetchers": MetaSwitchTMDBonly,
-                                "ImageFetcherOrder": MetaSwitchTMDBonly,
-                                "ImageOptions": []
-                            },                            
-                            {
-                                "Type": "Episode",
-                                "MetadataFetchers": MetaSwitch,
-                                "MetadataFetcherOrder": MetaSwitch,
-                                "ImageFetchers": MetaSwitch,
-                                "ImageFetcherOrder": MetaSwitch,
-                                "ImageOptions": []
-                            }
-                        ]
-                    }
-                }
-                jfapi.jellyfin(f'Library/VirtualFolders', json=tvshowlib, method='post', params=dict(
-                    name='Shows', collectionType="tvshows", paths=f"{JG_VIRTUAL}/shows", refreshLibrary=False
-                ))
-                jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=triggerdata, method='post') # disable libraryscan as well
-                try:
-                    jfapi.jellyfin(f'ScheduledTasks/dcaf151dd1af25aefe775c58e214477e/Triggers', json=triggerdata, method='post') # if installed disable merge episodes which is not working well
-                except Exception as e:
-                    logger.debug(". merging episodes already disabled")
-                try:
-                    jfapi.jellyfin(f'ScheduledTasks/fd957c84b0cfc2380becf2893e4b76fc/Triggers', json=triggerdata, method='post') # if installed disable merge movies which is not working well
-                except Exception as e:
-                    logger.debug(". merging movies already disabled")
-
-                return "FIRST_RUN"
-            logger.info("  JELLYFIN/ Repos and librairies configuration OK")
-            logger.warning("  JELLYFIN/ Manual configuration reminder:\n - encoder in /web/index.html#!/encodingsettings.html\n - and opensub account in /web/index.html#!/configurationpage?name=SubbuzzConfigPage")
+            if not (
+                jfapi.jellyfin(f'Repositories', json=declaredrepos, method='post')
+                and jfapi.jellyfin(f'Packages/Installed/Kodi%20Sync%20Queue', method='post')
+                and jfapi.jellyfin(f'Packages/Installed/subbuzz', method='post')
+                and jfapi.jellyfin(f'ScheduledTasks/4e6637c832ed644d1af3370a2506e80a/Triggers', json=[], method='post')
+                and jfapi.jellyfin(f'ScheduledTasks/2c66a88bca43e565d7f8099f825478f1/Triggers', json=[], method='post')
+            ):
+                logger.critical("  JELLYFIN/ Add-ons installation failed.")
+                return False
             
-    return ""            
+            jfapi.jellyfin(f'System/Shutdown', method='post')
+
+        return True
+    else:
+        return False
+
+
+def install_librairies():
+
+    MetaSwitch = [
+        "TheMovieDb",
+        "The Open Movie Database",
+    ]
+    MetaSwitchTMDBonly = [
+        "TheMovieDb",
+    ]
+
+    if declaredlibs := jfapi.jellyfin(f'Library/VirtualFolders', method='get').json():
+        if not any(f"{JG_VIRTUAL}/movies" in (dlibs.get("Locations") or []) for dlibs in declaredlibs):
+
+
+            #logger.info("> Now we can add Librariries")
+            movielib = {
+                "LibraryOptions": {
+                    "PreferredMetadataLanguage": JF_LANGUAGE,
+                    "MetadataCountryCode": JF_COUNTRY,
+                    "EnableRealtimeMonitor": False,
+                    "EnableChapterImageExtraction": False,
+                    "ExtractChapterImagesDuringLibraryScan": False,
+                    "AutomaticallyAddToCollection": True,
+                    "MetadataSavers": [],
+                    "DisabledSubtitleFetchers": [
+                        "subbuzz"
+                    ],
+                    "SubtitleDownloadLanguages": USED_LANGS_JF,
+                    "RequirePerfectSubtitleMatch": False,
+                    "SaveSubtitlesWithMedia": True,
+                    "AllowEmbeddedSubtitles": "AllowAll",
+                    "PathInfos": [
+                        {
+                            "Path": f"{JG_VIRTUAL}/movies",
+                            "NetworkPath": ""
+                        }
+                    ],
+                    "TypeOptions": [
+                        {
+                            "Type": "Movie",
+                            "MetadataFetchers": MetaSwitch,
+                            "MetadataFetcherOrder": MetaSwitch,
+                            "ImageFetchers": MetaSwitch,
+                            "ImageFetcherOrder": MetaSwitch,
+                            "ImageOptions": []
+                        }
+                    ]
+                }
+            }
+
+            if not jfapi.jellyfin(f'Library/VirtualFolders', json=movielib, method='post', params=dict(
+                name='Movies', collectionType="movies", paths=f"{JG_VIRTUAL}/movies", refreshLibrary=False
+            )):
+                logger.critical("  JELLYFIN/ Movies library installation failed.")
+                return False
             
-    # ---- end config
+        if not any(f"{JG_VIRTUAL}/shows" in (dlibs.get("Locations") or []) for dlibs in declaredlibs):
+            tvshowlib = {
+                "LibraryOptions": {
+                    
+                    "PreferredMetadataLanguage": JF_LANGUAGE,
+                    "MetadataCountryCode": JF_COUNTRY,
+                    "EnableRealtimeMonitor": False,
+                    "EnableAutomaticSeriesGrouping": False, #otherwise a metadata mistake is impossible to fix
+                    "EnableChapterImageExtraction": False,
+                    "ExtractChapterImagesDuringLibraryScan": False,
+                    "MetadataSavers": [],
+                    "DisabledSubtitleFetchers": [
+                        "subbuzz"
+                    ],
+                    "SubtitleDownloadLanguages": USED_LANGS_JF,
+                    "RequirePerfectSubtitleMatch": False,
+                    "SaveSubtitlesWithMedia": True,
+                    "AllowEmbeddedSubtitles": "AllowAll",
+                    "PathInfos": [
+                        {
+                            "Path": f"{JG_VIRTUAL}/shows",
+                            "NetworkPath": ""
+                        }
+                    ],
+                    "TypeOptions": [
+                        {
+                            "Type": "Series",
+                                "MetadataFetchers": MetaSwitch,
+                            "MetadataFetcherOrder": MetaSwitch,
+                            "ImageFetchers": MetaSwitchTMDBonly,
+                            "ImageFetcherOrder": MetaSwitchTMDBonly,
+                            "ImageOptions": []
+                        },
+                        {
+                            "Type": "Season",
+                            "MetadataFetchers": MetaSwitchTMDBonly,
+                            "MetadataFetcherOrder": MetaSwitchTMDBonly,
+                            "ImageFetchers": MetaSwitchTMDBonly,
+                            "ImageFetcherOrder": MetaSwitchTMDBonly,
+                            "ImageOptions": []
+                        },                            
+                        {
+                            "Type": "Episode",
+                            "MetadataFetchers": MetaSwitch,
+                            "MetadataFetcherOrder": MetaSwitch,
+                            "ImageFetchers": MetaSwitch,
+                            "ImageFetcherOrder": MetaSwitch,
+                            "ImageOptions": []
+                        }
+                    ]
+                }
+            }
+
+
+            if not jfapi.jellyfin(f'Library/VirtualFolders', json=tvshowlib, method='post', params=dict(
+                name='Shows', collectionType="tvshows", paths=f"{JG_VIRTUAL}/shows", refreshLibrary=False
+            )):
+                logger.critical("  JELLYFIN/ Shows library installation failed.")
+                return False
+    
+    jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=[], method='post') # disable libraryscan as well
+    return True
