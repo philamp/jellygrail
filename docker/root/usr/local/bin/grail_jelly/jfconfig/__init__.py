@@ -8,9 +8,11 @@ from base.constants import *
 JF_COUNTRY = os.getenv('JF_COUNTRY') or DEFAULT_JF_COUNTRY
 JF_LANGUAGE = os.getenv('JF_LANGUAGE') or DEFAULT_JF_LANGUAGE
 JF_LOGIN = os.getenv('JF_LOGIN') or "admin"
-JF_PASSWORD = os.getenv('JF_PASSWORD')
+JF_PASSWORD = os.getenv('JF_PASSWORD') or "admin"
 
 def jfconfig():
+    jfapi.jf_login = JF_LOGIN
+    jfapi.jf_password = JF_PASSWORD
     # check if Jellyfin is available
     if is_jf_available():
         return jfsetup_req()
@@ -38,48 +40,43 @@ def is_jf_available():
         logger.warning("  JELLYFIN/ seems absent... docker will now restart to retry. Please check logs with 'docker logs jellygrail -f'")
     return False
 
+def jellystart(path, method='get', **kwargs):
+    
+    resp = jfapi.jellyfin_req(path, method, **kwargs)
+    if resp is not None and (resp.status_code == 200 or resp.status_code == 204):
+        logger.info(f"  JELLYFIN/ First setup step at {path} done.")
+        return True
+
+    logger.critical(f"  JELLYFIN/ First setup failed at {path}, status code: {resp.status_code}.")
+    return False
+
+
+
 def jfsetup_req():
-    if jfapi.jellyfin_req(method='get', path='Startup/Configuration').status_code != 200:
+    # at this point, jfapikey is None, so we are not authenticated yet, so jellyfin_req will not add a token to the header
+    if jfapi.jellyfin_req(method='get', path='Startup/Configuration').status_code == 200:
 
         logger.info("  JELLYFIN/ First setup...")
 
-        # set language and country
-        json_payload = {
-            "UICulture": "en-US",
-            "MetadataCountryCode": JF_COUNTRY,
-            "PreferredMetadataLanguage": JF_LANGUAGE
-        }
-        try:
-            jfapi.jellyfin_req('Startup/Configuration', method='post', json=json_payload)
-        except Exception as e:
-            logger.critical(f"  JELLYFIN/ FAILURE to set language and country: {e}")
+        if not (
+            jellystart('Startup/Configuration', method='post', json={
+                "UICulture": "en-US",
+                "MetadataCountryCode": JF_COUNTRY,
+                "PreferredMetadataLanguage": JF_LANGUAGE
+            }) and
+            jellystart('Startup/User', method='post', json={
+                "Name": JF_LOGIN,
+                "Password": JF_PASSWORD
+            }) and
+            jellystart('Startup/Complete', method='post')
+        ):
+            logger.critical("  JELLYFIN/ First setup globally failed.")
             return "ZERO-RUN"
-        time.sleep(1)
-
-        # set username and password
-        json_payload = {
-            "Name": JF_LOGIN,
-            "Password": JF_PASSWORD
-        }
-        try:
-            jfapi.jellyfin_req('Startup/User', method='post', json=json_payload)
-        except Exception as e:
-            logger.critical(f"  JELLYFIN/ FAILURE to set username and password: {e}")
-            return "ZERO-RUN"
-        time.sleep(1)
-
-        # complete setup
-        try:
-            jfapi.jellyfin_req('Startup/Complete', method='post')
-        except Exception as e:
-            logger.critical(f"  JELLYFIN/ FAILURE to set username and password: {e}")
-            return "ZERO-RUN"
-        time.sleep(1)
 
     else:
         logger.info("  JELLYFIN/ First setup already done")
 
-    # go on with config
+    # go on with config for JG
     return jfconfig_forjg()
 
 
@@ -94,7 +91,6 @@ def jfconfig_forjg():
 
         # 1 - Install repo if necessary
         # get list of repos, if len < 3, re-declare
-        time.sleep(1)
         declaredrepos = jfapi.jellyfin(f'Repositories', method='get').json()
         if len(declaredrepos) < 2:
             #declare all repos
@@ -181,47 +177,6 @@ def jfconfig_forjg():
                 }
                 jfapi.jellyfin(f'Library/VirtualFolders', json=movielib, method='post', params=dict(
                     name='Movies', collectionType="movies", paths=f"{JG_VIRTUAL}/movies", refreshLibrary=False
-                ))
-
-                concertlib = {
-                    "LibraryOptions": {
-                        "PreferredMetadataLanguage": JF_LANGUAGE,
-                        "MetadataCountryCode": JF_COUNTRY,
-                        "EnableRealtimeMonitor": False,
-                        "EnableChapterImageExtraction": False,
-                        "ExtractChapterImagesDuringLibraryScan": False,
-                        "AutomaticallyAddToCollection": False,
-                        "MetadataSavers": [],
-                        "DisabledSubtitleFetchers": [
-                            "subbuzz"
-                        ],
-                        "SubtitleDownloadLanguages": [
-                            "eng",
-                            "fre"
-                        ],
-                        "RequirePerfectSubtitleMatch": False,
-                        "SaveSubtitlesWithMedia": True,
-                        "AllowEmbeddedSubtitles": "AllowAll",
-                        "PathInfos": [
-                            {
-                                "Path": f"{JG_VIRTUAL}/concerts",
-                                "NetworkPath": ""
-                            }
-                        ],
-                        "TypeOptions": [
-                            {
-                                "Type": "Movie",
-                                "MetadataFetchers": MetaSwitch,
-                                "MetadataFetcherOrder": MetaSwitch,
-                                "ImageFetchers": MetaSwitch,
-                                "ImageFetcherOrder": MetaSwitch,
-                                "ImageOptions": []
-                            }
-                        ]
-                    }
-                }
-                jfapi.jellyfin(f'Library/VirtualFolders', json=concertlib, method='post', params=dict(
-                    name='Concerts', collectionType="movies", paths=f"{JG_VIRTUAL}/concerts", refreshLibrary=False
                 ))
 
                 tvshowlib = {

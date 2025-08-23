@@ -5,10 +5,10 @@ from datetime import datetime
 
 BASE_URI = "http://localhost:8096"
 BASE_AUTH_STR = 'MediaBrowser Client="JellyGrail Agent", Device="JellyGrail Docker", DeviceId="jellygrail001", Version="3"'
-JF_LOGIN = os.getenv('JF_LOGIN') or "admin"
-JF_PASSWORD = os.getenv('JF_PASSWORD')
 
 jfapikey = None
+jf_login = None # provided by jfconfig
+jf_password = None # provided by jfconfig
 
 def AUTHSTRING():
     global jfapikey
@@ -19,27 +19,50 @@ def AUTHSTRING():
 
 def authByName():
     global jfapikey
+    global jf_login
+    global jf_password
     json_payload = {
-        "Username": JF_LOGIN,
-        "Pw": JF_PASSWORD
+        "Username": jf_login,
+        "Pw": jf_password
     }
-    resp = jellyfin_req('Users/AuthenticateByName', method='post', json=json_payload)
-    if resp.status_code != 200:
-        logger.critical("    JF-API/ FAILURE to authenticate to Jellyfin API, check your JF_LOGIN and JF_PASSWORD settings.env variables")
+
+    headers = {'Authorization': AUTHSTRING()}
+
+    try:
+        resp = requests.post(f'{BASE_URI}/Users/AuthenticateByName', headers=headers, json=json_payload)
+        if resp.status_code != 200:
+            logger.critical("    JF-API/ FAILURE to authenticate to Jellyfin API, check your JF_LOGIN and JF_PASSWORD settings.env variables")
+            return False
+        jfapikey = resp.json().get('AccessToken')
+        logger.info("    JF-API/ ... Authenticated to Jellyfin API")
+        return True
+    except requests.RequestException as e:
+        logger.critical(f"    JF-API/ Exception during authentication: {e}")
         return False
-    jfapikey = resp.json().get('AccessToken')
-    logger.info("    JF-API/ ... Authenticated to Jellyfin API")
-    return True
 
 
 def jellyfin(path, method='get', **kwargs):
+    global jfapikey
     if jfapikey is None:
+        if not authByName():
+            return None
+    # else already authenticated or auth ok
+    resp = jellyfin_req(path, method, **kwargs)
+
+    # Handle 401 Unauthorized (token invalid)
+    if resp is not None and resp.status_code == 401:
+        logger.warning("    JF-API/ Token rejected, attempting re-authentication...")
+        jfapikey = None  # reset legacy token
         if authByName():
-            return jellyfin_req(path, method, **kwargs)
+            resp = jellyfin_req(path, method, **kwargs)
         else:
             return None
-    else:
-        return jellyfin_req(path, method, **kwargs)
+    # handle other errors
+    elif resp is not None and resp.status_code >= 400:
+        logger.critical(f"    JF-API/ FAILURE to get/post API data at {path}, status code: {resp.status_code}")
+        return None
+
+    return resp
 
 
 def jellyfin_req(path, method='get', **kwargs):
@@ -48,17 +71,13 @@ def jellyfin_req(path, method='get', **kwargs):
     url = f'{BASE_URI}/{path}'
     headers = {'Authorization': AUTHSTRING()}
     retryable = {500, 502, 503, 504}
-
+    time.sleep(0.1) # slight delay to avoid overwhelming the server
     for attempt in range(1, retries + 1):
         try:
             response = getattr(requests, method)(url, headers=headers, **kwargs)
-            if response.status_code == 200:
-                return response
-            elif response.status_code in retryable:
+            if response.status_code in retryable:
                 logger.debug(f"    JF-API/ Attempt {attempt}: Received retryable status {response.status_code}")
             else:
-                # Don't retry for 404, 400, 401, etc.
-                response.raise_for_status()
                 return response
         except requests.RequestException as e:
             logger.debug(f"    JF-API/ Attempt {attempt}: Exception occurred: {e}")
@@ -66,29 +85,34 @@ def jellyfin_req(path, method='get', **kwargs):
         if attempt < retries:
             time.sleep(delay)
 
-    # Final attempt failed
-    response.raise_for_status()
-    return response
+    # Final failure
+    logger.critical(f"    JF-API/ Failed after {retries} attempts to reach {url}")
+    return None
 
 def wait_for_jfscan_to_finish():
     # while libraryrunning dont do anything
-    if jfapikey is not None:
-        try:
-            tasks = jellyfin('ScheduledTasks').json()
-            tasks_name_mapping = {task.get('Key'): task for task in tasks}
-            ref_task_id = tasks_name_mapping.get('RefreshLibrary').get('Id')
-            while True:
-                time.sleep(2)
-                task = jellyfin(f'ScheduledTasks/{ref_task_id}').json()
-                if task.get('State') != "Running":
-                    break
-                else:
-                    time.sleep(8) #toimprove : retry every 8+2 seconds toimprove, jellyfin is overloaded, but fix it later in a more clever way
-        except Exception as e:
-            logger.warning("    JF-API| ... Jellyfin Library refreshed. (but API overloaded by status requests :( )")
-            return True
+    try:
+        tasks = jellyfin('ScheduledTasks').json()
+        tasks_name_mapping = {task.get('Key'): task for task in tasks}
+        ref_task_id = tasks_name_mapping.get('RefreshLibrary').get('Id')
+        while True:
+            task = jellyfin(f'ScheduledTasks/{ref_task_id}').json()
+            if task.get('State') != "Running":
+                break
+            else:
+                time.sleep(8) # wait 8 seconds before checking again
+    except Exception as e:
+        logger.warning(f"    JF-API| ... Jellyfin Library refreshed, but not able to retrieve completion, error: {e}")
+        return False
 
     logger.info("         3| ...Jellyfin Library refresh complete")
+    return True
+
+def lib_refresh_all():
+    resp = jellyfin(f'Library/Refresh', method='post')
+    if resp.status_code != 204:
+        logger.critical(f"FAILURE to update library. Status code: {resp.status_code}")
+        return False
     return True
 
 
@@ -115,18 +139,7 @@ def merge_versions():
                     logger.info("> Videos variants merged (only for movies)")
                     break
                 time.sleep(3)
-'''
 
-def lib_refresh_all():
-    if jfapikey is not None:
-        resp = jellyfin(f'Library/Refresh', method='post')
-        if resp.status_code == 204:
-            #logger.info("TASK-START~ Jellyfin Library refresh ...")
-            pass
-        else:
-            logger.critical(f"FAILURE to update library. Status code: {resp.status_code}")
-
-'''
 def restart_jellygrail_at(target_hour=6, target_minute=30):
     while True:
         # Get the current time

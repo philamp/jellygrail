@@ -14,23 +14,21 @@ import datetime
 import socket
 import requests
 import struct
-from jg_services import premium_timeleft
+
 
 
 ### SETTINGS LOADING ###
-
 VERSION = "20250808" # !!!!!!!!!! Should be aligned to settings.env.template !!!!!!!!!!
 INCR_KODI_REFR_MAX = 8
-CONFIG_VERSION = os.getenv('CONFIG_VERSION')
+CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
-JF_WANTED = os.getenv('JF_WANTED') != "no"
-RD_APITOKEN = os.getenv('RD_APITOKEN')
-KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
+RD_APITOKEN = os.getenv('RD_APITOKEN') or ""
+KODI_MAIN_URL = os.getenv('KODI_MAIN_URL') or ""
 # Pre-compute serialized settings
 PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')
 # Pre-compute some flags
 RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
-JF_WANTED = os.getenv('JF_WANTED') == "y"
+JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
 KODI_MAIN_WANTED = True if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") else False
 
 #default filling
@@ -39,6 +37,7 @@ at_least_once_done = [False, False, False, False, False, False, False, False]
 post_kodi_run_step = 12
 
 # ------ Contact points
+from jg_services import premium_timeleft
 from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
 from jfconfig import jfconfig
 from jgscan.jgsql import init_database, sqclose
@@ -52,6 +51,13 @@ import jg_services
 # setup the logger once
 from base import logger_setup
 logger = logger_setup.log_setup()
+
+# CONFIG INTEGRITY WARNINGS
+if JF_WANTED:
+    if os.getenv('JF_LOGIN') is None or os.getenv('JF_LOGIN') == "":
+        logger.warning("  JELLYFIN/ JF wanted but JF_LOGIN environment variable not set. admin will be used as default login")
+    if os.getenv('JF_PASSWORD') is None or os.getenv('JF_PASSWORD') == "":
+        logger.warning("  JELLYFIN/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -576,12 +582,6 @@ if __name__ == "__main__":
     # Config JF before starting threads and server threads      
     if JF_WANTED:
         jf_config_result = jfconfig()
-        '''
-        if jf_config_result == "FIRST_RUN":
-            _scan_instance = ScriptRunner.get(refresh_all)
-            _scan_instance.resetargs(1)
-            _scan_instance.run()
-        '''
         if jf_config_result == "ZERO-RUN":
             logger.warning(f"   RESTART/ JellyGrail now restarts if '--restart unless-stopped' was set, otherwise please start it manually.")
             full_run = False
