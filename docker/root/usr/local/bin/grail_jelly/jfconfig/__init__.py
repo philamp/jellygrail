@@ -164,8 +164,8 @@ def jfconfig():
                 tvshowlib = {
                     "LibraryOptions": {
                         
-                        "PreferredMetadataLanguage": "fr",
-                        "MetadataCountryCode": "FR",
+                        "PreferredMetadataLanguage": JF_LANGUAGE,
+                        "MetadataCountryCode": JF_COUNTRY,
                         "EnableRealtimeMonitor": False,
                         "EnableAutomaticSeriesGrouping": False, #otherwise a metadata mistake is impossible to fix
                         "EnableChapterImageExtraction": False,
