@@ -66,21 +66,24 @@ def jellyfin(path, method='get', **kwargs):
 
 
 def jellyfin_req(path, method='get', **kwargs):
-    retries = 3
+    retries = 20
     delay = 2
     url = f'{BASE_URI}/{path}'
-    headers = {'Authorization': AUTHSTRING()}
+    headers = {
+        'Authorization': AUTHSTRING(),
+        'Accept': 'application/json'
+    }
     retryable = {500, 502, 503, 504}
     time.sleep(0.1) # slight delay to avoid overwhelming the server
     for attempt in range(1, retries + 1):
         try:
             response = getattr(requests, method)(url, headers=headers, **kwargs)
             if response.status_code in retryable:
-                logger.debug(f"    JF-API/ Attempt {attempt}: Received retryable status {response.status_code}")
+                logger.warning(f"    JF-API/ Attempt {attempt}: Received retryable status {response.status_code}")
             else:
                 return response
         except requests.RequestException as e:
-            logger.debug(f"    JF-API/ Attempt {attempt}: Exception occurred: {e}")
+            logger.warning(f"    JF-API/ Attempt {attempt}: Exception occurred: {e}")
         
         if attempt < retries:
             time.sleep(delay)

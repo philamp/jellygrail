@@ -21,7 +21,7 @@ def jellystart(path, method='get', **kwargs):
     return False
 
 def is_jf_available():
-    logger.info("  JELLYFIN/ Starting... (waiting API up to 2mn max)")
+    logger.info("  JELLYFIN/ API Ping")
     iwait = 0
     while iwait < 40:
         iwait += 1
@@ -33,8 +33,12 @@ def is_jf_available():
         except OSError as e:
             logger.debug(f". Waiting for Jellyfin to be available: try {iwait} ...")
         else:
-            logger.info("  JELLYFIN/ ...Successfully started")
-            return True
+            #logger.info("  JELLYFIN/ ...Successfully started")
+            if resp := jfapi.jellyfin_req(method='get', path='System/Info/Public'):
+                if resp.status_code == 200:
+                    if resp.json().get('ServerName') is not None:
+                        return True
+            logger.critical("  JELLYFIN/ seems present but API calls fail...")
         time.sleep(3)
 
     if iwait >= 20:
@@ -64,6 +68,7 @@ def jfsetup_req():
                 "MetadataCountryCode": JF_COUNTRY,
                 "PreferredMetadataLanguage": JF_LANGUAGE
             }) and
+            jellystart('Startup/User', method='get') and
             jellystart('Startup/User', method='post', json={
                 "Name": JF_LOGIN,
                 "Password": JF_PASSWORD
@@ -81,10 +86,10 @@ def jfsetup_req():
 
 def jfconfig_forjg():
 
-    if not install_addons():
-        return False
-    
-    if is_jf_available(): # cause we restrarted jellyfin
+    if is_jf_available(): # cause we just done the first conf
+        if not install_addons():
+            return False
+    if is_jf_available(): # cause we just add repos
         if not install_librairies():
             return False
     else:
@@ -96,7 +101,8 @@ def jfconfig_forjg():
 
 def install_addons():
 
-    if declaredrepos := jfapi.jellyfin(f'Repositories', method='get').json():
+    if declaredrepos := jfapi.jellyfin(f'Repositories', method='get'):
+        declaredrepos = declaredrepos.json()
         if len(declaredrepos) < 2:
             #add subbuzz
             declaredrepos.append({
@@ -114,6 +120,8 @@ def install_addons():
             ):
                 logger.critical("  JELLYFIN/ Add-ons installation failed.")
                 return False
+            else:
+                logger.info("  JELLYFIN/ Add-ons installed.")
             
             jfapi.jellyfin(f'System/Shutdown', method='post')
 
@@ -132,7 +140,8 @@ def install_librairies():
         "TheMovieDb",
     ]
 
-    if declaredlibs := jfapi.jellyfin(f'Library/VirtualFolders', method='get').json():
+    if declaredlibs := jfapi.jellyfin(f'Library/VirtualFolders', method='get'):
+        declaredlibs = declaredlibs.json()
         if not any(f"{JG_VIRTUAL}/movies" in (dlibs.get("Locations") or []) for dlibs in declaredlibs):
 
 
@@ -149,7 +158,7 @@ def install_librairies():
                     "DisabledSubtitleFetchers": [
                         "subbuzz"
                     ],
-                    "SubtitleDownloadLanguages": USED_LANGS_JF,
+                    "SubtitleDownloadLanguages": list(USED_LANGS_JF),
                     "RequirePerfectSubtitleMatch": False,
                     "SaveSubtitlesWithMedia": True,
                     "AllowEmbeddedSubtitles": "AllowAll",
@@ -192,7 +201,7 @@ def install_librairies():
                     "DisabledSubtitleFetchers": [
                         "subbuzz"
                     ],
-                    "SubtitleDownloadLanguages": USED_LANGS_JF,
+                    "SubtitleDownloadLanguages": list(USED_LANGS_JF),
                     "RequirePerfectSubtitleMatch": False,
                     "SaveSubtitlesWithMedia": True,
                     "AllowEmbeddedSubtitles": "AllowAll",
@@ -205,7 +214,7 @@ def install_librairies():
                     "TypeOptions": [
                         {
                             "Type": "Series",
-                                "MetadataFetchers": MetaSwitch,
+                            "MetadataFetchers": MetaSwitch,
                             "MetadataFetcherOrder": MetaSwitch,
                             "ImageFetchers": MetaSwitchTMDBonly,
                             "ImageFetcherOrder": MetaSwitchTMDBonly,
@@ -237,6 +246,10 @@ def install_librairies():
             )):
                 logger.critical("  JELLYFIN/ Shows library installation failed.")
                 return False
+            
+            else:
+                logger.info("  JELLYFIN/ Libraries installed.")
+                #jfapi.jellyfin(f'System/Shutdown', method='post')
     
     jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=[], method='post') # disable libraryscan as well
     return True

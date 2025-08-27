@@ -547,7 +547,7 @@ if __name__ == "__main__":
     init_database()
 
     bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
-
+    '''
     # Thread 0.2 - UNIX Socket (ffprobe bash wrapper responder)
     thread_ef = threading.Thread(target=socket_server_waiting, args=("ffprobe",))
     thread_ef.daemon = True  # exits when parent thread exits
@@ -578,13 +578,13 @@ if __name__ == "__main__":
 
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
-
+    '''
     # Config JF before starting threads and server threads      
     if JF_WANTED:
         if not jfconfig():
             logger.critical("   JELLYFIN/ Config failed, container will now restart, but please stop it and fix the error (likely JF_LOGIN or JF_PASSWORD missing or wrong) in settings.env. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders")
-            full_run = False
-
+    full_run = False # TODOREMOVE
+    
     # config checkups
     if VERSION != CONFIG_VERSION:
         logger.error("    MANUAL/ Config version is different from app version, please STOP or CTRL-C the container, rerun PREPARE.SH or fix directly in settings.env (vs. settings.env.example)")
