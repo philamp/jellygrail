@@ -57,7 +57,7 @@ if JF_WANTED:
     if os.getenv('JF_LOGIN') is None or os.getenv('JF_LOGIN') == "":
         logger.warning("  JELLYFIN/ JF wanted but JF_LOGIN environment variable not set. admin will be used as default login")
     if os.getenv('JF_PASSWORD') is None or os.getenv('JF_PASSWORD') == "":
-        logger.warning("  JELLYFIN/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
+        logger.critical("  JELLYFIN/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
 
 
 class RequestHandler(BaseHTTPRequestHandler):
