@@ -15,7 +15,14 @@ import socket
 import requests
 import struct
 
-
+# ANSI color codes
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+BLUE = "\033[94m"
+MAGENTA = "\033[95m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
 
 ### SETTINGS LOADING ###
 VERSION = "20250808" # !!!!!!!!!! Should be aligned to settings.env.template !!!!!!!!!!
@@ -543,6 +550,16 @@ def socket_server_waiting(socket_type):
 if __name__ == "__main__":
 
     full_run = True
+
+    print( """
+""" + CYAN + "github.com/philamp/jellygrail" + YELLOW + f"""
+     _      _ _        ____           _ _ 
+    | | ___| | |_   _ / ___|_ __ __ _(█) |
+ _  | |/ _ \ | | | | | |  _| '__/ _` | | |
+| |_| |  __/ | | |_| | |_| | | | (_| | | |
+ \___/ \___|_|_|\__, |\____|_|  \__,_|_|_|
+                |___/             {CYAN}{VERSION}
+    """ + RESET)
 
     init_database()
 
