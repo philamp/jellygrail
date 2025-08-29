@@ -14,7 +14,7 @@ def jellystart(path, method='get', **kwargs):
     
     resp = jfapi.jellyfin_req(path, method, **kwargs)
     if resp is not None and (resp.status_code == 200 or resp.status_code == 204):
-        logger.info(f"  JELLYFIN/ First setup step at {path} done.")
+        logger.info(f"  JELLYFIN/ ...@ {path} done.")
         return True
 
     logger.critical(f"  JELLYFIN/ First setup failed at {path}, status code: {resp.status_code}.")
@@ -38,6 +38,7 @@ def is_jf_available():
                 if resp.status_code == 200:
                     if resp.json().get('ServerName') is not None:
                         return True
+            # else
             logger.critical("  JELLYFIN/ seems present but API calls fail...")
         time.sleep(3)
 
@@ -51,7 +52,7 @@ def jfconfig():
     jfapi.jf_login = JF_LOGIN
     jfapi.jf_password = JF_PASSWORD
     # check if Jellyfin is available
-    if is_jf_available():
+    if is_jf_available(): #JG STARTUP
         return jfsetup_req()
     else:
         return False
@@ -77,6 +78,9 @@ def jfsetup_req():
         ):
             logger.critical("  JELLYFIN/ First setup globally failed.")
             return False
+        else:
+            if not is_jf_available():
+                return False
 
     else:
         logger.info("  JELLYFIN/ First setup already done")
@@ -85,19 +89,11 @@ def jfsetup_req():
     return jfconfig_forjg()
 
 def jfconfig_forjg():
-
-    if is_jf_available(): # cause we just done the first conf
-        if not install_addons():
-            return False
-    if is_jf_available(): # cause we just add repos
-        if not install_librairies():
-            return False
-    else:
+    if not install_addons():
         return False
-    
+    if not install_librairies():
+        return False
     return True
-
-
 
 def install_addons():
 
@@ -123,10 +119,15 @@ def install_addons():
             else:
                 logger.info("  JELLYFIN/ Add-ons installed.")
             
-            logger.info("  JELLYFIN/ Restarting to finalize add-ons installation...")
+            logger.info("  JELLYFIN/ Restarting to finalize add-ons installation... (3s)")
             jfapi.jellyfin(f'System/Shutdown', method='post')
-
-        return True
+            time.sleep(3)
+            if is_jf_available():
+                return True
+            else:
+                return False
+        else:
+            return True
     else:
         return False
 
@@ -318,8 +319,9 @@ def install_librairies():
                 logger.info("  JELLYFIN/ TVShows Library installed")
                 at_least_one_installed = True
         if at_least_one_installed:
-            logger.info("  JELLYFIN/ Halting auto scan, will be triggered by JG only...")
+            
             jfapi.jellyfin(f'ScheduledTasks/Running/7738148ffcd07979c7ceb148e06b3aed', method='delete') # should not stat right away, should stop for virtual folder to be completed first
-    
+            logger.info("  JELLYFIN/ First autoscan halted. Will be managed by JG")
+
     jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=[], method='post') # disable libraryscan as well
     return True
