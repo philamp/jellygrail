@@ -552,19 +552,18 @@ if __name__ == "__main__":
     full_run = True
 
     print( """
-""" + CYAN + "github.com/philamp/jellygrail" + YELLOW + f"""
+""" + YELLOW + "github.com/philamp/jellygrail" + f"""
      _      _ _        ____           _ _ 
-    | | ___| | |_   _ / ___|_ __ __ _(█) |
- _  | |/ _ \ | | | | | |  _| '__/ _` | | |
-| |_| |  __/ | | |_| | |_| | | | (_| | | |
- \___/ \___|_|_|\__, |\____|_|  \__,_|_|_|
-                |___/             {CYAN}{VERSION}
+    / | ___/ / |_   _ / __/ _ __ __ _(_) | 
+ _  | |/ _ \ | | | | | | __| '__/ _` | | |
+| |_| |  __/ | | |_| | |_\ \ | | (_| | | |
+ \___/ \___|_|_|\__, |\____/_|  \__,_|_|_|
+                |___/             {VERSION}
     """ + RESET)
 
     init_database()
 
     bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
-    '''
     # Thread 0.2 - UNIX Socket (ffprobe bash wrapper responder)
     thread_ef = threading.Thread(target=socket_server_waiting, args=("ffprobe",))
     thread_ef.daemon = True  # exits when parent thread exits
@@ -595,12 +594,10 @@ if __name__ == "__main__":
 
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
-    '''
     # Config JF before starting threads and server threads      
     if JF_WANTED:
         if not jfconfig():
             logger.critical("   JELLYFIN/ Config failed, container will now restart, but please stop it and fix the error (likely JF_LOGIN or JF_PASSWORD missing or wrong) in settings.env. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders")
-    full_run = False # TODOREMOVE
     
     # config checkups
     if VERSION != CONFIG_VERSION:
