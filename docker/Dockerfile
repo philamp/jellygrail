@@ -1,4 +1,4 @@
-FROM debian AS imgproxbuilder
+FROM ubuntu:24.04 AS imgproxbuilder
 
 # CONSTANTS
 ENV GO_VERSION=1.25.0
@@ -8,9 +8,7 @@ ENV IMGPROXY_VERSION=3.29.1
 
 # APT tools + PPA for cgif
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    software-properties-common ca-certificates gnupg \
- && add-apt-repository ppa:lovell/cgif \
- && apt-get update
+    ca-certificates
 
 # Build tools
 RUN apt-get install -y --no-install-recommends \
@@ -97,6 +95,7 @@ RUN set -eux; \
 FROM ubuntu AS builder
 
 # RUN apt update && apt install golang libfuse
+ENV DEBIAN_FRONTEND=noninteractive
 RUN set -eux; \
 	apt-get update; \
 	apt-get install -y --no-install-recommends \
@@ -130,6 +129,7 @@ RUN ./rclone version
 FROM jellyfin/jellyfin:10.10.7
 
 # Docker build runtime vars (ARG) and env vars
+ENV DEBIAN_FRONTEND=noninteractive
 ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
 ENV v_unrar=${UNRAR_VERSION:-6.1.3}
 ENV S6_OVERLAY_VERSION="3.1.5.0"
