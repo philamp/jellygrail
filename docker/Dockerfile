@@ -1,3 +1,99 @@
+FROM ubuntu AS imgproxbuilder
+
+# CONSTANTS
+ENV GO_VERSION=1.25.0
+ENV DEBIAN_FRONTEND=noninteractive
+ENV VIPS_VERSION=8.17.1
+ENV IMGPROXY_VERSION=3.29.1
+
+# APT tools + PPA for cgif
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common ca-certificates gnupg \
+ && add-apt-repository ppa:lovell/cgif \
+ && apt-get update
+
+# Build tools
+RUN apt-get install -y --no-install-recommends \
+    build-essential pkg-config ninja-build python3-pip python3 \
+    bc wget curl git \
+ && pip3 install --no-cache-dir meson
+
+# LIBVIPS Deps
+RUN apt-get install -y --no-install-recommends \
+    libcgif-dev \
+    libfftw3-dev \
+    libopenexr-dev \
+    libgsf-1-dev \
+    libglib2.0-dev \
+    liborc-dev \
+    libopenslide-dev \
+    libmatio-dev \
+    libwebp-dev \
+    libjpeg-turbo8-dev \
+    libexpat1-dev \
+    libexif-dev \
+    libtiff5-dev \
+    libcfitsio-dev \
+    libpoppler-glib-dev \
+    librsvg2-dev \
+    libpango1.0-dev \
+    libopenjp2-7-dev \
+    liblcms2-dev \
+    libimagequant-dev \
+    libpng-dev \
+    libgif-dev \
+    libheif-dev \
+    libraw-dev
+
+# LIBVIPS build (with meson)
+RUN set -eux; \
+    workdir="$(mktemp -d)" && cd "$workdir" && \
+    wget -q "https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz" && \
+    tar xf "vips-${VIPS_VERSION}.tar.gz" && \
+    cd "vips-${VIPS_VERSION}" && \
+    meson setup build \
+      --prefix=/usr/local \
+      --libdir=lib \
+      --buildtype=release \
+      -Dintrospection=false && \
+    meson compile -C build && \
+    meson test -C build && \
+    meson install -C build && \
+    ldconfig && \
+    rm -rf "$workdir"
+
+# GO install
+RUN set -eux; \
+    workdir="$(mktemp -d)" && cd "$workdir" && \
+    wget -q "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" && \
+    tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz" && \
+    rm -rf "$workdir"
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+# Ensure LIBVIPS is found later by imgproxy through pkgconfig
+ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/lib/pkgconfig"
+ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
+
+# IMGPROXY build
+RUN set -eux; \
+    WORKDIR=`mktemp -d` && \
+    cd $WORKDIR && \
+    curl -Ls https://github.com/imgproxy/imgproxy/archive/v{IMGPROXY_VERSION}.tar.gz \
+    | tar -xz --strip-components 1 -C . && \
+    CGO_LDFLAGS_ALLOW="-s|-w" \
+    go build -o /usr/local/bin/imgproxy && \
+    ldconfig && \
+    rm -rf $WORKDIR
+
+# .so libs collecting to copy later in runtime image (imgproxy + libvips)
+RUN set -eux; \
+    mkdir -p /opt/ldd-libs && \
+    ldd /usr/local/bin/imgproxy \
+    | awk '/=> \// {print $3} /ld-linux/ {print $1}' \
+    | grep -vE '(^|/)ld-linux.*|(^|/)libc\.so|(^|/)libstdc\+\+\.so' \
+    | sort -u \
+    | xargs -I{} cp -v --parents {} /opt/ldd-libs/
+
 FROM ubuntu AS builder
 
 # RUN apt update && apt install golang libfuse
@@ -45,6 +141,13 @@ RUN apt-get update && \
 
 # ---RCLONE IMPORT----
 COPY --from=builder /go/src/github.com/rclone/rclone/rclone /usr/bin/rclone-linux
+
+# -- IMGPROXY + LIBVIPS IMPORT ---
+COPY --from=imgproxbuilder /usr/local/bin/imgproxy /usr/local/bin/imgproxy
+COPY --from=imgproxbuilder /usr/local/lib /usr/local/lib
+COPY --from=imgproxbuilder /opt/ldd-libs/ /
+ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
+RUN ldconfig
 
 # --- Python ---
 # python3-venv and co. is fix of https://github.com/philamp/jellygrail/issues/2
@@ -164,16 +267,10 @@ RUN cd /usr/local/bin && \
 ENV MYSQL_DIR="/jellygrail/data/mariadb"
 ENV DATADIR=$MYSQL_DIR/databases
 
-# expose nginx
+# Expose service ports (nginx, ssh, mariadb, grail_jelly)
 EXPOSE 8085
-
-# expose ssh for development
-EXPOSE 23
-
-# expose 6502 jelly_update script
+#EXPOSE 23
 EXPOSE 6502
-
-# expose mariadbd
 EXPOSE 6503
 
 # overwrite run jellyfin main original process as CMD instead of entrypoint
