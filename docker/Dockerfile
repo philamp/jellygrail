@@ -12,9 +12,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Build tools
 RUN apt-get install -y --no-install-recommends \
-    build-essential pkg-config ninja-build python3-pip python3 \
-    bc wget curl git \
- && pip3 install --no-cache-dir meson
+    build-essential pkg-config ninja-build python3 meson \
+    bc wget curl git
 
 # LIBVIPS Deps
 RUN apt-get install -y --no-install-recommends \
