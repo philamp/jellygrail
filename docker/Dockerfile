@@ -1,4 +1,4 @@
-FROM ubuntu AS imgproxbuilder
+FROM debian AS imgproxbuilder
 
 # CONSTANTS
 ENV GO_VERSION=1.25.0
