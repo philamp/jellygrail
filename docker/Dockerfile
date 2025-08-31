@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV VIPS_VERSION=8.17.1
 ENV IMGPROXY_VERSION=3.29.1
 
-# APT tools + PPA for cgif
+# update + CA certs
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates
 
@@ -17,30 +17,12 @@ RUN apt-get install -y --no-install-recommends \
 
 # LIBVIPS Deps
 RUN apt-get install -y --no-install-recommends \
-    libcgif-dev \
-    libfftw3-dev \
-    libopenexr-dev \
-    libgsf-1-dev \
-    libglib2.0-dev \
-    liborc-dev \
-    libopenslide-dev \
-    libmatio-dev \
-    libwebp-dev \
-    libjpeg-turbo8-dev \
-    libexpat1-dev \
-    libexif-dev \
-    libtiff5-dev \
-    libcfitsio-dev \
-    libpoppler-glib-dev \
-    librsvg2-dev \
-    libpango1.0-dev \
-    libopenjp2-7-dev \
-    liblcms2-dev \
-    libimagequant-dev \
-    libpng-dev \
-    libgif-dev \
-    libheif-dev \
-    libraw-dev
+    build-essential pkg-config meson ninja-build libcgif-dev\
+    libglib2.0-dev libexpat1-dev libexif-dev libpng-dev libjpeg62-turbo-dev \
+    libtiff-dev libwebp-dev libgif-dev libopenjp2-7-dev libheif-dev \
+    liborc-0.4-dev libpango1.0-dev librsvg2-dev libpoppler-glib-dev \
+    libopenexr-dev libmatio-dev libgsf-1-dev libraw-dev libcfitsio-dev \
+    libopenslide-dev liblcms2-dev libimagequant-dev libfftw3-dev
 
 # LIBVIPS build (with meson)
 RUN set -eux; \
