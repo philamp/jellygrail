@@ -27,8 +27,8 @@ RUN apt-get install -y --no-install-recommends \
 # LIBVIPS build (with meson)
 RUN set -eux; \
     workdir="$(mktemp -d)" && cd "$workdir" && \
-    wget -q "https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz" && \
-    tar xf "vips-${VIPS_VERSION}.tar.gz" && \
+    wget -q "https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz" && \
+    tar xf "vips-${VIPS_VERSION}.tar.xz" && \
     cd "vips-${VIPS_VERSION}" && \
     meson setup build \
       --prefix=/usr/local \
