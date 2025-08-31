@@ -57,7 +57,7 @@ ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 RUN set -eux; \
     WORKDIR=`mktemp -d` && \
     cd $WORKDIR && \
-    curl -Ls https://github.com/imgproxy/imgproxy/archive/v{IMGPROXY_VERSION}.tar.gz \
+    curl -Ls https://github.com/imgproxy/imgproxy/archive/v${IMGPROXY_VERSION}.tar.gz \
     | tar -xz --strip-components 1 -C . && \
     CGO_LDFLAGS_ALLOW="-s|-w" \
     go build -o /usr/local/bin/imgproxy && \
