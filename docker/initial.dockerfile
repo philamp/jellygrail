@@ -1,4 +1,4 @@
-FROM jellyfin/jellyfin:10.10.7 AS imgproxbuilder
+FROM ubuntu:24.04 AS imgproxbuilder
 
 # CONSTANTS
 ENV GO_VERSION=1.25.0
@@ -87,7 +87,7 @@ RUN set -eux; \
     mkdir -p /opt/ldd-libs && \
     ldd /usr/local/bin/imgproxy \
     | awk '/=> \// {print $3} /ld-linux/ {print $1}' \
-#    | grep -vE '(^|/)ld-linux.*|(^|/)libc\.so|(^|/)libstdc\+\+\.so' \
+    | grep -vE '(^|/)ld-linux.*|(^|/)libc\.so|(^|/)libstdc\+\+\.so' \
     | sort -u \
     | xargs -I{} cp -v --parents {} /opt/ldd-libs/
 
@@ -144,21 +144,9 @@ COPY --from=builder /go/src/github.com/rclone/rclone/rclone /usr/bin/rclone-linu
 # -- IMGPROXY + LIBVIPS IMPORT ---
 COPY --from=imgproxbuilder /usr/local/bin/imgproxy /usr/local/bin/imgproxy
 COPY --from=imgproxbuilder /usr/local/lib /usr/local/lib
-# imgprox deps copy
-COPY --from=imgproxbuilder /opt/ldd-libs /opt/ldd-libs
-RUN set -eux; \
-    mkdir -p /usr/lib /usr/lib64 || true; \ 
-    if [ -d /opt/ldd-libs/usr ]; then cp -a /opt/ldd-libs/usr/* /usr/; fi; \
-    if [ -d /opt/ldd-libs/lib ]; then cp -a /opt/ldd-libs/lib/* /usr/lib/; fi; \
-    if [ -d /opt/ldd-libs/lib64 ]; then cp -a /opt/ldd-libs/lib64/* /usr/lib64/; fi; \
-    rm -rf /opt/ldd-libs
-
+COPY --from=imgproxbuilder /opt/ldd-libs/ /
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 RUN ldconfig
-
-# verif its allright
-RUN ldd /usr/local/bin/imgproxy | awk '/not found/ {nf=1} END {exit nf}'
-
 
 # --- Python ---
 # python3-venv and co. is fix of https://github.com/philamp/jellygrail/issues/2
