@@ -1,12 +1,37 @@
-#!/bin/sh -e
+#!/usr/bin/with-contenv sh
 
-# This is the first program launched at container start.
-# We don't know where our binaries are and we cannot guarantee
-# that the default PATH can access them.
-# So this script needs to be entirely self-contained until it has
-# at least /command, /usr/bin and /bin in its PATH.
+VERSION = "20250808" # !!!!!!!!!! Should be aligned to settings.env.template and cont-init.d/10-jellygrail !!!!!!!!!!
 
-# jellygrail custom function:
+# - Jellygrail figlet:
+cat << "EOF"
+github.com/philamp/jellygrail
+     _     _ _        ____          _ _ 
+    | |___| | |_   _ / __/ _ ____ _(_) | 
+ _  | / _ \ | | | | | |  _/ '_/ _` | | |
+/ |_|   __/ |   |_|   |_| | |  (_| | | |
+\____/\___,_,_|\__, /\____,_| \__,_,_,_|
+                ,__/
+
+EOF
+echo "                 ${VERSION}"
+
+# - runtime created folders
+mkdir -p /jellygrail/jellyfin/config
+mkdir -p /jellygrail/jellyfin/cache
+mkdir -p /jellygrail/config
+mkdir -p /jellygrail/log
+mkdir -p /jellygrail/data/bindfs
+mkdir -p /jellygrail/vfs_cache
+mkdir -p /Video_Library
+mkdir -p /Cache_Check_Video_Library
+mkdir -p /Kodi_Video_Library
+mkdir -p /mounts/kodi/software
+mkdir -p /mounts/kodi/backups
+chown -R www-data:root /jellygrail/jellyfin
+
+# every folder that can't be created on build time (they would be overwritten by empty runtime mounted folders.
+
+# JG CUSTOM FUNCTIONS
 create_service() {
   template_path=$1
   dst_folder=$2
@@ -37,36 +62,11 @@ create_service() {
   [ ! -z "${cfg_file}" ] && sed -i "s|<cfg_file>|${cfg_file}|g" "${service_dir}/run"
   [ ! -z "${src_folder}" ] && sed -i "s|<src_folder>|${src_folder}|g" "${service_dir}/run"
   sed -i "s|<service_name>|${service_name}|g" "${service_dir}/run"
-
-  # touch "${contents_file}"
 }
 
-addpath () {
-  x="$1"
-  IFS=:
-  set -- $PATH
-  IFS=
-  while test "$#" -gt 0 ; do
-    if test "$1" = "$x" ; then
-      return
-    fi
-    shift
-  done
-  PATH="${x}:$PATH"
-}
 
-if test -z "$PATH" ; then
-  PATH=/bin
-fi
-
-addpath /bin
-addpath /usr/bin
-addpath /command
-export PATH
-
-# --- Jellygrail env related ---
-
-# --- add www-data to graphic card groups (VAAPI etc..)
+# JG CUSTOM TASKS
+# - add www-data to graphic card groups (VAAPI etc..)
 for dev in /dev/dri/card* /dev/dri/renderD*; do
   [ -e "$dev" ] || continue
   gid=$(stat -c "%g" "$dev")
@@ -97,13 +97,15 @@ for dev in /dev/dri/card* /dev/dri/renderD*; do
   usermod -aG "$groupname" www-data
 done
 
-# --- read JS settings
+# - read JG settings
 . /jellygrail/config/settings.env
-if [ "$JF_WANTED" = "no" ]; then
+
+# - does not start jellyfin if not wanted
+if [ "$JF_WANTED" = "n" ]; then
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
 fi
 
-if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ]; then
+if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ] && [ "$RD_APITOKEN" != "" ] ; then
   # Copy the example configuration file to the new configuration file
   mkdir -p "/mounts/remote_realdebrid"
   cp -f "/bash_templates/mounts/remote_realdebrid/rclone.conf.example" "/mounts/remote_realdebrid/rclone.conf"
@@ -111,19 +113,15 @@ if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ]; then
   sed -i "s/PASTE-YOUR-KEY-HERE/$RD_APITOKEN/" "/mounts/remote_realdebrid/rclone.conf"
 fi
 
-# Webdav conf according to settings.env
-if [ "$WEBDAV_LAN_HOST" != "PASTE-WEBDAV-LAN-HOST-HERE" ]; then
+# - Webdav conf according to settings.env
+if [ "$WEBDAV_LAN_HOST" != "PASTE-WEBDAV-LAN-HOST-HERE" ] && [ "$WEBDAV_LAN_HOST" != "" ]; then
   cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
   sed -i "s/#WDLH#/$WEBDAV_LAN_HOST/" "/etc/nginx/nginx.conf"
 else
   echo "CRITICAL : WEBDAV_LAN_HOST is not set in settings.env"
 fi
 
-
-# --- Jellygrail env related end ---
-
-# Jellygrail services install
-
+# - JellyGrail services install
 for dir_path in /mounts/*; do
   [ -d "${dir_path}" ] || continue # if not a directory, skip
   dir_name=$(basename "${dir_path}")
@@ -142,23 +140,21 @@ for dir_path in /mounts/*; do
                        "rar2fs_${dir_name}" \
                        "${dir_path}/" \
                        "${dir_name}"
+        echo " - ${dir_path} will be mounted with rclone and rar2fs."
       else
         echo "Warning: No rclone.conf found in ${dir_path}. Skipping..."
       fi
       ;;
     local_*)
-      if [ -d "${dir_path}/movies" ] || [ -d "${dir_path}/shows" ]; then
-        create_service "/bash_templates/remote_rar2fs.tpl.sh" \
-                       "/mounts/rar2fs_${dir_name}" \
-                       "" \
-                       "rar2fs_${dir_name}" \
-                       "${dir_path}/"
-      else
-        echo "Warning: 'movies' or 'shows' directories not found in ${dir_path}. Skipping..."
-      fi
+      create_service "/bash_templates/local_rar2fs.tpl.sh" \
+                     "/mounts/rar2fs_${dir_name}" \
+                     "" \
+                     "rar2fs_${dir_name}" \
+                     "${dir_path}/"
+      echo " - {dir_path} will be mounted with rar2fs."
       ;;
     *)
-      echo "Skipping ${dir_path} as it does not start with 'remote_' or 'local_'"
+      echo " - {dir_path} is normal folder."
       ;;
   esac
 done
@@ -195,15 +191,3 @@ if [ -d "/root/devmode" ]; then
   # end dev-context services
   git config --global user.email "xxxxxxxx@gmail.com"
 fi
-# the above part triggers only if /root/devmode folder is found, it's for devleopment purposes only
-
-# Now we're good: s6-overlay-suexec is accessible via PATH, as are
-# all our binaries.
-# Run preinit as root, then run stage0 as the container's user (can be
-# root, can be a normal user).
-
-exec s6-overlay-suexec \
-  ' /package/admin/s6-overlay-3.1.5.0/libexec/preinit' \
-  '' \
-  /package/admin/s6-overlay-3.1.5.0/libexec/stage0 \
-  "$@"

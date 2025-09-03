@@ -189,16 +189,7 @@ RUN cd /tmp && \
     tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz
 
 # set JG folders and permissions
-RUN chmod ugo+rx /usr/bin/rclone-linux && \
-    mkdir -p /Video_Library && \
-    mkdir -p /Cache_Check_Video_Library && \
-    mkdir -p /Kodi_Video_Library && \
-    mkdir -p /mounts/kodi/software && \
-    mkdir -p /mounts/kodi/backups
-
-# kodi addons script copy into container
-COPY root/kodi_addons.sh /kodi_addons.sh
-RUN chmod +x /kodi_addons.sh
+RUN chmod ugo+rx /usr/bin/rclone-linux
 
 # nginx
 RUN apt-get -y install nginx nginx-extras unzip
@@ -234,10 +225,12 @@ RUN WORKDIR=`mktemp -d` && \
 # Mariadb package install
 RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server netcat-openbsd
     
-# copy the rest
+# copy the rest and set executable to scripts
 COPY root/ /
 RUN chmod u+x /init
+RUN chmod +x /etc/cont-init.d/*
 RUN chmod -R +x /etc/s6-overlay/s6-rc.d
+RUN chmod +x /kodi_addons.sh
 
 # ffprobew build
 RUN cd /usr/local/bin/ffprobe_wrapper && \

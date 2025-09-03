@@ -25,7 +25,7 @@ CYAN = "\033[96m"
 RESET = "\033[0m"
 
 ### SETTINGS LOADING ###
-VERSION = "20250808" # !!!!!!!!!! Should be aligned to settings.env.template !!!!!!!!!!
+VERSION = "20250808" # !!!!!!!!!! Should be aligned to settings.env.template and cont-init.d/10-jellygrail !!!!!!!!!!
 INCR_KODI_REFR_MAX = 8
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
@@ -65,6 +65,8 @@ if JF_WANTED:
         logger.warning("  JELLYFIN/ JF wanted but JF_LOGIN environment variable not set. admin will be used as default login")
     if os.getenv('JF_PASSWORD') is None or os.getenv('JF_PASSWORD') == "":
         logger.critical("  JELLYFIN/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
+    if os.getenv('WEBDAV_LAN_HOST') is None or os.getenv('WEBDAV_LAN_HOST') == "" or os.getenv('WEBDAV_LAN_HOST') == "PASTE-WEBDAV-LAN-HOST-HERE":
+        logger.critical("     NGINX/ WEBDAV_LAN_HOST environment variable not set. JellyGrail content will not be reachable by Kodi")
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -553,12 +555,12 @@ if __name__ == "__main__":
 
     print( """
 """ + YELLOW + "github.com/philamp/jellygrail" + f"""
-     _     _ _        ____           _ _ 
-    | |___| | |_   _ / __/ _ __ __ _(_) | 
- _  | / _ \ | | | | | | __/ '__/ _` | | |
-/ |_|   __/ | | |_|   |_| | | | (_| | | |
-\____/\___,_,_|\__, /\____,_|  \__,___,_|
-                |__/
+     _     _ _        ____          _ _ 
+    | |___| | |_   _ / __/ _ ____ _(_) | 
+ _  | / _ \ | | | | | |  _/ '_/ _` | | |
+/ |_|   __/ |   |_|   |_| | |  (_| | | |
+\____/\___,_,_|\__, /\____,_| \__,_,_,_|
+                ,__/
 
                 {VERSION}
     """ + RESET)
