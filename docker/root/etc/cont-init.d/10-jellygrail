@@ -1,12 +1,10 @@
-#!/usr/bin/with-contenv sh
-
-VERSION = "20250808" # !!!!!!!!!! Should be aligned to settings.env.template and cont-init.d/10-jellygrail !!!!!!!!!!
-
+#!/bin/sh -e
+VERSION="20250808" # !!!!!!!!!! Should be aligned to settings.env.template and cont-init.d/10-jellygrail !!!!!!!!!!
 # - Jellygrail figlet:
 cat << "EOF"
 github.com/philamp/jellygrail
-     _     _ _        ____          _ _ 
-    | |___| | |_   _ / __/ _ ____ _(_) | 
+     _     _ _        ____          _ _
+    | |___| | |_   _ / __/ _ ____ _(_) |
  _  | / _ \ | | | | | |  _/ '_/ _` | | |
 / |_|   __/ |   |_|   |_| | |  (_| | | |
 \____/\___,_,_|\__, /\____,_| \__,_,_,_|
@@ -39,7 +37,7 @@ create_service() {
   service_name=$4
   src_folder=$5
   dependency=$6
-  
+
   service_dir="/etc/s6-overlay/s6-rc.d/${service_name}"
   dependencies_dir="${service_dir}/dependencies.d"
   contents_file="/etc/s6-overlay/s6-rc.d/user/contents.d/${service_name}"
@@ -146,7 +144,7 @@ for dir_path in /mounts/*; do
       fi
       ;;
     local_*)
-      create_service "/bash_templates/local_rar2fs.tpl.sh" \
+      create_service "/bash_templates/remote_rar2fs.tpl.sh" \
                      "/mounts/rar2fs_${dir_name}" \
                      "" \
                      "rar2fs_${dir_name}" \
