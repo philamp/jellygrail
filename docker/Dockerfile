@@ -20,9 +20,9 @@ RUN apt-get install -y --no-install-recommends \
     build-essential pkg-config meson ninja-build libcgif-dev\
     libglib2.0-dev libexpat1-dev libexif-dev libpng-dev libjpeg62-turbo-dev \
     libtiff-dev libwebp-dev libgif-dev libopenjp2-7-dev libheif-dev \
-    liborc-0.4-dev libpango1.0-dev librsvg2-dev libpoppler-glib-dev \
+    liborc-0.4-dev libpango1.0-dev librsvg2-dev \
     libopenexr-dev libmatio-dev libgsf-1-dev libraw-dev libcfitsio-dev \
-    libopenslide-dev liblcms2-dev libimagequant-dev libfftw3-dev
+    liblcms2-dev libimagequant-dev libfftw3-dev
 
 # LIBVIPS build (with meson)
 RUN set -eux; \
