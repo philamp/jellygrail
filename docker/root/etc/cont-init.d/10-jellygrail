@@ -2,6 +2,7 @@
 VERSION="20250808" # !!!!!!!!!! Should be aligned to settings.env.template and cont-init.d/10-jellygrail !!!!!!!!!!
 # - Jellygrail figlet:
 cat << "EOF"
+
 github.com/philamp/jellygrail
      _     _ _        ____          _ _
     | |___| | |_   _ / __/ _ ____ _(_) |
@@ -11,7 +12,8 @@ github.com/philamp/jellygrail
                 ,__/
 
 EOF
-echo "                 ${VERSION}"
+echo "               ${VERSION}"
+echo ""
 
 # - runtime created folders
 mkdir -p /jellygrail/jellyfin/config
@@ -45,7 +47,6 @@ create_service() {
   mkdir -p "${dst_folder}" "${service_dir}" "${dependencies_dir}"
   echo "longrun" > "${service_dir}/type"
   touch "${dependencies_dir}/base"
-  touch "${dependencies_dir}/create_data_folder"
 
   # it becomes a dependency for bindfs main service
   touch "/etc/s6-overlay/s6-rc.d/bindfs/dependencies.d/${service_name}"
@@ -149,7 +150,7 @@ for dir_path in /mounts/*; do
                      "" \
                      "rar2fs_${dir_name}" \
                      "${dir_path}/"
-      echo " - {dir_path} will be mounted with rar2fs."
+      echo " - ${dir_path} will be mounted with rar2fs."
       ;;
     *)
       echo " - {dir_path} is normal folder."
