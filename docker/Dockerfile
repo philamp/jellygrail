@@ -109,7 +109,7 @@ RUN ./rclone version
 
 FROM jellyfin/jellyfin:10.10.7
 
-# Docker build runtime vars (ARG) and env vars
+# Docker build runtime vars
 ENV DEBIAN_FRONTEND=noninteractive
 ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
 ENV v_unrar=${UNRAR_VERSION:-6.1.3}
@@ -228,7 +228,6 @@ RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server netcat-
 # copy the rest and set executable to scripts
 COPY root/ /
 RUN chmod u+x /init && \
-    chmod +x /etc/cont-init.d/* && \
     chmod -R +x /etc/s6-overlay/s6-rc.d && \
     chmod +x /kodi_addons.sh && \
     chmod +x /usr/local/bin/early_init.sh && \
@@ -258,14 +257,14 @@ RUN cd /usr/local/bin && \
 ENV MYSQL_DIR="/jellygrail/data/mariadb"
 ENV DATADIR=$MYSQL_DIR/databases
 
-# Expose service ports (nginx, ssh, mariadb, grail_jelly)
+# Expose service ports (nginx, ssh, grail_jelly, mariadb)
 EXPOSE 8085
 #EXPOSE 23
 EXPOSE 6502
 EXPOSE 6503
 
-# overwrite run jellyfin main original process as CMD instead of entrypoint
+# overwrite run jellyfin main original process as s6 service instead of entrypoint
+# and run python grail_jelly as default cmd
 ENTRYPOINT ["/init"]
 CMD ["python3", "/usr/local/bin/grail_jelly/main.py"]
 
-# CMD ["/bin/bash"]
