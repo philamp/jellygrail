@@ -25,7 +25,7 @@ CYAN = "\033[96m"
 RESET = "\033[0m"
 
 ### SETTINGS LOADING ###
-VERSION = "20250808" # !!!!!!!!!! Should be aligned to settings.env.template and cont-init.d/10-jellygrail !!!!!!!!!!
+VERSION = "20250808" # !!! Should be aligned to settings.env.template and early_init.sh !!!
 INCR_KODI_REFR_MAX = 8
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')

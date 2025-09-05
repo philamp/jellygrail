@@ -1,5 +1,5 @@
 #!/bin/sh -e
-VERSION="20250808" # !!!!!!!!!! Should be aligned to settings.env.template and cont-init.d/10-jellygrail !!!!!!!!!!
+VERSION="20250808" # !!! Should be aligned to settings.env.template and main.py !!!
 # - Jellygrail figlet:
 cat << "EOF"
 

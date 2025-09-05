@@ -231,6 +231,12 @@ RUN chmod u+x /init
 RUN chmod +x /etc/cont-init.d/*
 RUN chmod -R +x /etc/s6-overlay/s6-rc.d
 RUN chmod +x /kodi_addons.sh
+RUN chmod +x /usr/local/bin/early_init.sh
+RUN chmod +x /usr/local/bin/grail_jelly/main.py
+
+# insert source to earl_init.sh in s6-overlay /init
+RUN sed -i '1a\
+. /usr/local/bin/early_init.sh' /init
 
 # ffprobew build
 RUN cd /usr/local/bin/ffprobe_wrapper && \
