@@ -113,7 +113,7 @@ FROM jellyfin/jellyfin:10.10.7
 ENV DEBIAN_FRONTEND=noninteractive
 ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
 ENV v_unrar=${UNRAR_VERSION:-6.1.3}
-ENV S6_OVERLAY_VERSION="3.1.5.0"
+ENV S6_OVERLAY_VERSION="3.2.1.0"
 ENV S6_OVERLAY_ARCH="x86_64"
 
 # apt get stuff (add jmalloc to improve Jellyfin memory usage)
@@ -227,24 +227,23 @@ RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server netcat-
     
 # copy the rest and set executable to scripts
 COPY root/ /
-RUN chmod u+x /init
-RUN chmod +x /etc/cont-init.d/*
-RUN chmod -R +x /etc/s6-overlay/s6-rc.d
-RUN chmod +x /kodi_addons.sh
-RUN chmod +x /usr/local/bin/early_init.sh
-RUN chmod +x /usr/local/bin/grail_jelly/main.py
+RUN chmod u+x /init && \
+    chmod +x /etc/cont-init.d/* && \
+    chmod -R +x /etc/s6-overlay/s6-rc.d && \
+    chmod +x /kodi_addons.sh && \
+    chmod +x /usr/local/bin/early_init.sh && \
+    chmod +x /usr/local/bin/grail_jelly/main.py
 
-# insert source to earl_init.sh in s6-overlay /init
+# insert source to early_init.sh in s6-overlay /init
 RUN sed -i '1a\
 . /usr/local/bin/early_init.sh' /init
 
-# ffprobew build
+# ffprobew build with gcc
 RUN cd /usr/local/bin/ffprobe_wrapper && \
     gcc -o ffprobew ffprobew.c
 
-# ffprobe becomes ffprober
+# ffprobe becomes ffprober via mv and ffprobew becomes ffprobe via cp
 RUN mv /usr/lib/jellyfin-ffmpeg/ffprobe /usr/lib/jellyfin-ffmpeg/ffprober
-# ffprobew becomes ffprobe via cp
 RUN cp /usr/local/bin/ffprobe_wrapper/ffprobew /usr/lib/jellyfin-ffmpeg/ffprobe
 
 # ffprober and ffprobe(w) are available system wide
