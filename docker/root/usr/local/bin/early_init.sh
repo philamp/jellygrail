@@ -113,7 +113,7 @@ if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ] && [ "$RD_APITOKEN" != "" ] ; the
 fi
 
 # - Webdav conf according to settings.env
-if [ "$WEBDAV_LAN_HOST" != "PASTE-WEBDAV-LAN-HOST-HERE" ] && [ "$WEBDAV_LAN_HOST" != "" ]; then
+if [ "$WEBDAV_LAN_HOST" != "PASTE-WEBDAV-LAN-HOST-HERE" ] && [ "$WEBDAV_LAN_HOST" != "" ] && [ "$WEBDAV_LAN_HOST" != "your-nas-ip-or-hostname:8085" ] ; then
   cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
   sed -i "s/#WDLH#/$WEBDAV_LAN_HOST/" "/etc/nginx/nginx.conf"
 else

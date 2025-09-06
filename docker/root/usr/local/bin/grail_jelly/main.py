@@ -36,7 +36,7 @@ PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')
 # Pre-compute some flags
 RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
 JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
-KODI_MAIN_WANTED = True if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "") else False
+KODI_MAIN_WANTED = True if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "" and KODI_MAIN_URL != "your-player-ip-or-hostname") else False
 
 #default filling
 socket_started = False
@@ -59,14 +59,24 @@ import jg_services
 from base import logger_setup
 logger = logger_setup.log_setup()
 
+logger.warning(f"interested language(s) for metadata: {os.getenv('INTERESTED_LANGUAGES')}")
+
 # CONFIG INTEGRITY WARNINGS
 if JF_WANTED:
     if os.getenv('JF_LOGIN') is None or os.getenv('JF_LOGIN') == "":
         logger.warning("  JELLYFIN/ JF wanted but JF_LOGIN environment variable not set. admin will be used as default login")
     if os.getenv('JF_PASSWORD') is None or os.getenv('JF_PASSWORD') == "":
         logger.critical("  JELLYFIN/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
-    if os.getenv('WEBDAV_LAN_HOST') is None or os.getenv('WEBDAV_LAN_HOST') == "" or os.getenv('WEBDAV_LAN_HOST') == "PASTE-WEBDAV-LAN-HOST-HERE":
+    if os.getenv('WEBDAV_LAN_HOST') is None or os.getenv('WEBDAV_LAN_HOST') == "" or os.getenv('WEBDAV_LAN_HOST') == "PASTE-WEBDAV-LAN-HOST-HERE" or os.getenv('WEBDAV_LAN_HOST') == "your-nas-ip-or-hostname:8085":
         logger.critical("     NGINX/ WEBDAV_LAN_HOST environment variable not set. JellyGrail content will not be reachable by Kodi")
+if VERSION != CONFIG_VERSION:
+    logger.error("    MANUAL/ Config version is different from app version, please STOP or CTRL-C the container, rerun jg-config.sh or fix directly in settings.env (vs. settings.env.example)")
+else:
+    if not KODI_MAIN_WANTED:
+        logger.warning("    MANUAL/ Kodi not wanted, maybe intentionnaly ? Otherwise please rerun jg-config.sh and restart container.")
+    else:
+        if not JF_WANTED:
+            logger.warning("    MANUAL/ Kodi main url defined, but embedded Jellyfin disabled, Kodi can work without NFO sync from jellyfin, however make sure not to use the Local NFO data scrapper in Kodi video sources configuration.")
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -603,15 +613,7 @@ if __name__ == "__main__":
         if not jfconfig():
             logger.critical("   JELLYFIN/ Config failed, container will now restart, but please stop it and fix the error (likely JF_LOGIN or JF_PASSWORD missing or wrong) in settings.env. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders")
     
-    # config checkups
-    if VERSION != CONFIG_VERSION:
-        logger.error("    MANUAL/ Config version is different from app version, please STOP or CTRL-C the container, rerun PREPARE.SH or fix directly in settings.env (vs. settings.env.example)")
-    else:
-        if not KODI_MAIN_WANTED:
-            logger.warning("    MANUAL/ Kodi main url is not set up, maybe ignored intentionnaly ? Otherwise please rerun PREPARE.SH and restart container.")
-        else:
-            if not JF_WANTED:
-                logger.warning("    MANUAL/ Kodi main url defined, but embedded Jellyfin disabled, Kodi can work without NFO sync from jellyfin, however make sure not to use the Local NFO data scrapper in Kodi video sources configuration.")
+
 
     kodi_mysql_init_and_verify(just_verify=True)
 
@@ -636,11 +638,13 @@ if __name__ == "__main__":
             thread_a.start()
 
             # Ars: remoteScan trigger every 7mn
-            if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
+            if REMOTE_RDUMP_BASE_LOCATION.startswith('http') or REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234":
                 thread_ars = threading.Thread(target=periodic_trigger_rs)
                 thread_ars.daemon = True  # 
                 thread_ars.start()
                 logger.info("  SCHEDULE/ Real Debrid API remoteScan will be triggered every 7mn ~")
+            else:
+                logger.info("    MANUAL/ Real Debrid remoteScan skipped as REMOTE_RDUMP_BASE_LOCATION is not set. If needed, verify value in ./jellygrail/config/settings.env and restart container.")
             
             logger.info("  SCHEDULE/ Real Debrid API rd_progress will be triggered every 2mn ~")
         else:

@@ -2,6 +2,15 @@
 
 ### CONSTANTS and declarations ###
 
+# Launch the terminal prompt if running in a terminal
+if [[ -t 1 ]]; then
+    IS_TERMINAL=true
+else
+    # if not terminal, throw an error
+    echo "This script must be run in a terminal"
+    exit 1
+fi
+
 # fields
 declare -A FIELD_DESCRIPTIONS
 declare -A FIELD_DEPENDENCIES
@@ -31,8 +40,8 @@ threechars_languages_codes=(aar abk ace ach ada ady afa afh afr ain aka akk alb 
 cd "$(dirname "$0")"
 
 # Ensure .env exists and set secure permissions
-ENV_FILE="hybrid.env"
-TEMPLATE_FILE="settings.env.template"
+ENV_FILE="./jellygrail/config/settings.env"
+TEMPLATE_FILE="./jellygrail/config/settings.env.template"
 touch "$ENV_FILE"
 chmod 600 "$ENV_FILE"
 
@@ -196,11 +205,48 @@ prompt_for_l_choice() {
 # LOAD
 load_env() {
     if [ -f "$ENV_FILE" ]; then
-        while IFS='=' read -r key value; do
-            key=$(echo "$key" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
-            value=$(echo "$value" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')
-            if [[ -n "$key" && "$key" != "#"* && "$key" != "CONFIG_VERSION" ]]; then
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            # strip Windows CR
+            line="${line%$'\r'}"
+
+            # trim outer whitespace
+            line="$(echo "$line" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+
+            # skip empty or comment lines
+            [[ -z "$line" || "$line" == \#* ]] && continue
+
+            # must contain '='
+            [[ "$line" == *"="* ]] || continue
+
+            # split on first '='
+            key="${line%%=*}"
+            value="${line#*=}"
+
+            # trim whitespace around key/value
+            key="$(echo "$key" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+            value="$(echo "$value" | sed -E 's/^[[:space:]]+//; s/[[:space:]]+$//')"
+
+            # drop optional 'export ' prefix
+            key="${key#export }"
+
+            # if value is unquoted, strip inline comments and re-trim
+            if [[ "$value" != \"*\" && "$value" != \'*\' ]]; then
+                value="${value%%\#*}"
+                value="$(echo "$value" | sed -E 's/[[:space:]]+$//')"
+            fi
+
+            # remove matching surrounding quotes (double or single)
+            if [[ "$value" == \"*\" && "$value" == *\" ]]; then
+                value="${value:1:-1}"
+            elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
+                value="${value:1:-1}"
+            fi
+
+            if [[ -n "$key" && "$key" != "CONFIG_VERSION" ]]; then
                 VALUES["$key"]="$value"
+            elif [[ "$key" == "CONFIG_VERSION" ]]; then
+                echo "Detected running version: $value"
+                RUNNING_VERSION="$value"
             fi
         done < "$ENV_FILE"
     fi
@@ -235,6 +281,18 @@ parse_template() {
             # Fill missing previous values with tpl values (aka default)
             if [[ -z "${VALUES[$VAR]}" ]]; then
                 VALUES["$VAR"]="$DEFAULT"
+            fi
+
+            # Detect here is tpl VERSION is different from running one
+            if [[ "$VAR" == "CONFIG_VERSION" ]]; then
+                if [[ -z "$RUNNING_VERSION" ]]; then
+                    echo -e "${GREEN} First installation detected.${NC}"
+                    DIFFERS=true
+                    FIRST_INSTALL=true
+                elif [[ "$RUNNING_VERSION" != "$DEFAULT" ]]; then
+                    echo -e "${YELLOW}⚠️  New config version detected ($DEFAULT) from running version ($RUNNING_VERSION).${NC}"
+                    DIFFERS=true
+                fi
             fi
 
             # Dependency handling
@@ -345,25 +403,32 @@ cat <<'EOF'
 \____/\___,_,_|\__, /\____,_| \__,_,_,_|
                 |__/      
                              
-                            Config Wizard.
-   💡 Press enter if blue default is good.
+                          Config Wizard.
 EOF
 echo -e "${NC}"
 
-# Launch the terminal prompt if running in a terminal
-if [[ -t 1 ]]; then
-    prompt_terminal
-    read -r -n 1 -p "❓ Do you want to proceed with the build script? (y/n) ▶" answer
-    if [[ "$answer" =~ ^[Yy]$ ]]; then
-        echo -e "${GREEN}▶ Proceeding with the run script...${NC}"
-        # Call the build script here, e.g.:
-        # ./build_script.sh
-    else
-        echo -e "${RED}💡 You can run the run script manually: ./run_script.sh ${NC}"
-        exit 0
+if [[ "$FIRST_INSTALL" != true ]] && [[ "$DIFFERS" == true ]]; then
+    echo -e "${CYAN}💡 Press enter if current value is good.${NC}"
+fi
+
+# If config version differs, warn user
+if [[ "$DIFFERS" != true ]]; then
+    echo -e "${GREEN}✔️  Running version matches the config template.${NC}"
+    read -r -p "❓ Do you want to go through config anyway ? (y/n) ▶" answera
+    if [[ "$answera" =~ ^[Yy]$ ]]; then
+        prompt_terminal
     fi
 else
-    # if not terminal, throw an error
-    echo "This script must be run in a terminal"
-    exit 1
+    prompt_terminal
+fi
+    
+
+read -r -p "❓ Do you want to proceed with the run script? (y/n) ▶" answerb
+if [[ "$answerb" =~ ^[Yy]$ ]]; then
+    echo -e "${GREEN}▶ Proceeding with the run script...${NC}"
+    # Call the run script here, e.g.:
+    # ./run_script.sh
+else
+    echo -e "${YELLOW}💡 You can run the run script manually: ./run_script.sh ${NC}"
+    exit 0
 fi
