@@ -202,7 +202,7 @@ prompt_for_l_choice() {
 
 ### LOAD, parse, prompt ###
 
-# LOAD
+# LOAD - this must be very hardened to ge through any kind of user-edited .env file
 load_env() {
     if [ -f "$ENV_FILE" ]; then
         while IFS= read -r line || [[ -n "$line" ]]; do
@@ -241,11 +241,10 @@ load_env() {
             elif [[ "$value" == \'*\' && "$value" == *\' ]]; then
                 value="${value:1:-1}"
             fi
-
+            # Store in VALUES array, except CONFIG_VERSION which is handled separately
             if [[ -n "$key" && "$key" != "CONFIG_VERSION" ]]; then
                 VALUES["$key"]="$value"
             elif [[ "$key" == "CONFIG_VERSION" ]]; then
-                echo "Detected running version: $value"
                 RUNNING_VERSION="$value"
             fi
         done < "$ENV_FILE"
@@ -280,18 +279,21 @@ parse_template() {
 
             # Fill missing previous values with tpl values (aka default)
             if [[ -z "${VALUES[$VAR]}" ]]; then
+                # remove matching surrounding quotes (double or single)
+                if [[ "$DEFAULT" == \"*\" && "$DEFAULT" == *\" ]]; then
+                    DEFAULT="${DEFAULT:1:-1}"
+                fi
                 VALUES["$VAR"]="$DEFAULT"
             fi
 
             # Detect here is tpl VERSION is different from running one
             if [[ "$VAR" == "CONFIG_VERSION" ]]; then
                 if [[ -z "$RUNNING_VERSION" ]]; then
-                    echo -e "${GREEN} First installation detected.${NC}"
                     DIFFERS=true
                     FIRST_INSTALL=true
                 elif [[ "$RUNNING_VERSION" != "$DEFAULT" ]]; then
-                    echo -e "${YELLOW}⚠️  New config version detected ($DEFAULT) from running version ($RUNNING_VERSION).${NC}"
                     DIFFERS=true
+                    CONFIG_VERSION="$DEFAULT"
                 fi
             fi
 
@@ -346,7 +348,7 @@ prompt_terminal() {
                 echo "💡 Press Enter on an empty line to finish."
                 "$FUNC_NAME"  # Call the function
                 if [[ -n "$func_output" ]]; then    
-                    VALUES["$VAR"]="\"$(echo "$func_output" | sed 's/ *$//' | sed 's/|$//')\""
+                    VALUES["$VAR"]="$(echo "$func_output" | sed 's/ *$//' | sed 's/|$//')"
                 fi
             else
                 echo "Warning: Function '$FUNC_NAME' not defined, skipping..."
@@ -376,14 +378,14 @@ prompt_terminal() {
 
     done
 
-    # Save securely to .env
+    # Save securely to .env inside double quotes for bash source compatibility and python getenv compatibility
     > "$ENV_FILE"
     for VAR in "${FIELDS[@]}"; do
-        echo "$VAR=${VALUES[$VAR]}" >> "$ENV_FILE"
+        echo "$VAR=\"${VALUES[$VAR]}\"" >> "$ENV_FILE"
     done
     echo " "
-    echo "✅ Configuration Saved!"
-    echo "💡 You can re-run this script to verify your settings or edit the .env file directly."
+    echo -e "${GREEN}💾 Config saved to $ENV_FILE...${NC}"
+    echo -e "${YELLOW}💡 You can re-run this script to verify your settings or carefully edit the ${ENV_FILE} file directly.${NC}"
 }
 
 
@@ -396,8 +398,8 @@ parse_template
 # FIGLET
 echo -e "${CYAN}"
 cat <<'EOF'
-     _     _ _        ____          _ _
-    | |___| | |_   _ / __/ _ ____ _(_) |
+   ___     _ _        ____          _ _
+  |_  |___| | |_   _ / __/ _ ____ _(_) |
  _  | / _ \ | | | | | |  _/ '_/ _` | | |
 / |_|   __/ |   |_|   |_| | |  (_| | | |
 \____/\___,_,_|\__, /\____,_| \__,_,_,_|
@@ -407,13 +409,22 @@ cat <<'EOF'
 EOF
 echo -e "${NC}"
 
+
+
+
+if [[ "$FIRST_INSTALL" == true ]]; then
+    echo -e "${GREEN}✅ First installation detected, please fill the config.${NC}"
+elif [[ "$DIFFERS" == true ]]; then
+    echo -e "${YELLOW}⚠️  New config version detected (v${CONFIG_VERSION}) from running version (v${RUNNING_VERSION}).${NC}"
+fi
+
 if [[ "$FIRST_INSTALL" != true ]] && [[ "$DIFFERS" == true ]]; then
     echo -e "${CYAN}💡 Press enter if current value is good.${NC}"
 fi
 
 # If config version differs, warn user
 if [[ "$DIFFERS" != true ]]; then
-    echo -e "${GREEN}✔️  Running version matches the config template.${NC}"
+    echo -e "${GREEN}✅ Running version matches the config template (v${RUNNING_VERSION}).${NC}"
     read -r -p "❓ Do you want to go through config anyway ? (y/n) ▶" answera
     if [[ "$answera" =~ ^[Yy]$ ]]; then
         prompt_terminal
@@ -429,6 +440,6 @@ if [[ "$answerb" =~ ^[Yy]$ ]]; then
     # Call the run script here, e.g.:
     # ./run_script.sh
 else
-    echo -e "${YELLOW}💡 You can run the run script manually: ./run_script.sh ${NC}"
+    echo -e "${YELLOW}💡 Ok, anyway you can run the run script manually: ./run_script.sh ${NC}"
     exit 0
 fi

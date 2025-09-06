@@ -27,7 +27,7 @@ RESET = "\033[0m"
 ### SETTINGS LOADING ###
 VERSION = "20250808" # !!! Should be aligned to settings.env.template and early_init.sh !!!
 INCR_KODI_REFR_MAX = 8
-CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION
+CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 RD_APITOKEN = os.getenv('RD_APITOKEN') or ""
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL') or ""
@@ -36,7 +36,10 @@ PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')
 # Pre-compute some flags
 RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
 JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
-KODI_MAIN_WANTED = True if (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "" and KODI_MAIN_URL != "your-player-ip-or-hostname") else False
+USE_PLEX = (os.getenv('USE_PLEX') or "y") != "n"
+USE_PLEX_ACTUALLY = USE_PLEX and len(PLEX_URLS_ARRAY) > 0 and PLEX_URLS_ARRAY[0] != ""
+USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
+USE_KODI_ACTUALLY = USE_KODI and (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "" and KODI_MAIN_URL != "your-player-ip-or-hostname")
 
 #default filling
 socket_started = False
@@ -59,24 +62,34 @@ import jg_services
 from base import logger_setup
 logger = logger_setup.log_setup()
 
-logger.warning(f"interested language(s) for metadata: {os.getenv('INTERESTED_LANGUAGES')}")
-
 # CONFIG INTEGRITY WARNINGS
-if JF_WANTED:
-    if os.getenv('JF_LOGIN') is None or os.getenv('JF_LOGIN') == "":
-        logger.warning("  JELLYFIN/ JF wanted but JF_LOGIN environment variable not set. admin will be used as default login")
-    if os.getenv('JF_PASSWORD') is None or os.getenv('JF_PASSWORD') == "":
-        logger.critical("  JELLYFIN/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
-    if os.getenv('WEBDAV_LAN_HOST') is None or os.getenv('WEBDAV_LAN_HOST') == "" or os.getenv('WEBDAV_LAN_HOST') == "PASTE-WEBDAV-LAN-HOST-HERE" or os.getenv('WEBDAV_LAN_HOST') == "your-nas-ip-or-hostname:8085":
-        logger.critical("     NGINX/ WEBDAV_LAN_HOST environment variable not set. JellyGrail content will not be reachable by Kodi")
 if VERSION != CONFIG_VERSION:
-    logger.error("    MANUAL/ Config version is different from app version, please STOP or CTRL-C the container, rerun jg-config.sh or fix directly in settings.env (vs. settings.env.example)")
+    logger.error("    CONFIG/ Config version is different from app version, please rerun jg-config.sh and restart container")
+
+if not JF_WANTED:
+    logger.warning("    CONFIG/ Jellyfin is disabled, maybe intentionnaly ? Otherwise please rerun jg-config.sh and restart container.")
 else:
-    if not KODI_MAIN_WANTED:
-        logger.warning("    MANUAL/ Kodi not wanted, maybe intentionnaly ? Otherwise please rerun jg-config.sh and restart container.")
-    else:
-        if not JF_WANTED:
-            logger.warning("    MANUAL/ Kodi main url defined, but embedded Jellyfin disabled, Kodi can work without NFO sync from jellyfin, however make sure not to use the Local NFO data scrapper in Kodi video sources configuration.")
+    if os.getenv('JF_LOGIN') is None or os.getenv('JF_LOGIN') == "":
+        logger.warning("    CONFIG/ JF wanted but JF_LOGIN environment variable not set. admin will be used as default login")
+    if os.getenv('JF_PASSWORD') is None or os.getenv('JF_PASSWORD') == "":
+        logger.critical("    CONFIG/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
+    if USE_KODI and (os.getenv('WEBDAV_LAN_HOST') is None or os.getenv('WEBDAV_LAN_HOST') == "" or os.getenv('WEBDAV_LAN_HOST') == "PASTE-WEBDAV-LAN-HOST-HERE" or os.getenv('WEBDAV_LAN_HOST') == "your-nas-ip-or-hostname:8085"):
+        logger.critical("    CONFIG/ WEBDAV_LAN_HOST environment variable not set. Nginx WebDAV server will not be reachable by Kodi")
+
+if not USE_KODI:
+    logger.warning("    CONFIG/ Kodi not wanted, maybe intentionnaly ? Otherwise please rerun jg-config.sh and restart container.")
+else:
+    if not USE_KODI_ACTUALLY:
+        logger.error("    CONFIG/ Kodi wanted but Kodi main url not defined, please check your settings.env file")
+    if not JF_WANTED:
+        logger.warning("    CONFIG/ Kodi wanted but embedded Jellyfin disabled, Kodi can work without NFO sync from jellyfin, however make sure not to use the Local NFO data scrapper in Kodi video sources configuration.")
+
+if not USE_PLEX:
+    logger.info("    CONFIG/ Plex integration not wanted.")
+else:
+    if not USE_PLEX_ACTUALLY:
+        logger.error("    CONFIG/ USE_PLEX is set but PLEX_URLS is empty, please check your settings.env file")
+
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -303,7 +316,7 @@ def refresh_all(step):
 
     if (step < 3 or (step > 10 and step < 13)): 
         if (not at_least_once_done[2] or nb_items > 0) and nb_items < INCR_KODI_REFR_MAX:
-            if KODI_MAIN_WANTED:                   
+            if USE_KODI_ACTUALLY:                   
                 if not refresh_kodi():
                     retry_later = True
                 else:
@@ -324,7 +337,7 @@ def refresh_all(step):
                 wait_for_jfscan_to_finish()
                 pass
             
-            if PLEX_URLS_ARRAY:
+            if USE_PLEX_ACTUALLY:
                 logger.info("         3| Plex library refresh...")
                 for plex_url in PLEX_URLS_ARRAY:
                     try:
@@ -335,7 +348,7 @@ def refresh_all(step):
         else:
             if JF_WANTED:
                 logger.info("         3| Library refresh bypassed")
-            if PLEX_URLS_ARRAY:
+            if USE_PLEX_ACTUALLY:
                 logger.info("         3| Plex refresh bypassed")
 
     if step < 5:
@@ -349,7 +362,7 @@ def refresh_all(step):
     # it's the alternative kodi refresh
     # if toomany, kodi refresh is done after jellyfin
 
-    if KODI_MAIN_WANTED:
+    if USE_KODI_ACTUALLY:
         if (step < 3 or (step > 10 and step < 13) or step == 9):
             if not nb_items < INCR_KODI_REFR_MAX:
                     if not refresh_kodi():
@@ -564,16 +577,33 @@ if __name__ == "__main__":
     full_run = True
 
     print( """
-""" + YELLOW + "github.com/philamp/jellygrail" + f"""
-     _     _ _        ____          _ _
-    | |___| | |_   _ / __/ _ ____ _(_) |
- _  | / _ \ | | | | | |  _/ '_/ _` | | |
-/ |_|   __/ |   |_|   |_| | |  (_| | | |
-\____/\___,_,_|\__, /\____,_| \__,_,_,_|
-                |__/
+""" + YELLOW + " ________________________ github.com/philamp/" + f"""
+|
+|       ___     _ _        ____          _ _
+|      |_  |___| | |_   _ / __/ _ ____ _(_) |
+|__   _  | / _ \ | | | | | |  _/ '_/ _` | | |  __
+     / |_|   __/ |   |_|   |_| | |  (_| | | |    |
+     \____/\___,_,_|\__, /\____,_| \__,_,_,_|    |
+                     |__/                        |
+                                    v{VERSION}    |
+     {GREEN}__________________{YELLOW}_{GREEN}__{YELLOW}__{GREEN}_{YELLOW}____________________|""" + RESET)
 
-                {VERSION}
-    """ + RESET)
+
+    # Some info to reassure user
+    logger.info(f"|")
+    logger.info(f"|  Prefered languages for filenaming and subtitles: {os.getenv('INTERESTED_LANGUAGES')}")
+    if JF_WANTED:
+        logger.info(f"|  IU: Contry: {os.getenv('JF_COUNTRY')}, Language: {os.getenv('JF_LANGUAGE')}")
+    if USE_KODI_ACTUALLY:
+        logger.info(f"|  Kodi host: {KODI_MAIN_URL} (NFO sync: {'enabled' if JF_WANTED else 'disabled'})")
+    if USE_PLEX_ACTUALLY:
+        logger.info(f"|  Plex refresh URL(s): {', '.join(PLEX_URLS_ARRAY)}")
+    if REMOTE_RDUMP_BASE_LOCATION.startswith('http') or REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234":
+        logger.info(f"|  Remote JellyGrail URL: {REMOTE_RDUMP_BASE_LOCATION}")
+    logger.info(f"|________________________________________ __ _")
+    logger.info(f" ")
+
+
 
     init_database()
 
@@ -596,11 +626,11 @@ if __name__ == "__main__":
         waitloop += 1
         time.sleep(1)
         if(waitloop > 30):
-            logger.critical("    SOCKET| BindFS is not connecting to socket !!!")
+            logger.critical("    SOCKET/ BindFS is not connecting to socket !!!")
         if(waitloop > 32):
             # this is a workaround if docker logs contains : s6-sudoc: fatal: unable to get exit status from server: Operation timed out, docker restarts and usually works after. Weird error. Seems related to the way socket is instanciated
             full_run = False
-            logger.critical(f"    SOCKET| JellyGrail now restarts if '--restart unless-stopped' was set, so please stop it manually to fix errors !!!")
+            logger.critical(f"    SOCKET/ JellyGrail now restarts if '--restart unless-stopped' was set, so please stop it manually to fix errors !!!")
             break
 
     # ----------------- INITs -----------------------------------------
