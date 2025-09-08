@@ -36,6 +36,7 @@ PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')
 # Pre-compute some flags
 RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
 JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
+JF_WANTED_ACTUALLY = JF_WANTED
 USE_PLEX = (os.getenv('USE_PLEX') or "y") != "n"
 USE_PLEX_ACTUALLY = USE_PLEX and len(PLEX_URLS_ARRAY) > 0 and PLEX_URLS_ARRAY[0] != ""
 USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
@@ -330,7 +331,7 @@ def refresh_all(step):
 
     if step < 4:
         if not at_least_once_done[3] or nb_items > 0:
-            if JF_WANTED:
+            if JF_WANTED_ACTUALLY:
                 logger.info("         3| Jellyfin library refresh...")
                 # refresh the jellyfin library and merge variants
                 lib_refresh_all()
@@ -346,13 +347,13 @@ def refresh_all(step):
                         logger.error(f"   REFRESH~ Plex refresh API unavailable for {plex_url}")
             at_least_once_done[3] = True
         else:
-            if JF_WANTED:
+            if JF_WANTED_ACTUALLY:
                 logger.info("         3| Library refresh bypassed")
             if USE_PLEX_ACTUALLY:
                 logger.info("         3| Plex refresh bypassed")
 
     if step < 5:
-        if JF_WANTED:
+        if JF_WANTED_ACTUALLY:
             if not nfo_loop_service():
                 step = 9 # if jfwanted but nfo gen fails stop here but will do kodi scan and merge
                 logger.warning("         4| Generating NFOs from Jellyfin does not work, refresh will stop there. Open jellyfin on your browser to create the primary user")
@@ -375,7 +376,7 @@ def refresh_all(step):
 
         # if step inferior or if specifically wanted with the webservice (6)
         if (step < 6 or (step > 10 and step < 16)) and retry_later == False:
-                if JF_WANTED:
+                if JF_WANTED_ACTUALLY:
                     if not send_nfo_to_kodi():
                         retry_later = True
                     else:
@@ -591,21 +592,33 @@ if __name__ == "__main__":
 
     # Some info to reassure user
     logger.info(f"|")
-    logger.info(f"|  Prefered languages for filenaming and subtitles: {os.getenv('INTERESTED_LANGUAGES')}")
+    logger.info(f"|  - Prefered languages:             {os.getenv('INTERESTED_LANGUAGES')}")
     if JF_WANTED:
-        logger.info(f"|  IU: Contry: {os.getenv('JF_COUNTRY')}, Language: {os.getenv('JF_LANGUAGE')}")
+        logger.info(f"|  - Jellyfin Metadata:              Country: {os.getenv('JF_COUNTRY')}")
+        logger.info(f"|                                    Language: {os.getenv('JF_LANGUAGE')}")
+        logger.info(f"|  - Jellyfin host:                  http://localhost:8096 (login: {os.getenv('JF_LOGIN') or 'admin'})")
+        logger.info(f"|  - Nginx WebDAV server:            http://{os.getenv('WEBDAV_LAN_HOST')}")
+        logger.info(f"|  - JellyGrail *simple* Admin UI:   http://localhost:6502")
     if USE_KODI_ACTUALLY:
-        logger.info(f"|  Kodi host: {KODI_MAIN_URL} (NFO sync: {'enabled' if JF_WANTED else 'disabled'})")
-    if USE_PLEX_ACTUALLY:
-        logger.info(f"|  Plex refresh URL(s): {', '.join(PLEX_URLS_ARRAY)}")
+        logger.info(f"|  - Kodi host:                      {KODI_MAIN_URL}")
+        logger.info(f"|                                    (NFO sync: {'enabled' if JF_WANTED else 'disabled'})""")
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http') or REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234":
-        logger.info(f"|  Remote JellyGrail URL: {REMOTE_RDUMP_BASE_LOCATION}")
+        logger.info(f"|  - Remote JellyGrail URL:          {REMOTE_RDUMP_BASE_LOCATION}")
+    if RD_API_SET:  
+        logger.info(f"|  - Real-Debrid API:                Enabled (token set)")
+    if USE_PLEX_ACTUALLY:
+        logger.info(f"|  - Plex refresh URL(s): {', '.join(PLEX_URLS_ARRAY)}")
     logger.info(f"|________________________________________ __ _")
     logger.info(f" ")
 
 
 
     init_database()
+
+    if JF_WANTED:
+        if not jfconfig():
+            logger.critical("  JELLYFIN/ Config failed, please stop the container and fix the error. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders but it will remove all your Jellyfin libraries, configuration and users.")
+            JF_WANTED_ACTUALLY = False
 
     bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
     # Thread 0.2 - UNIX Socket (ffprobe bash wrapper responder)
@@ -638,11 +651,7 @@ if __name__ == "__main__":
 
     # walking in mounts and subwalk only in remote_* and local_* folders
     to_watch = init_mountpoints()
-    # Config JF before starting threads and server threads      
-    if JF_WANTED:
-        if not jfconfig():
-            logger.critical("   JELLYFIN/ Config failed, container will now restart, but please stop it and fix the error (likely JF_LOGIN or JF_PASSWORD missing or wrong) in settings.env. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders")
-    
+    # Config JF before starting threads and server threads
 
 
     kodi_mysql_init_and_verify(just_verify=True)

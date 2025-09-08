@@ -324,4 +324,11 @@ def install_librairies():
             logger.info("  JELLYFIN/ First autoscan halted. Will be managed by JG")
 
     jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=[], method='post') # disable libraryscan as well
+
+    if systemconf := jfapi.jellyfin(f'System/Configuration', method='get'):
+        systemconf = systemconf.json()
+        systemconf['LibraryScanFanoutConcurrency'] = 2
+        systemconf['LibraryMetadataRefreshConcurrency'] = 2
+        jfapi.jellyfin(f'System/Configuration', json=systemconf, method='post')
+
     return True
