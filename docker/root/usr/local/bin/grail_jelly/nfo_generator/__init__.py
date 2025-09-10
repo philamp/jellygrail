@@ -13,10 +13,6 @@ from pathlib import Path
 # Jellyfin.Plugin.KodiSyncQueue/1197e3fbeaee4d1e905a5b3ef7f5380c/GetItems?lastUpdateDt=2024-06-12T00:00:00.0000000Z
 # {{baseUrl}}/Items?ParentId=f137a2dd21bbc1b99aa5c0f6bf02a805&Fields=MediaSources,ProviderIds,Overview
 
-# Webdav ip + port specified for local network (as seen by a local network device)
-# is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
-# WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
-
 
 # for fetch_nfo()
 NFO_FALLBACK = "/mounts/filedefaultnfo_readme_p.txt" # put a default path
@@ -97,7 +93,7 @@ def nfo_loop_service():
     try:
         users = jfapi.jellyfin('Users').json()
     except Exception as e:
-        logger.error(f"    JF-API| Getting JF users failed. Open jellyfin on your browser to create the primary user. error is: {e}")
+        logger.error(f"    JF-API| Getting JF users failed: {e}")
         #jfclose_ro()
         return False
     

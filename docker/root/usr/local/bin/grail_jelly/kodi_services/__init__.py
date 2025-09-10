@@ -10,8 +10,6 @@ from datetime import datetime
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
-NGINX_HOST = os.getenv('WEBDAV_LAN_HOST')
-
 kodi_url = f"http://{KODI_MAIN_URL}:8080/jsonrpc"
 kodi_ws_url = f"ws://{KODI_MAIN_URL}:9090/jsonrpc"
 kodi_username = "kodi"
@@ -577,7 +575,7 @@ def merge_kodi_versions():
 
     # sets collection images
     for (idset, strset, _) in get_undefined_collection_arts():
-        insert_collection_art(idset, "http://"+NGINX_HOST+"/pics/collections/"+urllib.parse.quote(strset, safe=SAFE)+".jpg")
+        insert_collection_art(idset, "http://"+WEBDAV_HOST_PORT+"/pics/collections/"+urllib.parse.quote(strset, safe=SAFE)+".jpg")
         
 
 

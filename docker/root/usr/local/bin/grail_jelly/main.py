@@ -2,6 +2,7 @@
 # coding: utf-8
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
+from base.constants import *
 import time
 import threading
 import pyinotify
@@ -74,7 +75,7 @@ else:
         logger.warning("    CONFIG/ JF wanted but JF_LOGIN environment variable not set. admin will be used as default login")
     if os.getenv('JF_PASSWORD') is None or os.getenv('JF_PASSWORD') == "":
         logger.critical("    CONFIG/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
-    if USE_KODI and (os.getenv('WEBDAV_LAN_HOST') is None or os.getenv('WEBDAV_LAN_HOST') == "" or os.getenv('WEBDAV_LAN_HOST') == "PASTE-WEBDAV-LAN-HOST-HERE" or os.getenv('WEBDAV_LAN_HOST') == "your-nas-ip-or-hostname:8085"):
+    if USE_KODI and (os.getenv('WEBDAV_LAN_HOST') is None or os.getenv('WEBDAV_LAN_HOST') == "" or os.getenv('WEBDAV_LAN_HOST') == "PASTE-WEBDAV-LAN-HOST-HERE" or os.getenv('WEBDAV_LAN_HOST') == "your-nas-ip-or-hostname"):
         logger.critical("    CONFIG/ WEBDAV_LAN_HOST environment variable not set. Nginx WebDAV server will not be reachable by Kodi")
 
 if not USE_KODI:
@@ -597,7 +598,7 @@ if __name__ == "__main__":
         logger.info(f"|  - Jellyfin Metadata:              Country: {os.getenv('JF_COUNTRY')}")
         logger.info(f"|                                    Language: {os.getenv('JF_LANGUAGE')}")
         logger.info(f"|  - Jellyfin host:                  http://localhost:8096 (login: {os.getenv('JF_LOGIN') or 'admin'})")
-        logger.info(f"|  - Nginx WebDAV server:            http://{os.getenv('WEBDAV_LAN_HOST')}")
+        logger.info(f"|  - Nginx WebDAV server:            http://{WEBDAV_HOST_PORT}")
         logger.info(f"|  - JellyGrail *simple* Admin UI:   http://localhost:6502")
     if USE_KODI_ACTUALLY:
         logger.info(f"|  - Kodi host:                      {KODI_MAIN_URL}")

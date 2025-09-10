@@ -113,9 +113,16 @@ if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ] && [ "$RD_APITOKEN" != "" ] ; the
 fi
 
 # - Webdav conf according to settings.env
-if [ "$WEBDAV_LAN_HOST" != "PASTE-WEBDAV-LAN-HOST-HERE" ] && [ "$WEBDAV_LAN_HOST" != "" ] && [ "$WEBDAV_LAN_HOST" != "your-nas-ip-or-hostname:8085" ] ; then
-  cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
-  sed -i "s/#WDLH#/$WEBDAV_LAN_HOST/" "/etc/nginx/nginx.conf"
+# Webdav port 8085 is default
+if [ "$WEBDAV_INTERNAL_PORT" == "" ] ; then
+  WEBDAV_INTERNAL_PORT="8085"
+fi
+
+cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
+sed -i "s/#WDP#/$WEBDAV_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
+
+if [ "$WEBDAV_LAN_HOST" != "PASTE-WEBDAV-LAN-HOST-HERE" ] && [ "$WEBDAV_LAN_HOST" != "" ] && [ "$WEBDAV_LAN_HOST" != "your-nas-ip-or-hostname" ] ; then
+  sed -i "s/#WDLH#/$WEBDAV_LAN_HOST:$WEBDAV_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
 else
   echo "CRITICAL : WEBDAV_LAN_HOST is not set in settings.env"
 fi

@@ -2,6 +2,8 @@ import os
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
 
+WEBDAV_INTERNAL_PORT_DEFAULT = 8085
+
 DEFAULT_JF_COUNTRY = "CH"
 
 DEFAULT_JF_LANGUAGE = "fr"
@@ -174,6 +176,10 @@ RDINCR_FILE = '/jellygrail/data/rd_incr.txt'
 REMOTE_PILE_KEY_FILE = '/jellygrail/data/remote_pile_key.txt'
 
 INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
+
+WEBDAV_INTERNAL_PORT = os.getenv('WEBDAV_INTERNAL_PORT') or WEBDAV_INTERNAL_PORT_DEFAULT
+
+WEBDAV_HOST_PORT = os.getenv('WEBDAV_LAN_HOST') + ":" + str(WEBDAV_INTERNAL_PORT)
 
 codes = set(INTERESTED_LANGUAGES.split())
 USED_LANGS = set(codes) # the result
