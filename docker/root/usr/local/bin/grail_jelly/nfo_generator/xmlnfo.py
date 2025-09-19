@@ -32,9 +32,63 @@ AV_KEY_MAPPING = {
 
 T_FORMAT = "%H:%M:%S"
 
+
+def build_jg_nfo_video(nfopath, pathjg, nfotype):
+    # mapping NFO2XMLTYPE → root tag
+    root_tag = NFO2XMLTYPE.get(nfotype, "movie")
+    pathwoext = get_wo_ext(nfopath)
+    title = os.path.basename(pathwoext)
+    dirnames = os.path.dirname(pathjg)
+
+    xml_parts = ['<?xml version="1.0" ?>']
+
+    # ouverture du XML
+    xml_parts.append = [f"<{root_tag}>"]
+
+    # choix du titre
+    if nfotype in ("bdmv", "dvd"):
+        val = os.path.basename(os.path.dirname(os.path.dirname(nfopath)))
+    elif nfotype in ("movie", "episodedetails"):
+        val = title
+    elif nfotype == "tvshow":
+        val = os.path.basename(os.path.dirname(nfopath))
+    else:
+        val = title  # fallback
+    xml_parts.append(f"  <title>{val}</title>")
+
+    # uniqueid
+    uid = os.path.dirname(nfopath).replace("/", "_").replace(" ", "-")
+    xml_parts.append(f'  <uniqueid type="jellygrail" default="true">{uid}</uniqueid>')
+
+    # tech details (si get_tech_xml_details retourne un str XML au lieu d’un Element)
+    if nfotype in ("movie", "episodedetails", "dvd", "bdmv"):
+        if tech_details := get_tech_xml_details(pathwoext):
+            xml_parts.append(str(tech_details))
+
+    # fermeture du root
+    xml_parts.append(f"</{root_tag}>")
+
+    # assemblage
+    xml_str = "\n".join(xml_parts)
+
+    # pretty print via minidom
+    #pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
+
+    try:
+        os.makedirs(dirnames, exist_ok=True)
+        with open(pathjg, "w", encoding="utf-8") as file:
+            file.write(xml_str)
+    except Exception:
+        return False
+
+    return True
+
+'''
 def build_jg_nfo_video(nfopath, pathjg, nfotype):
 
      # to get collection id which is in JF api but a pain to fetch :(
+
+    
 
     root = ET.Element(NFO2XMLTYPE.get(nfotype,"movie")) # ...indeed
     pathwoext = get_wo_ext(nfopath)
@@ -75,8 +129,92 @@ def build_jg_nfo_video(nfopath, pathjg, nfotype):
         return False
 
     return True
+'''
 
+def get_tech_xml_details(pathwoext):
+    # build the tech part of the nfo
+    if "video_ts" in pathwoext.lower().split(os.sep):
+        pathwoext = os.path.dirname(pathwoext) + "/VTS_01_1.VOB"
+    elif "bdmv" in pathwoext.lower().split(os.sep):
+        pathwoext = os.path.dirname(os.path.dirname(pathwoext))
 
+    if (ff_result := [ffpitem[0] for ffpitem in get_path_props_woext(pathwoext) if ffpitem[0] is not None]):
+        first_subs = []
+        last_subs = []
+        info = json.loads(ff_result[0].decode("utf-8"))
+
+        parts = []
+        parts.append("<fileinfo>")
+        parts.append("  <streamdetails>")
+
+        for stream in info.get('streams', []):
+            # VIDEO
+            hdrtype = None
+            if stream.get('codec_type') == "video" and stream.get('codec_name') not in ("mjpeg", "png"):
+                parts.append("    <video>")
+                for ffprobe_key, xml_tag in AV_KEY_MAPPING.items():
+                    if ffprobe_key in stream:
+                        val = str(stream[ffprobe_key])
+                        parts.append(f"      <{xml_tag}>{val}</{xml_tag}>")
+                
+                # HDR
+                if stream.get('color_transfer') == "smpte2084":
+                    hdrtype = "hdr10"
+                if (sideinfo := stream.get('side_data_list')):
+                    if (sideinfo[0].get('dv_profile')):
+                        hdrtype = "dolbyvision"
+                if hdrtype:
+                    parts.append(f"      <hdrtype>{hdrtype}</hdrtype>")
+
+                # VTAGS
+                if (tags := stream.get('tags')):
+                    if (tags.get('DURATION')):
+                        parsed_time = datetime.strptime(tags.get('DURATION')[:8], T_FORMAT)
+                        total_seconds = parsed_time.hour * 3600 + parsed_time.minute * 60 + parsed_time.second
+                        parts.append(f"      <durationinseconds>{total_seconds}</durationinseconds>")
+                    if (tags.get('language')):
+                        parts.append(f"      <language>{tags.get('language')}</language>")
+
+                parts.append("    </video>")
+            
+            # AUDIO
+            if stream.get('codec_type') == "audio":
+                parts.append("    <audio>")
+                for ffprobe_key, xml_tag in AV_KEY_MAPPING.items():
+                    if ffprobe_key in stream:
+                        val = str(stream[ffprobe_key])
+                        parts.append(f"      <{xml_tag}>{val}</{xml_tag}>")
+                if (tags := stream.get('tags')):
+                    if (tags.get('language')):
+                        parts.append(f"      <language>{tags.get('language')}</language>")
+                parts.append("    </audio>")
+
+            # SUBS
+            if stream.get('codec_type') == "subtitle":
+                if (tags := stream.get('tags')):
+                    if (sub_l := tags.get('language')):
+                        if sub_l in INTERESTED_LANGUAGES:
+                            first_subs.append(sub_l)
+                        else:
+                            last_subs.append(sub_l)
+
+        # éviter doublons
+        first_subs = list(set(first_subs))
+        last_subs  = list(set(last_subs))
+        first_subs.extend(last_subs)
+        for lang in first_subs:
+            parts.append("    <subtitle>")
+            parts.append(f"      <language>{lang}</language>")
+            parts.append("    </subtitle>")
+
+        parts.append("  </streamdetails>")
+        parts.append("</fileinfo>")
+
+        return "\n".join(parts)
+
+    return None
+
+'''
 def get_tech_xml_details(pathwoext):
     # build the tech part of the nfo
     #init_database()
@@ -162,6 +300,7 @@ def get_tech_xml_details(pathwoext):
 
     #sqclose()
     return None
+'''
 
 def jf_xml_create(item, is_updated, sdata = None):
 
@@ -194,16 +333,6 @@ def jf_xml_create(item, is_updated, sdata = None):
     if(item.get("TagLines")):
         ET.SubElement(root, "tagline").text = item.get("TagLines")[0]
     ET.SubElement(root, "runtime").text = str(ticks_to_minutes(item.get("RunTimeTicks", 60)))
-
-    # fetch collectiondata from sqlite db
-    '''
-    if item.get('Type') == 'Movie':
-        if (itemdata_array := [itemdata[0] for itemdata in fetch_item_data(item["Id"]) if itemdata[0] is not None]):
-            itemjsondb = json.loads(itemdata_array[0])
-            if tmdb_collection := itemjsondb.get("TmdbCollectionName", None):
-                setxml = ET.SubElement(root, "set")
-                ET.SubElement(setxml, "name").text = tmdb_collection
-    '''
 
     # nbseasons total in lib
     # nbepisodes total in lib toimprove

@@ -385,7 +385,8 @@ prompt_terminal() {
     done
     echo " "
     echo -e "${GREEN}💾 Config saved to $ENV_FILE...${NC}"
-    echo -e "${YELLOW}💡 You can re-run this script to verify your settings or carefully edit the ${ENV_FILE} file directly.${NC}"
+    echo -e "${YELLOW}💡 You can re-run this script to verify your settings.${NC}"
+    echo -e "${YELLOW}💡 You can also modify some expert vars in the ${ENV_FILE} (WebDAV port).${NC}"
 }
 
 
