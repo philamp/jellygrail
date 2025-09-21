@@ -7,10 +7,14 @@ import jfapi
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 from jgscan.jgsql import *
-from jfconfig.jfsql import *
+#from jfconfig.jfsql import *
 import urllib.parse
 import requests
+from xml.sax.saxutils import escape
 import copy
+import msgspec
+import io
+
 
 # for build_jg_nfo_video()
 NFO2XMLTYPE = {
@@ -31,6 +35,54 @@ AV_KEY_MAPPING = {
 }
 
 T_FORMAT = "%H:%M:%S"
+
+# --- msgspec structs ----
+class RemoteImage(msgspec.Struct, omit_defaults=True):
+    ImageType: str | None = None
+    Path: str | None = None
+
+class BoxSetItem(msgspec.Struct, omit_defaults=True):
+    Name: str | None = None
+    ImageUrl: str | None = None
+
+class ProviderIds(msgspec.Struct, omit_defaults=True):
+    Imdb: str | None = None
+    Tmdb: str | None = None
+    TmdbCollection: str | None = None
+
+class GenreItem(msgspec.Struct):
+    Name: str
+
+class Person(msgspec.Struct):
+    Id: str
+    Name: str
+    Role: str | None = None
+    Type: str | None = None
+
+class MediaSource(msgspec.Struct, omit_defaults=True):
+    Path: str | None = None
+    VideoType: str | None = None
+
+class Item(msgspec.Struct, omit_defaults=True):
+    Id: str
+    Type: str
+    Name: str | None = None
+    IndexNumber: int | None = None
+    ParentId: str | None = None
+    PremiereDate: str | None = None
+    Overview: str | None = None
+    OriginalTitle: str | None = None
+    TagLines: list[str] = []
+    RunTimeTicks: int | None = None
+    SeriesName: str | None = None
+    People: list[Person] = []
+    ProviderIds: dict[str, str] = {}
+    GenreItems: list[GenreItem] = []
+    Tags: list[str] = []
+    MediaSources: list[MediaSource] = []
+    Path: str | None = None
+    ProductionLocations: list[str] = []
+    CriticRating: int | None = None
 
 
 def build_jg_nfo_video(nfopath, pathjg, nfotype):
@@ -302,6 +354,189 @@ def get_tech_xml_details(pathwoext):
     return None
 '''
 
+
+def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | None = None):
+    tstmp = int(time.time())
+    s = io.StringIO()
+    logger.debug(f"NFO wrinting stuff part 1")
+    # --- ouverture
+    if item.Type == "Movie":
+        s.write("<movie>\n")
+    elif item.Type == "Episode":
+        s.write("<episodedetails>\n")
+    elif item.Type == "Series":
+        s.write("<tvshow>\n")
+        seasons_data = sdata.get(item.Id, []) if sdata else []
+    else:
+        logger.warning(f"Unsupported type {item.Type}")
+        return
+
+    # --- spécifique épisode
+    if item.Type == "Episode":
+        s.write(f"<showtitle>{escape(item.SeriesName or '')}</showtitle>\n")
+        s.write(f"<aired>{(item.PremiereDate or '')[:10]}</aired>\n")
+
+    # --- communs
+    s.write(f"<title>{escape(item.Name or '')}</title>\n")
+    s.write(f"<premiered>{(item.PremiereDate or '')[:10]}</premiered>\n")
+    s.write(f"<plot>{escape(item.Overview or '')}</plot>\n")
+    s.write(f"<originaltitle>{escape(item.OriginalTitle or '')}</originaltitle>\n")
+
+    if item.TagLines:
+        s.write(f"<tagline>{escape(item.TagLines[0])}</tagline>\n")
+
+    s.write(f"<runtime>{ticks_to_minutes(item.RunTimeTicks or 60)}</runtime>\n")
+    logger.debug(f"NFO getting images")
+    # --- images principales
+    try:
+        imgs_raw = jfapi.jellyfin(f"Items/{item.Id}/Images").content
+        item_images = msgspec.json.decode(imgs_raw, type=list[RemoteImage])
+    except Exception as e:
+        logger.error(f"> Get JF pics failed: {e}")
+        item_images = []
+
+    for im in item_images:
+        if not im.Path:
+            continue
+        url = f"http://[HOST_PORT]/pics{im.Path[JF_MD_SHIFT:]}?{tstmp}"
+        if im.ImageType == "Primary":
+            aspect = "thumb" if item.Type == "Episode" else "poster"
+            s.write(f"<thumb aspect=\"{aspect}\">{escape(url)}</thumb>\n")
+        elif im.ImageType == "Logo":
+            s.write(f"<thumb aspect=\"clearlogo\">{escape(url)}</thumb>\n")
+        elif im.ImageType == "Backdrop":
+            s.write(f"<thumb aspect=\"fanart\">{escape(url)}</thumb>\n")
+            s.write(f"<thumb aspect=\"banner\">{escape(url)}</thumb>\n")
+
+    # --- images saisons (Series)
+    if item.Type == "Series":
+        for season in seasons_data:
+            try:
+                simgs_raw = jfapi.jellyfin(f"Items/{season['suid']}/Images").content
+                simgs = msgspec.json.decode(simgs_raw, type=list[RemoteImage])
+            except Exception as e:
+                logger.error(f"> Get JF pics TVSHOW failed: {e}")
+                simgs = []
+            for im in simgs:
+                if not im.Path:
+                    continue
+                url = f"http://[HOST_PORT]/pics{im.Path[JF_MD_SHIFT:]}?{tstmp}"
+                s.write(
+                    f"<thumb aspect=\"poster\" type=\"season\" season=\"{season['sidx']}\">{escape(url)}</thumb>\n"
+                )
+    logger.debug(f"NFO wrinting actor stuff + simages")
+    # --- cast & crew
+    if item.Type in ("Movie", "Episode", "Series"):
+        for actor in item.People or []:
+            s.write("<actor>\n")
+            s.write(f"<name>{escape(actor.Name or '')}</name>\n")
+            s.write(f"<role>{escape(actor.Role or '')}</role>\n")
+            if actor.Type == "Director" and item.Type in ("Movie", "Episode"):
+                s.write(f"<director>{escape(actor.Name or '')}</director>\n")
+            try:
+                aimgs_raw = jfapi.jellyfin(f"Items/{actor.Id}/Images").content
+                aimgs = msgspec.json.decode(aimgs_raw, type=list[RemoteImage])
+            except Exception as e:
+                logger.error(f"> Get JF actor pic failed: {e}")
+                aimgs = []
+            for im in aimgs:
+                if not im.Path:
+                    continue
+                url = f"http://[HOST_PORT]/pics{urllib.parse.quote(im.Path[JF_MD_SHIFT:], safe=SAFE)}?{tstmp}"
+                s.write(f"<thumb>{escape(url)}</thumb>\n")
+            s.write("</actor>\n")
+
+    # --- pays
+    if item.Type == "Movie" and item.ProductionLocations:
+        s.write(f"<country>{escape(item.ProductionLocations[0])}</country>\n")
+
+    # --- rating
+    if item.CriticRating is not None:
+        s.write("<ratings>\n")
+        s.write("<rating name=\"tomatometerallaudience\" max=\"100\" default=\"true\">\n")
+        s.write(f"<value>{item.CriticRating}</value>\n")
+        s.write("</rating>\n</ratings>\n")
+
+    # --- Provider IDs + gestion TMDB collection
+    did_write_collection = False
+    for key, val in (item.ProviderIds or {}).items():
+        if key.lower() == "imdb":
+            s.write(f"<uniqueid type=\"{key.lower()}\" default=\"true\">{escape(val)}</uniqueid>\n")
+        else:
+            s.write(f"<uniqueid type=\"{key.lower()}\">{escape(val)}</uniqueid>\n")
+
+        if not did_write_collection and key.lower() == "tmdbcollection":
+            # Récupération des infos de la collection (boxset)
+            logger.debug(f"REMOTE SEARCH TMDBCOLLECTION {val}")
+            payload = {"SearchInfo": {"ProviderIds": {"Tmdb": f"{val}"}}}
+            try:
+                bs_raw = jfapi.jellyfin("Items/RemoteSearch/BoxSet", json=payload, method="post").content
+                collec_items = msgspec.json.decode(bs_raw, type=list[BoxSetItem])
+            except Exception as e:
+                logger.warning(f"      TASK| Getting movie collection metadata failed: {e}")
+                collec_items = []
+
+            for c in collec_items:
+                if not c.Name:
+                    continue
+                # <set><name>...</name></set>
+                s.write("<set>\n")
+                s.write(f"<name>{escape(c.Name)}</name>\n")
+                s.write("</set>\n")
+
+                # Télécharger l'image de collection si absente
+                folderstorepath = JF_METADATA_ROOT + "/collections"
+                filestorepath = folderstorepath + "/" + c.Name + ".jpg"
+                if c.ImageUrl and not os.path.exists(filestorepath):
+                    os.makedirs(folderstorepath, exist_ok=True)
+                    try:
+                        resp = requests.get(c.ImageUrl, stream=True, timeout=15)
+                        resp.raise_for_status()
+                        with open(filestorepath, "wb") as file:
+                            for chunk in resp.iter_content(chunk_size=8192):
+                                file.write(chunk)
+                    except Exception as e:
+                        logger.debug(f"dling collection image {val} failed: {e}")
+                did_write_collection = True
+                break  # on ne prend que la première correspondance utile
+    logger.debug(f"NFO wrinting tag stuff and closing")
+    # --- genres
+    for genre in item.GenreItems or []:
+        s.write(f"<genre>{escape(genre.Name or '')}</genre>\n")
+
+    # --- tags
+    if item.Type in ("Movie", "Series"):
+        for tag in item.Tags or []:
+            s.write(f"<tag>{escape(tag)}</tag>\n")
+
+    # --- fermeture
+    if item.Type == "Movie":
+        s.write("</movie>")
+    elif item.Type == "Episode":
+        s.write("</episodedetails>")
+    elif item.Type == "Series":
+        s.write("</tvshow>")
+
+    xml = s.getvalue()
+
+    # --- écriture
+    if item.Type != "Series":
+        for ms in item.MediaSources or []:
+            path = ms.Path or ""
+            if ms.VideoType == "BluRay":
+                nfo_full_path = JFSQ_STORED_NFO + path[JG_VIRT_SHIFT:] + "/BDMV/index.nfo.jf"
+            elif ms.VideoType == "Dvd":
+                nfo_full_path = JFSQ_STORED_NFO + path[JG_VIRT_SHIFT:] + "/VIDEO_TS/VIDEO_TS.nfo.jf"
+            else:
+                nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(path[JG_VIRT_SHIFT:]) + ".nfo.jf"
+            write_to_disk(xml, nfo_full_path, is_updated)
+    else:
+        if item.Path:
+            nfo_full_path = JFSQ_STORED_NFO + item.Path[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf"
+            write_to_disk(xml, nfo_full_path, is_updated)
+
+
+'''
 def jf_xml_create(item, is_updated, sdata = None):
 
     tstmp = int(time.time())
@@ -483,6 +718,7 @@ def jf_xml_create(item, is_updated, sdata = None):
         #nfo_full_paths = list(set(nfo_full_paths))
         #for nfo_full_path in nfo_full_paths:
         write_to_disk(root, nfo_full_path, is_updated)
+'''
 
 def write_to_disk(root, nfo_full_path, is_updated):
 
@@ -494,11 +730,13 @@ def write_to_disk(root, nfo_full_path, is_updated):
     else:
         nfo_full_path_towrite = nfo_full_path
 
-    xml_str = ET.tostring(root, encoding="unicode")
-    pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
+    logger.debug(f"wrinting NFO: {nfo_full_path_towrite}")
+                 
+    #xml_str = ET.tostring(root, encoding="unicode")
+    #pretty_xml_str = minidom.parseString(xml_str).toprettyxml(indent="  ")
     os.makedirs(os.path.dirname(nfo_full_path_towrite), exist_ok = True)
     with open(nfo_full_path_towrite, "w", encoding="utf-8") as file:
-        file.write(pretty_xml_str)
+        file.write(root)
 
     # try to remove a .done file anyway
     files_to_delete.append(nfo_full_path + ".done")

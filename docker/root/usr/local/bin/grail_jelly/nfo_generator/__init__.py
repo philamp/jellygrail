@@ -3,8 +3,9 @@ from base import *
 from base.littles import *
 from base.constants import *
 from datetime import datetime
-from jfconfig.jfsql import *
-from nfo_generator.xmlnfo import *
+# from jfconfig.jfsql import *
+import jfapi
+from nfo_generator.xmlnfo import Item, build_jg_nfo_video, jf_xml_create
 from pathlib import Path
 import msgspec
 
@@ -16,9 +17,13 @@ import msgspec
 class User(msgspec.Struct):
     Id: str
 
+
+''' 
+# and not used:
 class MediaSource(msgspec.Struct, omit_defaults=True):
     Path: str | None = None
 
+# used 
 class Item(msgspec.Struct, omit_defaults=True):
     Id: str
     Type: str
@@ -26,6 +31,7 @@ class Item(msgspec.Struct, omit_defaults=True):
     SeriesName: str | None = None
     IndexNumber: int | None = None
     MediaSources: list[MediaSource] = []
+'''
 
 class SyncQueue(msgspec.Struct, omit_defaults=True):
     ItemsAdded: list[str] = []
@@ -141,20 +147,21 @@ def nfo_loop_service() -> bool:
     s_data: dict[str, list[dict]] = {}
 
     # --- full dump (movies + episodes + seasons) ---
-    try:
-        dump_raw = jfapi.jellyfin(
-            "Items",
-            params=dict(
-                userId=user_id,
-                Recursive=True,
-                includeItemTypes="Season,Movie,Episode",
-                Fields="MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,"
-                       "Taglines,Genres,Tags,ParentId,Path,People,ProductionLocations"
-            )
-        ).content
+
+    
+    if dump_raw := jfapi.jellyfin(
+        "Items",
+        params=dict(
+            userId=user_id,
+            Recursive=True,
+            includeItemTypes="Season,Movie,Episode",
+            Fields="MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,"
+                    "Taglines,Genres,Tags,ParentId,Path,People,ProductionLocations"
+        )
+    ).content:
         whole_jf_json_dump = msgspec.json.decode(dump_raw, type=ItemsResponse).Items
-    except Exception as e:
-        logger.critical(f"!!! Get JF lib json dump failed [nfo_loop_service] error: {e}")
+    else:
+        logger.critical(f"   NFO-GEN| ...so nfo generation failed only at getting at /Items")
         return False
 
     # --- enrich sync list with parent episodes/seasons ---
@@ -164,9 +171,9 @@ def nfo_loop_service() -> bool:
                 if item.Id == item_id and item.ParentId and item.ParentId not in items_added_and_updated_pre:
                     items_added_and_updated.append((item.ParentId, is_updated))
 
-            for mediasource in item.MediaSources:
-                if mediasource.Path:
-                    path = Path(mediasource.Path)
+            # for mediasource in item.MediaSources:
+                # if mediasource.Path:
+                    # path = Path(mediasource.Path)
                     # logger.debug(f"Episode media path: {path}")
 
         elif item.Type == "Season":
@@ -182,19 +189,18 @@ def nfo_loop_service() -> bool:
                 s_data[item.ParentId].append({"sidx": item.IndexNumber, "suid": item.Id})
 
     # --- fetch TV shows ---
-    try:
-        dump_s_raw = jfapi.jellyfin(
-            "Items",
-            params=dict(
-                userId=user_id,
-                Recursive=True,
-                includeItemTypes="Series",
-                Fields="ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path"
-            )
-        ).content
+    if dump_s_raw := jfapi.jellyfin(
+        "Items",
+        params=dict(
+            userId=user_id,
+            Recursive=True,
+            includeItemTypes="Series",
+            Fields="ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path"
+        )
+    ).content:
         whole_jf_json_dump_s = msgspec.json.decode(dump_s_raw, type=ItemsResponse).Items
-    except Exception as e:
-        logger.critical(f"!!! Get JF lib json TVSHOW dump failed [nfo_loop_service] error: {e}")
+    else:
+        logger.critical(f"   NFO-GEN| ...so nfo generation failed only at getting at /Items (bis)")
         whole_jf_json_dump = None
         return False
 
@@ -209,7 +215,7 @@ def nfo_loop_service() -> bool:
                 else:
                     nbofepisode += 1
                 if nbofmovieorepisode % 5 == 0:
-                    logger.info(f"    JF-API| NFOs generating... Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
+                    logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
 
     # --- XML creation for TV shows ---
     for item in whole_jf_json_dump_s:
@@ -218,9 +224,9 @@ def nfo_loop_service() -> bool:
                 jf_xml_create(item, is_updated, sdata=s_data)
                 nboftvshow += 1
                 if nboftvshow % 5 == 0:
-                    logger.info(f"    JF-API| NFOs generating... Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
+                    logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
 
-    logger.info(f"    JF-API| ...NFOs generated: Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}] ...completed")
+    logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}] ...completed")
 
     whole_jf_json_dump = None
     whole_jf_json_dump_s = None
