@@ -355,11 +355,13 @@ def refresh_all(step):
 
     if step < 5:
         if JF_WANTED_ACTUALLY:
+            logger.info("         4| Generate Jellyfin NFOs *if any new items*...")
             if not nfo_loop_service():
                 step = 9 # if jfwanted but nfo gen fails stop here but will do kodi scan and merge
-                logger.warning("         4| Generating NFOs from Jellyfin does not work, refresh will stop there. Open jellyfin on your browser to create the primary user")
+                logger.error("         4| Generating NFOs from Jellyfin did not work, Kodi will refresh but without Jellyfin metadata")
         else:
-            logger.warning(" Step 4 Can't be done because JF_WANTED is not enabled in settings.env | But kodi refresh and merging can work: In this case kodi sources should be configured for online metadata")
+            step = 9
+            logger.warning("         4| Can't be done because JF_WANTED is not enabled in settings.env, Kodi will refresh but without Jellyfin metadata: In this case kodi sources should be configured for online metadata")
 
     # it's the alternative kodi refresh
     # if toomany, kodi refresh is done after jellyfin

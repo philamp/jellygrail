@@ -8,6 +8,9 @@ DEFAULT_JF_COUNTRY = "CH"
 
 DEFAULT_JF_LANGUAGE = "fr"
 
+# for fetch_nfo()
+NFO_FALLBACK = "/mounts/filedefaultnfo_readme_p.txt" # put a default path
+
 # sub exts
 SUB_EXTS = ('.srt', '.sub', '.idx', '.ssa', '.ass', '.sup', '.usf')
 

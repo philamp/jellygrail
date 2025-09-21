@@ -6,16 +6,34 @@ from datetime import datetime
 from jfconfig.jfsql import *
 from nfo_generator.xmlnfo import *
 from pathlib import Path
-
-# Name of librairies
-# LIB_NAMES = ("Movies", "Shows")
+import msgspec
 
 # Jellyfin.Plugin.KodiSyncQueue/1197e3fbeaee4d1e905a5b3ef7f5380c/GetItems?lastUpdateDt=2024-06-12T00:00:00.0000000Z
 # {{baseUrl}}/Items?ParentId=f137a2dd21bbc1b99aa5c0f6bf02a805&Fields=MediaSources,ProviderIds,Overview
 
 
-# for fetch_nfo()
-NFO_FALLBACK = "/mounts/filedefaultnfo_readme_p.txt" # put a default path
+# --- msgspec structs ---
+class User(msgspec.Struct):
+    Id: str
+
+class MediaSource(msgspec.Struct, omit_defaults=True):
+    Path: str | None = None
+
+class Item(msgspec.Struct, omit_defaults=True):
+    Id: str
+    Type: str
+    ParentId: str | None = None
+    SeriesName: str | None = None
+    IndexNumber: int | None = None
+    MediaSources: list[MediaSource] = []
+
+class SyncQueue(msgspec.Struct, omit_defaults=True):
+    ItemsAdded: list[str] = []
+    ItemsUpdated: list[str] = []
+
+class ItemsResponse(msgspec.Struct):
+    Items: list[Item]
+
 
 
 def fetch_nfo(nfopath):
@@ -77,6 +95,140 @@ def fetch_nfo(nfopath):
         return NFO_FALLBACK
 
 
+def nfo_loop_service() -> bool:
+    nbofmovieorepisode = 0
+    nbofmovie = 0
+    nbofepisode = 0
+    nboftvshow = 0
+
+    whole_jf_json_dump: list[Item] | None = None
+
+    # --- get first user ---
+
+    if users_raw := jfapi.jellyfin("Users").content:
+        users = msgspec.json.decode(users_raw, type=list[User])
+    else:
+        logger.error(f"   NFO-GEN| ...so nfo generation failed immediately at getting JF users")
+        return False
+
+    user_id = users[0].Id
+
+    # --- syncqueue ---
+
+    if syncqueue_raw := jfapi.jellyfin(
+        f"Jellyfin.Plugin.KodiSyncQueue/{user_id}/GetItems",
+        params=dict(lastUpdateDt=read_jfsqdate_from_file())
+    ).content:
+        syncqueue = msgspec.json.decode(syncqueue_raw, type=SyncQueue)
+    else:
+        logger.critical(f"   NFO-GEN| ...so nfo generation failed only at getting Jellyfin.Plugin.KodiSyncQueue")
+        return False
+
+    nowdate = datetime.now().isoformat()
+
+    items_added_and_updated_pre = syncqueue.ItemsAdded + syncqueue.ItemsUpdated
+    if not items_added_and_updated_pre:
+        return True
+
+    logger.info("   NFO-GEN| ...New NFOs: metadata JSON dump (can take a while)...")
+
+    # --- deduplication ---
+    items_added_and_updated_pre = list(set(items_added_and_updated_pre))
+    items_added_and_updated: list[tuple[str, bool]] = [
+        (iid, iid in syncqueue.ItemsUpdated) for iid in items_added_and_updated_pre
+    ]
+
+    s_data: dict[str, list[dict]] = {}
+
+    # --- full dump (movies + episodes + seasons) ---
+    try:
+        dump_raw = jfapi.jellyfin(
+            "Items",
+            params=dict(
+                userId=user_id,
+                Recursive=True,
+                includeItemTypes="Season,Movie,Episode",
+                Fields="MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,"
+                       "Taglines,Genres,Tags,ParentId,Path,People,ProductionLocations"
+            )
+        ).content
+        whole_jf_json_dump = msgspec.json.decode(dump_raw, type=ItemsResponse).Items
+    except Exception as e:
+        logger.critical(f"!!! Get JF lib json dump failed [nfo_loop_service] error: {e}")
+        return False
+
+    # --- enrich sync list with parent episodes/seasons ---
+    for item in whole_jf_json_dump:
+        if item.Type == "Episode":
+            for item_id, is_updated in items_added_and_updated:
+                if item.Id == item_id and item.ParentId and item.ParentId not in items_added_and_updated_pre:
+                    items_added_and_updated.append((item.ParentId, is_updated))
+
+            for mediasource in item.MediaSources:
+                if mediasource.Path:
+                    path = Path(mediasource.Path)
+                    # logger.debug(f"Episode media path: {path}")
+
+        elif item.Type == "Season":
+            for item_id, is_updated in items_added_and_updated:
+                if item.Id == item_id and item.ParentId and item.ParentId not in items_added_and_updated_pre:
+                    items_added_and_updated.append((item.ParentId, is_updated))
+
+    # --- collect season info per tvshow ---
+    for item in whole_jf_json_dump:
+        if item.Type == "Season" and item.ParentId:
+            if any(pid == item.ParentId for pid, _ in items_added_and_updated):
+                s_data.setdefault(item.ParentId, [])
+                s_data[item.ParentId].append({"sidx": item.IndexNumber, "suid": item.Id})
+
+    # --- fetch TV shows ---
+    try:
+        dump_s_raw = jfapi.jellyfin(
+            "Items",
+            params=dict(
+                userId=user_id,
+                Recursive=True,
+                includeItemTypes="Series",
+                Fields="ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path"
+            )
+        ).content
+        whole_jf_json_dump_s = msgspec.json.decode(dump_s_raw, type=ItemsResponse).Items
+    except Exception as e:
+        logger.critical(f"!!! Get JF lib json TVSHOW dump failed [nfo_loop_service] error: {e}")
+        whole_jf_json_dump = None
+        return False
+
+    # --- XML creation for movies & episodes ---
+    for item in whole_jf_json_dump:
+        for item_id, is_updated in items_added_and_updated:
+            if item.Id == item_id and item.Type in ("Movie", "Episode"):
+                jf_xml_create(item, is_updated)
+                nbofmovieorepisode += 1
+                if item.Type == "Movie":
+                    nbofmovie += 1
+                else:
+                    nbofepisode += 1
+                if nbofmovieorepisode % 5 == 0:
+                    logger.info(f"    JF-API| NFOs generating... Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
+
+    # --- XML creation for TV shows ---
+    for item in whole_jf_json_dump_s:
+        for item_id, is_updated in items_added_and_updated:
+            if item.Id == item_id and item.Type == "Series":
+                jf_xml_create(item, is_updated, sdata=s_data)
+                nboftvshow += 1
+                if nboftvshow % 5 == 0:
+                    logger.info(f"    JF-API| NFOs generating... Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
+
+    logger.info(f"    JF-API| ...NFOs generated: Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}] ...completed")
+
+    whole_jf_json_dump = None
+    whole_jf_json_dump_s = None
+
+    save_jfsqdate_to_file(nowdate)
+    return True
+
+'''
 def nfo_loop_service():
 
     nbofmovieorepisode = 0
@@ -234,12 +386,12 @@ def nfo_loop_service():
 
                     #already_seen.append(item_id)
 
-        '''
+        #
         s_ids = []
         for item in whole_jf_json_dump_s:
             s_ids.append(item.get('Id'))
         orphans = [key for key in t_data if key not in s_ids]
-        '''
+        #
 
 
 
@@ -276,7 +428,7 @@ def nfo_loop_service():
         return True
     return True
     # ---- if finished correctly
-
+'''
 
 def read_jfsqdate_from_file():
     try:

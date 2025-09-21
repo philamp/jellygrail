@@ -43,7 +43,7 @@ def build_jg_nfo_video(nfopath, pathjg, nfotype):
     xml_parts = ['<?xml version="1.0" ?>']
 
     # ouverture du XML
-    xml_parts.append = [f"<{root_tag}>"]
+    xml_parts.append(f"<{root_tag}>")
 
     # choix du titre
     if nfotype in ("bdmv", "dvd"):
