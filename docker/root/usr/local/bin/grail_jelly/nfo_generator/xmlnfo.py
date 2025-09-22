@@ -14,6 +14,7 @@ from xml.sax.saxutils import escape
 import copy
 import msgspec
 import io
+import glob
 
 
 # for build_jg_nfo_video()
@@ -354,6 +355,63 @@ def get_tech_xml_details(pathwoext):
     return None
 '''
 
+def add_images_from_fs_people(s: io.StringIO, pname: str, tstmp: int):
+
+    prefix = pname[:1]
+    folder = os.path.join(JF_METADATA_ROOT+"/People", prefix, pname)
+
+    for fpath in glob.glob(os.path.join(folder, "*")):
+        fname = os.path.basename(fpath).lower()
+        #url = f"http://[HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
+        url = f"http://[HOST_PORT]/pics{urllib.parse.quote(fpath[JF_MD_SHIFT:], safe=SAFE)}?{tstmp}"
+        if "folder" in fname:
+            s.write(f"<thumb>{url}</thumb>\n")
+
+
+def add_images_from_fs_season(s: io.StringIO, season: list, tstmp: int):
+
+    prefix = season["suid"][:2]
+    folder = os.path.join(JF_METADATA_ROOT+"/library", prefix, season["suid"])
+
+    #older = get_item_metadata_folder(item.Id)
+    #if not os.path.exists(folder):
+    #    logger.error(f"No pic folder for {item.Id}")
+    #    return
+
+    for fpath in glob.glob(os.path.join(folder, "*")):
+        fname = os.path.basename(fpath).lower()
+        url = f"http://[HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
+
+        if "poster" in fname:
+            s.write(f"<thumb aspect=\"poster\" type=\"season\" season=\"{season['sidx']}\">{escape(url)}</thumb>\n")
+
+
+def add_images_from_fs(s: io.StringIO, item: Item, tstmp: int):
+
+    prefix = item.Id[:2]
+    folder = os.path.join(JF_METADATA_ROOT+"/library", prefix, item.Id)
+
+    #older = get_item_metadata_folder(item.Id)
+    #if not os.path.exists(folder):
+    #    logger.error(f"No pic folder for {item.Id}")
+    #    return
+
+    for fpath in glob.glob(os.path.join(folder, "*")):
+        fname = os.path.basename(fpath).lower()
+        url = f"http://[HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
+
+
+        if "poster" in fname:
+            aspect = "thumb" if item.Type == "Episode" else "poster"
+            s.write(f"<thumb aspect=\"{aspect}\">{url}</thumb>\n")
+        elif "logo" in fname:
+            s.write(f"<thumb aspect=\"clearlogo\">{url}</thumb>\n")
+        elif "backdrop" in fname:
+            s.write(f"<thumb aspect=\"fanart\">{url}</thumb>\n")
+            s.write(f"<thumb aspect=\"banner\">{url}</thumb>\n")
+
+
+
 
 def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | None = None):
     tstmp = int(time.time())
@@ -388,6 +446,8 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
     s.write(f"<runtime>{ticks_to_minutes(item.RunTimeTicks or 60)}</runtime>\n")
     logger.debug(f"NFO getting images")
     # --- images principales
+    add_images_from_fs(s, item, tstmp)
+    '''
     try:
         imgs_raw = jfapi.jellyfin(f"Items/{item.Id}/Images").content
         item_images = msgspec.json.decode(imgs_raw, type=list[RemoteImage])
@@ -407,10 +467,14 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
         elif im.ImageType == "Backdrop":
             s.write(f"<thumb aspect=\"fanart\">{escape(url)}</thumb>\n")
             s.write(f"<thumb aspect=\"banner\">{escape(url)}</thumb>\n")
+    '''
 
     # --- images saisons (Series)
     if item.Type == "Series":
         for season in seasons_data:
+
+            add_images_from_fs_season(s, season, tstmp)
+            '''
             try:
                 simgs_raw = jfapi.jellyfin(f"Items/{season['suid']}/Images").content
                 simgs = msgspec.json.decode(simgs_raw, type=list[RemoteImage])
@@ -424,7 +488,9 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
                 s.write(
                     f"<thumb aspect=\"poster\" type=\"season\" season=\"{season['sidx']}\">{escape(url)}</thumb>\n"
                 )
-    logger.debug(f"NFO wrinting actor stuff + simages")
+            '''
+
+    logger.debug(f"NFO writing actor stuff + images")
     # --- cast & crew
     if item.Type in ("Movie", "Episode", "Series"):
         for actor in item.People or []:
@@ -433,6 +499,9 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
             s.write(f"<role>{escape(actor.Role or '')}</role>\n")
             if actor.Type == "Director" and item.Type in ("Movie", "Episode"):
                 s.write(f"<director>{escape(actor.Name or '')}</director>\n")
+
+            add_images_from_fs_people(s, actor.Name, tstmp)
+            '''
             try:
                 aimgs_raw = jfapi.jellyfin(f"Items/{actor.Id}/Images").content
                 aimgs = msgspec.json.decode(aimgs_raw, type=list[RemoteImage])
@@ -444,6 +513,7 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
                     continue
                 url = f"http://[HOST_PORT]/pics{urllib.parse.quote(im.Path[JF_MD_SHIFT:], safe=SAFE)}?{tstmp}"
                 s.write(f"<thumb>{escape(url)}</thumb>\n")
+            '''
             s.write("</actor>\n")
 
     # --- pays
@@ -469,11 +539,10 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
             # Récupération des infos de la collection (boxset)
             logger.debug(f"REMOTE SEARCH TMDBCOLLECTION {val}")
             payload = {"SearchInfo": {"ProviderIds": {"Tmdb": f"{val}"}}}
-            try:
-                bs_raw = jfapi.jellyfin("Items/RemoteSearch/BoxSet", json=payload, method="post").content
+            if bs_raw := jfapi.jellyfin("Items/RemoteSearch/BoxSet", json=payload, method="post").content:
                 collec_items = msgspec.json.decode(bs_raw, type=list[BoxSetItem])
-            except Exception as e:
-                logger.warning(f"      TASK| Getting movie collection metadata failed: {e}")
+            else:
+                logger.warning(f"   NFO-GEN| Getting collection metadata failed")
                 collec_items = []
 
             for c in collec_items:
@@ -517,11 +586,35 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
     elif item.Type == "Series":
         s.write("</tvshow>")
 
-    xml = s.getvalue()
+    #xml = s.getvalue()
 
     # --- écriture
     if item.Type != "Series":
         for ms in item.MediaSources or []:
+
+            svariant = io.StringIO(s.getvalue())
+            svariant.seek(s.tell())
+
+            mspath = ms.Path or ""
+            if ms.VideoType == "BluRay":
+                get_wo_ext_out = mspath[JG_VIRT_SHIFT:]
+                nfo_full_path = JFSQ_STORED_NFO + mspath[JG_VIRT_SHIFT:] + "/BDMV/index.nfo.jf"
+            elif ms.VideoType == "Dvd":
+                get_wo_ext_out = mspath[JG_VIRT_SHIFT:] + "/VIDEO_TS/VIDEO_TS"
+                nfo_full_path = JFSQ_STORED_NFO + mspath[JG_VIRT_SHIFT:] + "/VIDEO_TS/VIDEO_TS.nfo.jf"
+            else:
+                get_wo_ext_out = get_wo_ext(mspath[JG_VIRT_SHIFT:])
+                nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(mspath[JG_VIRT_SHIFT:]) + ".nfo.jf"
+
+            if tech_details := get_tech_xml_details(get_wo_ext_out):
+                svariant.write(tech_details)
+
+            xml = svariant.getvalue()
+
+            write_to_disk(xml, nfo_full_path, is_updated)
+
+
+            '''
             path = ms.Path or ""
             if ms.VideoType == "BluRay":
                 nfo_full_path = JFSQ_STORED_NFO + path[JG_VIRT_SHIFT:] + "/BDMV/index.nfo.jf"
@@ -529,9 +622,17 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
                 nfo_full_path = JFSQ_STORED_NFO + path[JG_VIRT_SHIFT:] + "/VIDEO_TS/VIDEO_TS.nfo.jf"
             else:
                 nfo_full_path = JFSQ_STORED_NFO + get_wo_ext(path[JG_VIRT_SHIFT:]) + ".nfo.jf"
+
+            if tech_details := get_tech_xml_details(get_wo_ext_out):
+
             write_to_disk(xml, nfo_full_path, is_updated)
+            '''
+
+
+
     else:
         if item.Path:
+            xml = s.getvalue()
             nfo_full_path = JFSQ_STORED_NFO + item.Path[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf"
             write_to_disk(xml, nfo_full_path, is_updated)
 
