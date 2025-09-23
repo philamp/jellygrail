@@ -7,6 +7,10 @@ import urllib.parse
 import websocket
 import threading
 from datetime import datetime
+from jg_services import get_premium_time_left
+
+RD_APITOKEN = os.getenv('RD_APITOKEN') or ""
+RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
@@ -98,7 +102,7 @@ def is_kodi_alive():
         else:
             logger.debug("Kodi responded, but the result was unexpected")
             return False
-    except requests.exceptions.RequestException as e:
+    except Exception as e:
         logger.debug(f"Failed to connect to Kodi: {e}")
         return False
 
@@ -136,6 +140,11 @@ def refresh_kodi():
 
     logger.info("         2| Kodi library refresh...")
 
+    if RD_API_SET:
+        notify_kodi()
+        notify_kodi(f"RealDebrid", f"{get_premium_time_left()} days remaining !", 3000)
+        time.sleep(2)
+
     global is_scanning
     global is_cleaning
     global last_clean
@@ -159,6 +168,17 @@ def refresh_kodi():
 
     logger.debug(f"kodi url is: {KODI_MAIN_URL}")
 
+
+
+    waitloop = 0
+    while refresh_is_safe == False and waitloop < 5:
+        waitloop += 1
+        time.sleep(1)
+
+    if waitloop > 5:
+        logger.error("    MANUAL| Kodi websocket (port 9090) not available, either offline suddenly or try enable 'Allow remote control from applications on other systems' in Kodi/Settings/Services/Control and then restart JellyGrail. JellyGrail can't work properly without websocket API")
+        return False # consider jellygrail can't work properly without websocket
+
     payload = json.dumps({
         "jsonrpc": "2.0",
         "method": "VideoLibrary.Scan",
@@ -174,15 +194,6 @@ def refresh_kodi():
         "id": "1"
     })
 
-    waitloop = 0
-    while refresh_is_safe == False and waitloop < 5:
-        waitloop += 1
-        time.sleep(1)
-
-    if waitloop > 5:
-        logger.error("    MANUAL| Kodi websocket (port 9090) not available, either offline suddenly or try enable 'Allow remote control from applications on other systems' in Kodi/Settings/Services/Control and then restart JellyGrail. JellyGrail can't work properly without websocket API")
-        return False # consider jellygrail can't work properly without websocket
-        
     try:
         response = requests.post(
             kodi_url,
@@ -410,7 +421,7 @@ def send_nfo_to_kodi():
                                         files_to_rename.append(root + "/" + filename)
                                         #rename only if kodi found an ID
                                 else:
-                                    logger.error(f"  KODI-API| not http200 returned on kodi nfo refresh, http returned code is: {response.status_code}")
+                                    logger.error(f"  KODI-API| NFO refresh failed - http returned code is: {response.status_code}")
                                     mariadb_close()
                                     return False
                         else:

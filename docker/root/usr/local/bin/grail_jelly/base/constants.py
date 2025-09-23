@@ -141,6 +141,8 @@ SUB_LANG_EQUIVALENTS = {
 
 # remove iso and vob and check
 
+RDUMP_STORE_INTERVAL = 3600*4
+
 MOUNTS_ROOT = "/mounts"
 
 # jellyfin root for metadata and its len

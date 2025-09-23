@@ -8,12 +8,14 @@ RD = None
 # plug to same logging instance as main
 #logger = logging.getLogger('jellygrail')
 
-
-
 # one shot token
 oneshot_token = None
 rs_working = False
 lastrddump = 0
+
+fiveothree = 0
+
+ptl = "0"
 
 # rd remote location:
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
@@ -22,22 +24,24 @@ REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 DEFAULT_INCR = 0
 WHOLE_CONTENT = True
 
+def get_premium_time_left():
+    global ptl
+    return ptl
 
 def premium_timeleft():
     global RD
+    global ptl
     RD = RDE()
     try:
         udata = RD.user.get().json()
-
         expseconds = udata.get('premium')
         
-        
-
     except Exception as e:
         logger.error(f"!! Error accessing RD: {e}")
         # return "Server running but RD test has failed (DNS or Network failure)"
         return 0
     else:
+        ptl = str(expseconds/86400)[:4]
         return expseconds
 
 
@@ -133,6 +137,7 @@ def just_select(returnid):
 # great !
 def push_and_select(hash):
     returned = RD.torrents.add_magnet(hash).json()
+    
     if returnid := returned.get('id'):
         just_select(returnid)
     else:
@@ -260,6 +265,7 @@ def restoreitem(filename, token):
         
 def remoteScan():
     global rs_working
+    global fiveothree
     # take data from remote RD account
     # if no local data, take it (we have to compare later on)
 
@@ -317,6 +323,7 @@ def remoteScan():
             local_data_hashes = [iteml.get('hash') for iteml in local_data]
 
             # base for incr is remote
+            
             for remote_hash in server_data['hashes']:
                 if remote_hash not in local_data_hashes:
                     try:
@@ -327,6 +334,12 @@ def remoteScan():
 
                             discarded_hashes.append(remote_hash)
                             #cur_incr += 1 # we can increment
+                        elif http_err.response.status_code == 503: # service unavailable on some torrents ?, skip them
+                            logger.error(f"    RD-API| 503 error on this torrent, skipped, curincr is : {cur_incr}, remotehash : {remote_hash}, error details : {http_err}")
+                            fiveothree += 1
+                            discarded_hashes.append(remote_hash)
+                            if fiveothree > 10:
+                                logger.critical(f"    RD-API| 503 errors : More than 10 skipped push torrents")
                         else:
                             # this is not OK : we don't increment further and stop the batch
                             logger.error(f"    RD-API| JOB stopped: An HTTP Error has occured on pushing backup hash to RD (job stopped but resumed next time): {http_err}")
@@ -526,7 +539,7 @@ def rdump_backup(including_backup = True, returning_data = False):
 
     if not stopthere:
         # Store the data in a file if not exists or last time was more than 4 hours ago
-        if not os.path.exists(RDUMP_FILE) or (time.time() - lastrddump) > 3600*4 or including_backup:
+        if not os.path.exists(RDUMP_FILE) or (time.time() - lastrddump) > RDUMP_STORE_INTERVAL or including_backup:
             lastrddump = time.time()
             with open(RDUMP_FILE, 'w') as f:
                 json.dump(data, f)

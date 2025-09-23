@@ -51,7 +51,7 @@ def jellyfin(path, method='get', **kwargs):
 
     # Handle 401 Unauthorized (token invalid)
     if resp is not None and resp.status_code == 401:
-        logger.warning("    JF-API/ Token rejected, attempting re-authentication...")
+        logger.warning("    JF-API/ 401 Token rejected, attempting re-authentication...")
         jfapikey = None  # reset legacy token
         if authByName():
             resp = jellyfin_req(path, method, **kwargs)
@@ -59,7 +59,7 @@ def jellyfin(path, method='get', **kwargs):
             return None
     # handle other errors
     elif resp is not None and resp.status_code >= 400:
-        logger.critical(f"    JF-API/ FAILURE to get/post API data at {path}, status code: {resp.status_code}")
+        logger.critical(f"    JF-API/ {resp.status_code} error on GET/POST at : {path}")
         return None
 
     return resp
@@ -74,7 +74,7 @@ def jellyfin_req(path, method='get', **kwargs):
         'Accept': 'application/json'
     }
     retryable = {500, 502, 503, 504}
-    time.sleep(0.1) # slight delay to avoid overwhelming the server
+    #time.sleep(0.1) # slight delay to avoid overwhelming the server
     for attempt in range(1, retries + 1):
         try:
             response = getattr(requests, method)(url, headers=headers, **kwargs)
@@ -82,8 +82,8 @@ def jellyfin_req(path, method='get', **kwargs):
                 logger.warning(f"    JF-API/ Attempt {attempt}: Received retryable status {response.status_code}")
             else:
                 return response
-        except requests.RequestException as e:
-            logger.warning(f"    JF-API/ Attempt {attempt}: Exception occurred: {e}")
+        except Exception as e:
+            logger.warning(f"    JF-API/ Attempt {attempt}: Low level exception occurred: {e}")
         
         if attempt < retries:
             time.sleep(delay)
@@ -93,9 +93,7 @@ def jellyfin_req(path, method='get', **kwargs):
     return None
 
 def wait_for_jfscan_to_finish():
-    # while libraryrunning dont do anything
-    try:
-        tasks = jellyfin('ScheduledTasks').json()
+    if tasks := jellyfin('ScheduledTasks').json():
         tasks_name_mapping = {task.get('Key'): task for task in tasks}
         ref_task_id = tasks_name_mapping.get('RefreshLibrary').get('Id')
         while True:
@@ -103,9 +101,9 @@ def wait_for_jfscan_to_finish():
             if task.get('State') != "Running":
                 break
             else:
-                time.sleep(8) # wait 8 seconds before checking again
-    except Exception as e:
-        logger.warning(f"    JF-API| ... Jellyfin Library refreshed, but not able to retrieve completion, error: {e}")
+                time.sleep(2) # wait 2 seconds before checking again
+    else:
+        logger.error(f"    JF-API| ... Jellyfin Library refreshing but completion status unknown")
         return False
 
     logger.info("         3| ...Jellyfin Library refresh complete")
