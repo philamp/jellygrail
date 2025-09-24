@@ -1,7 +1,7 @@
 import urllib
 import time
 import jfapi
-from jfconfig.jfsql import *
+#from jfconfig.jfsql import * DEPRECATED
 from base import *
 from base.constants import *
 
@@ -321,7 +321,7 @@ def install_librairies():
         if at_least_one_installed:
             
             jfapi.jellyfin(f'ScheduledTasks/Running/7738148ffcd07979c7ceb148e06b3aed', method='delete') # should not stat right away, should stop for virtual folder to be completed first
-            logger.info("  JELLYFIN/ First autoscan halted. Will be managed by JG")
+            logger.info("  JELLYFIN/ First autoscan halted. Will be managed by JellyGrail later")
 
     jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=[], method='post') # disable libraryscan as well
 

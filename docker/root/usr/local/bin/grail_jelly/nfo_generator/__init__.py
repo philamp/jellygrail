@@ -198,7 +198,7 @@ def nfo_loop_service() -> bool:
                     nbofmovie += 1
                 else:
                     nbofepisode += 1
-                if nbofmovieorepisode % 5 == 0:
+                if nbofmovieorepisode % 10 == 0:
                     logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
 
     # --- XML creation for TV shows ---
@@ -207,7 +207,7 @@ def nfo_loop_service() -> bool:
             if item.Id == item_id and item.Type == "Series":
                 jf_xml_create(item, is_updated, sdata=s_data)
                 nboftvshow += 1
-                if nboftvshow % 5 == 0:
+                if nboftvshow % 10 == 0:
                     logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
 
     logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}] ...completed")

@@ -141,7 +141,6 @@ def refresh_kodi():
     logger.info("         2| Kodi library refresh...")
 
     if RD_API_SET:
-        notify_kodi()
         notify_kodi(f"RealDebrid", f"{get_premium_time_left()} days remaining !", 3000)
         time.sleep(2)
 
