@@ -57,6 +57,14 @@ class RDE:
     
     def handler(self, request, error_codes, path):
         # try:
+        try:
+            if 'error_code' in request.json():
+                code = request.json()['error_code']
+                message = error_codes.get(str(code), 'Unknown error')
+                logger.error('    RD-API| RD Error %s: %s @ %s', code, message, path)
+        except:
+            pass
+
         request.raise_for_status()
         #except requests.exceptions.HTTPError as errh:
         #    logger.error('%s at %s', errh, path)
@@ -66,13 +74,7 @@ class RDE:
         #    logger.error('%s at %s', errt, path)
         #except requests.exceptions.RequestException as err:
         #    logger.error('%s at %s', err, path)
-        try:
-            if 'error_code' in request.json():
-                code = request.json()['error_code']
-                message = error_codes.get(str(code), 'Unknown error')
-                logger.warning('RD-API| %s: %s at %s', code, message, path)
-        except:
-            pass
+
         self.handle_sleep()
         return request  
     

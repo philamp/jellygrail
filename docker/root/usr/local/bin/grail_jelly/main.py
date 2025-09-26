@@ -617,14 +617,14 @@ if __name__ == "__main__":
 
 
     init_database()
+    bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
+    # Thread 0.2 - UNIX Socket (ffprobe bash wrapper responder)
 
     if JF_WANTED:
         if not jfconfig():
             logger.critical("  JELLYFIN/ Config failed, please stop the container and fix the error. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders but it will remove all your Jellyfin libraries, configuration and users.")
             JF_WANTED_ACTUALLY = False
 
-    bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
-    # Thread 0.2 - UNIX Socket (ffprobe bash wrapper responder)
     thread_ef = threading.Thread(target=socket_server_waiting, args=("ffprobe",))
     thread_ef.daemon = True  # exits when parent thread exits
     thread_ef.start()
