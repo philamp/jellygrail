@@ -52,7 +52,8 @@ post_kodi_run_step = 12
 from jg_services import premium_timeleft
 from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
 from jfconfig import jfconfig
-from jgscan.jgsql import init_database, sqclose
+#from jgscan.jgsql import init_database, sqclose
+import jgscan.jgsql
 from nfo_generator import nfo_loop_service, fetch_nfo
 from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive, merge_kodi_versions
 from kodi_services.sqlkodi import kodi_mysql_init_and_verify
@@ -575,6 +576,17 @@ def socket_server_waiting(socket_type):
         _handle_client_thread.daemon = True
         _handle_client_thread.start()
 
+def bdd_install(dbinstance):
+
+    # Play migrations
+    dbinstance.jg_datamodel_migration()
+
+    # create movies and shows parent folders
+    dbinstance.insert_data("/movies", None, None, None, 'all')
+    dbinstance.insert_data("/shows", None, None, None, 'all')
+    #insert_data("/concerts", None, None, None, 'all')
+    dbinstance.sqcommit()
+    dbinstance.sqclose()
 
 if __name__ == "__main__":
 
@@ -614,11 +626,10 @@ if __name__ == "__main__":
     logger.info(f"|________________________________________ __ _")
     logger.info(f" ")
 
+    startup_db_instance = jgscan.jgsql.jellyDB()
 
-
-    init_database()
-    bdd_install() # before jfconfig so that 1/ base folders are for sure created and 2/ databases has played migrations
-    # Thread 0.2 - UNIX Socket (ffprobe bash wrapper responder)
+    #init_database() already in the object init
+    bdd_install(startup_db_instance) # to be executed before jellyfin tries to declare library paths !!! it plays migrations and make the base JF library folders
 
     if JF_WANTED:
         if not jfconfig():
@@ -716,5 +727,5 @@ if __name__ == "__main__":
         run_server()
         #server_thread.join() 
         
-    sqclose()
+    #sqclose() each thread closes it connexion, no more global sqlite thread !!
     #mariadb_close()

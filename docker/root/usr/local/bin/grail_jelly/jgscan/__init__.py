@@ -1,5 +1,6 @@
 from base import *
-from jgscan.jgsql import *
+#from jgscan.jgsql import *
+import jgscan.jgsql
 from jgscan.caching import *
 import requests
 from jgscan.arena import *
@@ -50,18 +51,6 @@ def init_mountpoints():
     to_watch = [point for (point, _, point_type) in dual_endpoints if point_type == 'local']
 
     return to_watch    
-
-def bdd_install():
-
-    # Play migrations
-    jg_datamodel_migration()
-
-    # create movies and shows parent folders
-    insert_data("/movies", None, None, None, 'all')
-    insert_data("/shows", None, None, None, 'all')
-    #insert_data("/concerts", None, None, None, 'all')
-    sqcommit()
-
 
 
 def release_browse(endpoint, releasefolder, rar_item, release_folder_path, storetype):
@@ -581,6 +570,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                 insert_data("/movies/"+title_year+"/extras", None, None, None, dive_e_['mediatype'])
         # S folders are done in first filename loop and do not have extras
     return True
+
+def multiScan():
+    # instanciate as many workers as there are 
 
 def scan():
 
