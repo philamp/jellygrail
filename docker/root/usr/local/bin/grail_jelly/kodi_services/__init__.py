@@ -9,9 +9,6 @@ import threading
 from datetime import datetime
 from jg_services import get_premium_time_left
 
-RD_APITOKEN = os.getenv('RD_APITOKEN') or ""
-RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
-
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
 kodi_url = f"http://{KODI_MAIN_URL}:8080/jsonrpc"
@@ -142,7 +139,9 @@ def refresh_kodi():
 
     if RD_API_SET:
         notify_kodi(f"RealDebrid", f"{get_premium_time_left()} days remaining !", 3000)
-        time.sleep(2)
+    
+    # it seems sometimes kodi is not completely started thus incoherent feedback from websocket is given...
+    time.sleep(3)
 
     global is_scanning
     global is_cleaning

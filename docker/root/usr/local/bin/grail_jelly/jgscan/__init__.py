@@ -1,6 +1,6 @@
 from base import *
 #from jgscan.jgsql import *
-import jgscan.jgsql
+from jgscan.jgsql import jellyDB
 from jgscan.caching import *
 import requests
 from jgscan.arena import *
@@ -9,6 +9,13 @@ import PTN
 
 from base.constants import *
 
+# new multiscan
+import threading
+from concurrent.futures import ThreadPoolExecutor
+lock = threading.Lock()
+
+
+
 # merge those 2 elements
 ALLOWED_EXTENSIONS = SUB_EXTS + VIDEO_EXTENSIONS
 
@@ -16,6 +23,8 @@ present_virtual_folders = []
 present_virtual_folders_shows = []
 
 dual_endpoints = []
+
+items_scanned = 0
 
 
 
@@ -572,10 +581,40 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     return True
 
 def multiScan():
-    # instanciate as many workers as there are 
+    global items_scanned
+    global present_virtual_folders
+    global present_virtual_folders_shows
 
+    items_scanned = 0
+
+    # instanciate as many workers as there are
+    if RD_API_SET:
+        logger.info("MULTI-SCAN| Rclone update interval wait...") #toimprove
+        time.sleep(9)
+
+    # use a dbojbect
+    db_prescan_fetcher = jellyDB()
+
+    # fetch current status of db in terms of release processed and virtual folders created
+    present_folders = [item[0] for item in db_prescan_fetcher.fetch_present_release_folders()] 
+    present_virtual_folders = [os.path.basename(itemv[0]) for itemv in db_prescan_fetcher.fetch_present_virtual_folders() if (itemv[1] == 'movie' or itemv[1] == 'conce') ]
+    present_virtual_folders_shows = [os.path.basename(itemv[0]) for itemv in db_prescan_fetcher.fetch_present_virtual_folders() if itemv[1] == 'shows' ]
+
+    logger.info(f"MULTI-SCAN| Lancement de {len(dual_endpoints)} scan(s)")
+
+    with ThreadPoolExecutor(max_workers=len(dual_endpoints)) as executor:
+        executor.map(lambda d: newScan(d, present_folders), dual_endpoints)
+
+
+def newScan(dual_ep, present_folders):
+
+    global items_scanned
+
+
+# will be deprecated when above is done
 def scan():
 
+    global items_scanned
     #init_database()
 
     #global logger

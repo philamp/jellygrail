@@ -180,6 +180,11 @@ RDINCR_FILE = '/jellygrail/data/rd_incr.txt'
 # remote rd pile key
 REMOTE_PILE_KEY_FILE = '/jellygrail/data/remote_pile_key.txt'
 
+# getenvs
+
+RD_APITOKEN = os.getenv('RD_APITOKEN') or ""
+RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
+
 INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
 
 WEBDAV_INTERNAL_PORT = os.getenv('WEBDAV_INTERNAL_PORT') or WEBDAV_INTERNAL_PORT_DEFAULT

@@ -30,12 +30,12 @@ VERSION = "20250808" # !!! Should be aligned to settings.env.template and early_
 INCR_KODI_REFR_MAX = 8
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
-RD_APITOKEN = os.getenv('RD_APITOKEN') or ""
+
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL') or ""
 # Pre-compute serialized settings
 PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')
 # Pre-compute some flags
-RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
+
 JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
 JF_WANTED_ACTUALLY = JF_WANTED
 USE_PLEX = (os.getenv('USE_PLEX') or "y") != "n"
@@ -53,7 +53,7 @@ from jg_services import premium_timeleft
 from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
 from jfconfig import jfconfig
 #from jgscan.jgsql import init_database, sqclose
-import jgscan.jgsql
+from jgscan.jgsql import jellyDB
 from nfo_generator import nfo_loop_service, fetch_nfo
 from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive, merge_kodi_versions
 from kodi_services.sqlkodi import kodi_mysql_init_and_verify
@@ -576,8 +576,10 @@ def socket_server_waiting(socket_type):
         _handle_client_thread.daemon = True
         _handle_client_thread.start()
 
-def bdd_install(dbinstance):
+def bdd_install():
 
+    dbinstance = jellyDB()
+    #init_database() already in the object init
     # Play migrations
     dbinstance.jg_datamodel_migration()
 
@@ -587,6 +589,7 @@ def bdd_install(dbinstance):
     #insert_data("/concerts", None, None, None, 'all')
     dbinstance.sqcommit()
     dbinstance.sqclose()
+    del dbinstance
 
 if __name__ == "__main__":
 
@@ -626,10 +629,9 @@ if __name__ == "__main__":
     logger.info(f"|________________________________________ __ _")
     logger.info(f" ")
 
-    startup_db_instance = jgscan.jgsql.jellyDB()
 
-    #init_database() already in the object init
-    bdd_install(startup_db_instance) # to be executed before jellyfin tries to declare library paths !!! it plays migrations and make the base JF library folders
+    # BDD INIT
+    bdd_install()
 
     if JF_WANTED:
         if not jfconfig():
