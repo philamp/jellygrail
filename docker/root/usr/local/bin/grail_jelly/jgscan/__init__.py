@@ -1,8 +1,8 @@
 from base import *
 #from jgscan.jgsql import *
-from jgscan.jgsql import jellyDB
+from jgscan.jgsql import jellyDB, staticDB
 from jgscan.caching import *
-import requests
+#import requests
 from jgscan.arena import *
 import PTN
 #logger = logging.getLogger('jellygrail')
@@ -27,15 +27,12 @@ dual_endpoints = []
 items_scanned = 0
 
 
-
 def get_fastpass_ffprobe(file_path):
     # get ffprobe info from sqlite or use ffprobe
 
-
     fakestderror = ""
 
-
-    if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[file_path.find("/") + JG_VIRT_SHIFT:]) if ffpitem[0] is not None]):
+    if (ffprobesq_result := [ffpitem[0] for ffpitem in staticDB.s.get_path_props(file_path[file_path.find("/") + JG_VIRT_SHIFT:]) if ffpitem[0] is not None]):
         #logger.debug(f"ffprobe from SQLITE data: {file_path}")
 
         return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
@@ -580,25 +577,59 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
         # S folders are done in first filename loop and do not have extras
     return True
 
+#### new stuff BEGIN
+
+class jgScan:
+    
+    i_scanned = 0
+    lock_incr = threading.Lock()
+
+    present_virtual_folders = []
+    lock_m = threading.Lock()
+
+    present_virtual_folders_shows = []
+    lock_s = threading.Lock()
+
+
+
+    @classmethod
+    def add_to_pvm(cls, item):
+        with cls.lock_m:
+            cls.present_virtual_folders.append(item)
+
+    @classmethod
+    def add_to_pvs(cls, item):
+        with cls.lock_s:
+            cls.present_virtual_folders_shows.append(item)
+
+    @classmethod
+    def itemincr(cls):
+        with cls.lock_incr:
+            cls.i_scanned += 1
+    
+
+
+
 def multiScan():
-    global items_scanned
-    global present_virtual_folders
-    global present_virtual_folders_shows
-
-    items_scanned = 0
-
     # instanciate as many workers as there are
     if RD_API_SET:
         logger.info("MULTI-SCAN| Rclone update interval wait...") #toimprove
         time.sleep(9)
 
+
     # use a dbojbect
     db_prescan_fetcher = jellyDB()
 
-    # fetch current status of db in terms of release processed and virtual folders created
+    #--- fetch current status of db in terms of release processed and virtual folders created---
+    # reset each time but not updated on the fly
     present_folders = [item[0] for item in db_prescan_fetcher.fetch_present_release_folders()] 
-    present_virtual_folders = [os.path.basename(itemv[0]) for itemv in db_prescan_fetcher.fetch_present_virtual_folders() if (itemv[1] == 'movie' or itemv[1] == 'conce') ]
-    present_virtual_folders_shows = [os.path.basename(itemv[0]) for itemv in db_prescan_fetcher.fetch_present_virtual_folders() if itemv[1] == 'shows' ]
+
+    # reset each time and updated on the fly
+    jgScan.present_virtual_folders = [os.path.basename(itemv[0]) for itemv in db_prescan_fetcher.fetch_present_virtual_folders() if (itemv[1] == 'movie' or itemv[1] == 'conce') ]
+    jgScan.present_virtual_folders_shows = [os.path.basename(itemv[0]) for itemv in db_prescan_fetcher.fetch_present_virtual_folders() if itemv[1] == 'shows' ]
+
+    # prescan use done
+    db_prescan_fetcher.sqclose()
 
     logger.info(f"MULTI-SCAN| Lancement de {len(dual_endpoints)} scan(s)")
 
@@ -606,12 +637,23 @@ def multiScan():
         executor.map(lambda d: newScan(d, present_folders), dual_endpoints)
 
 
+    # return the number of items
+    return jgScan.i_scanned
+
+
 def newScan(dual_ep, present_folders):
 
-    global items_scanned
+    src1, src2, storetype = dual_ep
+    for f in os.scandir(src1):
+        if f.path not in present_folders:
+            pass
 
 
-# will be deprecated when above is done
+
+#### new stuff END
+### TODO : improve Exx episode + handle standalone episodes
+
+# will be deprecated when new classes are done
 def scan():
 
     global items_scanned

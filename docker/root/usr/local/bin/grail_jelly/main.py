@@ -50,10 +50,10 @@ post_kodi_run_step = 12
 
 # ------ Contact points
 from jg_services import premium_timeleft
-from jgscan import bdd_install, init_mountpoints, scan, get_fastpass_ffprobe
+from jgscan import init_mountpoints, scan, get_fastpass_ffprobe
 from jfconfig import jfconfig
 #from jgscan.jgsql import init_database, sqclose
-from jgscan.jgsql import jellyDB
+from jgscan.jgsql import jellyDB, staticDB
 from nfo_generator import nfo_loop_service, fetch_nfo
 from kodi_services import refresh_kodi, send_nfo_to_kodi, is_kodi_alive, merge_kodi_versions
 from kodi_services.sqlkodi import kodi_mysql_init_and_verify
@@ -500,6 +500,7 @@ def restart_jgdocker_at(target_hour=6, target_minute=30):
             logger.warning(f"  SCHEDULE/ ~ JellyGrail will now shutdown for restart, beware '--restart unless-stopped' must be set in your docker run otherwise it won't restart !!")
             httpd.shutdown()
 
+
 def handle_socket_request(connection, client_address, socket_type):
     if socket_type == "nfopath":
         logger.debug(f". {socket_type} socket OPEN [handle_socket_request]")
@@ -630,13 +631,17 @@ if __name__ == "__main__":
     logger.info(f" ")
 
 
-    # BDD INIT
+    # BDD INIT and close
     bdd_install()
 
     if JF_WANTED:
         if not jfconfig():
             logger.critical("  JELLYFIN/ Config failed, please stop the container and fix the error. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders but it will remove all your Jellyfin libraries, configuration and users.")
             JF_WANTED_ACTUALLY = False
+
+
+    # one sqlite READ ONLY  thread for nforead and ffprobewrappe
+    staticDB.sinit()
 
     thread_ef = threading.Thread(target=socket_server_waiting, args=("ffprobe",))
     thread_ef.daemon = True  # exits when parent thread exits
@@ -729,5 +734,7 @@ if __name__ == "__main__":
         run_server()
         #server_thread.join() 
         
+    # ffprobe and nfo data dedicatede sqlite thread close
+    staticDB.s.sqclose()
     #sqclose() each thread closes it connexion, no more global sqlite thread !!
     #mariadb_close()

@@ -6,7 +6,8 @@ from datetime import datetime
 import jfapi
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
-from jgscan.jgsql import *
+from jgscan.jgsql import jellyDB, staticDB
+#from jgscan.jgsql import *
 #from jfconfig.jfsql import *
 import urllib.parse
 import requests
@@ -140,7 +141,7 @@ def get_tech_xml_details(pathwoext):
     elif "bdmv" in pathwoext.lower().split(os.sep):
         pathwoext = os.path.dirname(os.path.dirname(pathwoext))
 
-    if (ff_result := [ffpitem[0] for ffpitem in get_path_props_woext(pathwoext) if ffpitem[0] is not None]):
+    if (ff_result := [ffpitem[0] for ffpitem in staticDB.s.get_path_props_woext(pathwoext) if ffpitem[0] is not None]):
         first_subs = []
         last_subs = []
         info = json.loads(ff_result[0].decode("utf-8"))

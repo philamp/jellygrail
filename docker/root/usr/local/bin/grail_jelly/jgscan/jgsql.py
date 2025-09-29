@@ -8,8 +8,8 @@ class jellyDB:
     db_path = "/jellygrail/data/bindfs/.bindfs_jelly.db"
     sq_extension = "/usr/local/share/bindfs-jelly/libsupercollate.so"
 
-    def __init__(self):
-        self.conn = sqlite3.connect(jellyDB.db_path, isolation_level='DEFERRED', check_same_thread=True, timeout=5)
+    def __init__(self, cst: bool = True):
+        self.conn = sqlite3.connect(jellyDB.db_path, isolation_level='DEFERRED', check_same_thread=cst, timeout=5)
         self.conn.execute("PRAGMA journal_mode=WAL;") # can be called multiple times (set in db file)
         if not getattr(jellyDB, "_extension_loaded", False): # should be caled only once
             self.conn.enable_load_extension(True)
@@ -108,6 +108,39 @@ class jellyDB:
         cursor.execute("SELECT ffprobe FROM main_mapping WHERE virtual_fullpath LIKE '%' || ? || '%'", (path,))
         return cursor.fetchall()
 
+# one sqlite READ ONLY thread for nforead and ffprobewrappe
+class staticDB:
+    # The unique shared instance
+    s: jellyDB = None
+
+    @classmethod 
+    def sinit(cls):
+        if cls.s is None: #ensure sinit is not called multiple times
+            cls.s = jellyDB(cst=False)
+
+'''
+# interesting but overkill
+class _StaticDBMeta(type):
+    """Métaclasse qui redirige tous les appels vers l'instance unique."""
+    _instance: jellyDB = None
+
+    def __call__(cls):
+        if cls._instance is None:
+            cls._instance = jellyDB()
+        return cls._instance
+
+    def __getattr__(cls, name):
+        # Délègue automatiquement les attributs manquants à l'instance
+        if cls._instance is None:
+            raise RuntimeError("staticDB n'est pas encore initialisée.")
+        return getattr(cls._instance, name)
+
+
+class staticDB(metaclass=_StaticDBMeta):
+    """Sous-classe statique qui agit comme un proxy vers un jellyDB unique."""
+    pass
+
+'''
 
 '''
 def init_jellyfin_db(path):
