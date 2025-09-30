@@ -50,7 +50,7 @@ def init_mountpoints():
             type = "local" if f.name.startswith("local_") else "remote"
             logger.info(f"   STORAGE/ {f.name}")
             for d in os.scandir(f.path):
-                if d.is_dir() and d.name != '@eaDir' and d.name != 'shows' and d.name != 'default':
+                if d.is_dir() and d.name != '@eaDir':
                     dual_endpoints.append(( MOUNTS_ROOT+"/"+f.name+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+f.name+"/"+d.name, type))
     #print(dual_endpoints)
     to_watch = [point for (point, _, point_type) in dual_endpoints if point_type == 'local']
@@ -484,7 +484,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     #logger.debug(f"      # similarmovie found is : {most_similar_string} with score {similarity_score}")
 
                     # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
-                    ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in ls_virtual_folder("/movies/"+title_year)]
+                    ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in threadDB.ls_virtual_folder("/movies/"+title_year)]
 
                     # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry
                     ls_virtual_folder_a = list(set(ls_virtual_folder_a))
@@ -690,7 +690,7 @@ def scanThread(dual_ep, present_folders):
             
             elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
                 jgScan.itemincr()
-                logger.info(f"        🌼| {f.name} (folder-less)")
+                logger.info(f"         |🌼 {f.name} (folder-less)")
 
                 dvprofile = None
                 mediatype = None
