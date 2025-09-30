@@ -50,7 +50,7 @@ post_kodi_run_step = 12
 
 # ------ Contact points
 from jg_services import premium_timeleft
-from jgscan import init_mountpoints, scan, get_fastpass_ffprobe
+from jgscan import init_mountpoints, multiScan, get_fastpass_ffprobe
 from jfconfig import jfconfig
 #from jgscan.jgsql import init_database, sqclose
 from jgscan.jgsql import jellyDB, staticDB
@@ -303,7 +303,7 @@ def refresh_all(step):
 
     if step == 1: # triggered also with rd_progress_response == "PLEASE_SCAN":
         logger.info("         1| Main JG Scan...")
-        nb_items = scan()
+        nb_items = multiScan()
         #if nb_items > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             #toomany = True
 
@@ -590,6 +590,7 @@ def bdd_install():
     #insert_data("/concerts", None, None, None, 'all')
     dbinstance.sqcommit()
     dbinstance.sqclose()
+    
     del dbinstance
 
 if __name__ == "__main__":

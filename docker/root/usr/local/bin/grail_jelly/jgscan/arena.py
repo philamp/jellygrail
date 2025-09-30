@@ -1,5 +1,6 @@
 from base import *
 from base.littles import *
+from jgscan.scanClasses import jgScan
 import pycountry
 # for similarity
 # from thefuzz import fuzz
@@ -61,9 +62,9 @@ def show_find_most_similar(show, present_virtual_folders_shows):
             will_idx_check = True
 
         else:
-            present_virtual_folders_shows.append(show)
+            jgScan.add_to_pvs(show)
     else:
-        present_virtual_folders_shows.append(show)
+        jgScan.add_to_pvs(show)
 
     return (show, will_idx_check)
 

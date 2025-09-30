@@ -11,16 +11,19 @@ class jellyDB:
     def __init__(self, cst: bool = True):
         self.conn = sqlite3.connect(jellyDB.db_path, isolation_level='DEFERRED', check_same_thread=cst, timeout=5)
         self.conn.execute("PRAGMA journal_mode=WAL;") # can be called multiple times (set in db file)
-        if not getattr(jellyDB, "_extension_loaded", False): # should be caled only once
+        if True or not getattr(jellyDB, "_extension_loaded", False): # should be caled only once
             self.conn.enable_load_extension(True)
             self.conn.load_extension(jellyDB.sq_extension)
             jellyDB._extension_loaded = True
         # below is to detect a potential race condition but will never happen as we load the extension far before multithreaded db writers use the class, so no need to go further in precision
+        '''
         try:
-            self.conn.execute("SELECT depdec('/toto/toto')")
+            cursor = self.conn.cursor()
+            cursor.execute("SELECT depenc('/wqefwqfewq')")
         except sqlite3.OperationalError as e:
             logger.critical("  JELLY-DB/ lib supercollate non chargée dans ce thread")
-
+        '''
+        
     def sqcommit(self):
         self.conn.commit()
 
