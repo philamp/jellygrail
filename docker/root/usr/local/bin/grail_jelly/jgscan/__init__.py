@@ -252,7 +252,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                     else:
 
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'ffprobed' : stdout, 'premetas': f" -{premetastpl} JGx"})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':safe_getsize(os.path.join(root, filename)), 'ffprobed' : stdout, 'premetas': f" -{premetastpl} JGx"})
                         
                         dive_e_['single_premetas'] = f" -{premetastpl} JGx"
 
@@ -430,6 +430,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         if (will_idx_check):
                         # LS the sim folder with no ext files (because we loop check at filename level, we want to list video only and not subs)
                             ls_virtual_folder_a = []
+                            threadDB.sqbegin()
                             for itemv in threadDB.ls_virtual_folder("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"):
                                 if os.path.basename(itemv[0]).lower().endswith(VIDEO_EXTENSIONS):
                                     ls_virtual_folder_a.append(get_wo_ext(os.path.basename(itemv[0])))
@@ -484,6 +485,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     #logger.debug(f"      # similarmovie found is : {most_similar_string} with score {similarity_score}")
 
                     # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
+                    threadDB.sqbegin()
                     ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in threadDB.ls_virtual_folder("/movies/"+title_year)]
 
                     # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry
@@ -616,10 +618,10 @@ def multiScan():
         for future in as_completed(futures):
             d = futures[future]  # pour savoir quel disque causait le problème
             try:
-                future.result()  # ⬅️ Exception propagée ici si scanThread plante
+                future.result()
             except Exception as e:
                 logger.critical(f"MULTI-SCAN| ❌ scanThread({d[0]}): {e}")
-                traceback.print_exc()  # ⬅️ affiche le traceback complet dans la console
+                traceback.print_exc()
 
 
     '''
@@ -671,7 +673,7 @@ def scanThread(dual_ep, present_folders):
                                             browse = False
                                             break
                                     elif unrar_result == "ERROR_NOFILES":
-                                        logger.warning("          | ...but NO Files in this RAR")
+                                        logger.warning(f"          | ...but NO Files in this RAR : {g.path}")
                                         browse = False
                                         break
                                     elif unrar_result == "ERROR":
@@ -690,7 +692,7 @@ def scanThread(dual_ep, present_folders):
             
             elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
                 jgScan.itemincr()
-                logger.info(f"         |🌼 {f.name} (folder-less)")
+                logger.info(f"          |🌼 (folder-orphan) {f.name}")
 
                 dvprofile = None
                 mediatype = None
@@ -723,6 +725,7 @@ def scanThread(dual_ep, present_folders):
                             #logger.debug(f"      # similar movie found is : {most_similar_string} with score {similarity_score}")
 
                             # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
+                            threadDB.sqbegin()
                             ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in threadDB.ls_virtual_folder("/movies/"+title_year)]
 
                             # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry

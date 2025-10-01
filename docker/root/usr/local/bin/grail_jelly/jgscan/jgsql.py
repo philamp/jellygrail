@@ -24,6 +24,10 @@ class jellyDB:
             logger.critical("  JELLY-DB/ lib supercollate non chargée dans ce thread")
         '''
         
+    def sqbegin(self):
+        if not self.conn.in_transaction:
+            self.conn.execute('BEGIN IMMEDIATE')
+
     def sqcommit(self):
         self.conn.commit()
 

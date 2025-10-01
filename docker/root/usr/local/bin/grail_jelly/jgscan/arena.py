@@ -26,7 +26,12 @@ def find_language_in_string(input_string):
             return f" ({language})"
     return ""
 
-
+def safe_getsize(path):
+    try:
+        return os.path.getsize(path)
+    except Exception as e:
+        logger.warning(f"File not found: {path} : {e}")
+        return None
 
 def show_find_most_similar(show, present_virtual_folders_shows):
 
