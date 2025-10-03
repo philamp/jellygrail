@@ -31,6 +31,8 @@ INCR_KODI_REFR_MAX = 8
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
+LAN_IP = "127.0.0.1" # will be guessed later
+
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL') or ""
 # Pre-compute serialized settings
 PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')
@@ -412,7 +414,7 @@ def refresh_all(step):
 
 
 
-def run_server(server_class=HTTPServer, handler_class=RequestHandler, port=6502):
+def run_server(server_class=HTTPServer, handler_class=RequestHandler, port=WEBSERVICE_INTERNAL_PORT):
     global httpd
     server_address = ('', port)
     httpd = server_class(server_address, handler_class)
@@ -441,6 +443,39 @@ class EventHandler(pyinotify.ProcessEvent):
 # ---- included cron
         
 # restart_jellygrail_at is in jfapi module
+
+def guess_lan_ip():
+
+    global LAN_IP
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        s.connect(("8.8.8.8", 80))
+        lip = s.getsockname()[0]
+    except Exception as e:
+        logger.error(f"Error when trying to guess LAN IP: {e}")
+    else:
+        LAN_IP = lip
+        if LAN_IP != WEBDAV_LAN_HOST and USE_KODI_ACTUALLY:
+            logger.warning(f"    CONFIG/ LAN IP ({LAN_IP}) is different from WEBDAV_LAN_HOST ({WEBDAV_LAN_HOST}), NFOs might not reference correct URLs")
+    finally:
+        s.close()
+
+
+def ssdp_broadcast_daemon():
+
+    # test in linux with nc -ul 6505
+
+    msg = LAN_IP + "|" + str(WEBSERVICE_INTERNAL_PORT)
+
+    encmsg = msg.encode("ascii")
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    logger.info(f"      SSDP/ Broadcasting message {msg} on port {str(SSDP_PORT)} every 5sec~")
+    while True:
+        sock.sendto(encmsg, ("<broadcast>", SSDP_PORT))
+        time.sleep(5)
+
 
 def periodic_trigger(seconds=120):
     _rdprog_instance = ScriptRunner.get(jg_services.rd_progress)
@@ -597,6 +632,8 @@ if __name__ == "__main__":
 
     full_run = True
 
+    guess_lan_ip()
+
     print( """
 """ + YELLOW + " ________________________ github.com/philamp/" + f"""
 |
@@ -617,8 +654,9 @@ if __name__ == "__main__":
         logger.info(f"|  - Jellyfin Metadata:              Country: {os.getenv('JF_COUNTRY')}")
         logger.info(f"|                                    Language: {os.getenv('JF_LANGUAGE')}")
         logger.info(f"|  - Jellyfin host:                  http://localhost:8096 (login: {os.getenv('JF_LOGIN') or 'admin'})")
-        logger.info(f"|  - Nginx WebDAV server:            http://{WEBDAV_HOST_PORT}")
-        logger.info(f"|  - JellyGrail *simple* Admin UI:   http://localhost:6502")
+        logger.info(f"|  - Nginx WebDAV server:            http://{WEBDAV_HOST_PORT} (no auth, local access only! see README! don't expose it!)")
+        logger.info(f"|  - JellyGrail WebService:          http://{LAN_IP}:{WEBSERVICE_INTERNAL_PORT} (no auth, local access only! see README! don't expose it!)")
+        logger.info(f"|  - SSDP Broadcasting on port:      {SSDP_PORT} (for Kodi auto-discovery)")
     if USE_KODI_ACTUALLY:
         logger.info(f"|  - Kodi host:                      {KODI_MAIN_URL}")
         logger.info(f"|                                    (NFO sync: {'enabled' if JF_WANTED else 'disabled'})""")
@@ -643,6 +681,10 @@ if __name__ == "__main__":
 
     # one sqlite READ ONLY  thread for nforead and ffprobewrappe
     staticDB.sinit()
+
+    thread_ssdp = threading.Thread(target=ssdp_broadcast_daemon)
+    thread_ssdp.daemon = True  # exits when parent thread exits
+    thread_ssdp.start()
 
     thread_ef = threading.Thread(target=socket_server_waiting, args=("ffprobe",))
     thread_ef.daemon = True  # exits when parent thread exits
@@ -707,7 +749,7 @@ if __name__ == "__main__":
             else:
                 logger.info("    MANUAL/ Real Debrid remoteScan skipped as REMOTE_RDUMP_BASE_LOCATION is not set. If needed, verify value in ./jellygrail/config/settings.env and restart container.")
             
-            logger.info("  SCHEDULE/ Real Debrid API rd_progress will be triggered every 2mn ~")
+            logger.info(f"  SCHEDULE/ Real Debrid API rd_progress will be triggered every 2mn ~ (+ writing dump every {str(RDUMP_STORE_INTERVAL/60)[:4]}mn)")
         else:
             logger.warning("    MANUAL/ Real Debrid API key not set, verify RD_APITOKEN in ./jellygrail/config/settings.env and restart container")
 

@@ -2,11 +2,19 @@ import os
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
 
-WEBDAV_INTERNAL_PORT_DEFAULT = 8085
+#default that can be overriden in config/settings.env
+WEBDAV_INTERNAL_PORT = os.getenv('WEBDAV_INTERNAL_PORT') or 8085
+WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT', 0)) or 6502
+SSDP_PORT = int(os.getenv('SSDP_PORT', 0)) or 6505
+
+# ip set in config:
+WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
 DEFAULT_JF_COUNTRY = "CH"
 
 DEFAULT_JF_LANGUAGE = "fr"
+
+SUB_FOLDER_SELECTIVITY = ('movi', 'conc', 'show', 'disc') # if a subfolder contains one of these words (case insensitive) it will be scanned, else ignored
 
 # for fetch_nfo()
 NFO_FALLBACK = "/mounts/filedefaultnfo_readme_p.txt" # put a default path
@@ -187,9 +195,7 @@ RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" or RD_APITOKEN != ""
 
 INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
 
-WEBDAV_INTERNAL_PORT = os.getenv('WEBDAV_INTERNAL_PORT') or WEBDAV_INTERNAL_PORT_DEFAULT
-
-WEBDAV_HOST_PORT = os.getenv('WEBDAV_LAN_HOST') + ":" + str(WEBDAV_INTERNAL_PORT)
+WEBDAV_HOST_PORT = WEBDAV_LAN_HOST + ":" + str(WEBDAV_INTERNAL_PORT)
 
 codes = set(INTERESTED_LANGUAGES.split())
 USED_LANGS = set(codes) # the result
