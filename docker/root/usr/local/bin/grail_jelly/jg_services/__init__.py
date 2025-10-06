@@ -329,8 +329,8 @@ def remoteScan():
                     try:
                         push_and_select(remote_hash)
                     except requests.exceptions.HTTPError as http_err:
-                        if http_err.response.status_code == 403:
-                            logger.warning(f"    RD-API| Hash {remote_hash} is not accepted by RD")
+                        if http_err.response.status_code in (403, 451):
+                            logger.warning(f"    RD-API| Hash {remote_hash} is not accepted by RD (403 or 451 error).")
 
                             discarded_hashes.append(remote_hash)
                             #cur_incr += 1 # we can increment
@@ -474,10 +474,15 @@ def restoreList():
     if len(backupList):
         return "</br>".join(backupList)
 
+def bonjourKodi():
+    
+    return json.dumps({'message': 'Hello from JellyGrail'}).encode()
 
 # ----------------------------------
 # rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
 # getrdincrement
+
+
         
 def getrdincrement(incr):
     if (os.path.exists(PILE_FILE)):

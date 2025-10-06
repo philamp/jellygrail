@@ -7,6 +7,15 @@ WEBDAV_INTERNAL_PORT = os.getenv('WEBDAV_INTERNAL_PORT') or 8085
 WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT', 0)) or 6502
 SSDP_PORT = int(os.getenv('SSDP_PORT', 0)) or 6505
 
+# kodi mysql config
+KODI_MYSQL_CONFIG = {
+    'host' : 'localhost',
+    'user' : 'kodi',
+    'password' : 'kodi',
+    #'database' : 'kodi_video131',
+    'port' : 6503
+}
+
 # ip set in config:
 WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 

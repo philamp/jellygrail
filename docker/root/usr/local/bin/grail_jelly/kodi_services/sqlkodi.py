@@ -5,14 +5,7 @@ from base.constants import *
 
 conn = None
 
-# kodi mysql config
-KODI_MYSQL_CONFIG = {
-    'host' : 'localhost',
-    'user' : 'kodi',
-    'password' : 'kodi',
-    #'database' : 'kodi_video131',
-    'port' : 6503
-}
+
 
 found_db = ""
 

@@ -26,7 +26,7 @@ CYAN = "\033[96m"
 RESET = "\033[0m"
 
 ### SETTINGS LOADING ###
-VERSION = "20250808" # !!! Should be aligned to settings.env.template and early_init.sh !!!
+VERSION = "20250808" # !!! Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 INCR_KODI_REFR_MAX = 8
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
@@ -305,7 +305,7 @@ def refresh_all(step):
 
     if step == 1: # triggered also with rd_progress_response == "PLEASE_SCAN":
         logger.info("         1| Main JG Scan...")
-        nb_items = multiScan()
+        #nb_items = multiScan() #TODO remove
         #if nb_items > 10: #if scan has added more than 10 items, we wait for full jellyfin scan + nfo generation before refereshing kodi (to avoid too many nfo refresh calls to kodi)
             #toomany = True
 
@@ -321,7 +321,7 @@ def refresh_all(step):
 
     if (step < 3 or (step > 10 and step < 13)): 
         if (not at_least_once_done[2] or nb_items > 0) and nb_items < INCR_KODI_REFR_MAX:
-            if USE_KODI_ACTUALLY:                   
+            if USE_KODI_ACTUALLY and False: #TODO remove                  
                 if not refresh_kodi():
                     retry_later = True
                 else:
@@ -338,8 +338,8 @@ def refresh_all(step):
             if JF_WANTED_ACTUALLY:
                 logger.info("         3| Jellyfin library refresh...")
                 # refresh the jellyfin library and merge variants
-                lib_refresh_all()
-                wait_for_jfscan_to_finish()
+                #lib_refresh_all() #TODO remove
+                #wait_for_jfscan_to_finish() #TODO remove
                 pass
             
             if USE_PLEX_ACTUALLY:
@@ -371,7 +371,7 @@ def refresh_all(step):
 
     if USE_KODI_ACTUALLY:
         if (step < 3 or (step > 10 and step < 13) or step == 9):
-            if not nb_items < INCR_KODI_REFR_MAX:
+            if not nb_items < INCR_KODI_REFR_MAX and False: #TODO remove
                     if not refresh_kodi():
                         retry_later = True
                     else:
@@ -382,7 +382,7 @@ def refresh_all(step):
 
         # if step inferior or if specifically wanted with the webservice (6)
         if (step < 6 or (step > 10 and step < 16)) and retry_later == False:
-                if JF_WANTED_ACTUALLY:
+                if JF_WANTED_ACTUALLY and False: #TODO remove
                     if not send_nfo_to_kodi():
                         retry_later = True
                     else:
@@ -465,7 +465,9 @@ def ssdp_broadcast_daemon():
 
     # test in linux with nc -ul 6505
 
-    msg = LAN_IP + "|" + str(WEBSERVICE_INTERNAL_PORT)
+    # struct is : VERSION|LAN_IP|WEBSERVICE_INTERNAL_PORT|KODI_MYSQL_PORT|WEBDAV_INTERNAL_PORT
+
+    msg = VERSION + "|" + LAN_IP + "|" + str(WEBSERVICE_INTERNAL_PORT) + "|" + str(KODI_MYSQL_CONFIG.get('port', '0')) + "|" + str(WEBDAV_INTERNAL_PORT)
 
     encmsg = msg.encode("ascii")
 
