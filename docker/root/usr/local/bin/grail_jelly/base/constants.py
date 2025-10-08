@@ -1,4 +1,6 @@
 import os
+
+VERSION = "20250808" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
 

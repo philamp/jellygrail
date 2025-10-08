@@ -26,7 +26,7 @@ CYAN = "\033[96m"
 RESET = "\033[0m"
 
 ### SETTINGS LOADING ###
-VERSION = "20250808" # !!! Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
+#VERSION = "20250808" # now in constants !!! Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 INCR_KODI_REFR_MAX = 8
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
@@ -257,16 +257,17 @@ class RequestHandler(BaseHTTPRequestHandler):
                 # self.filter_and_send_data(input_date)
             except ValueError:
                 self.send_error(400, "Invalid increment format")
-            else:   
-                _getrdincr_instance = ScriptRunner.get(jg_services.getrdincrement)
-                _getrdincr_instance.resetargs(incr)
-                _getrdincr_instance.run()
-                self.standard_headers('application/json')
-                output = _getrdincr_instance.get_output()
-                if output != '':
-                    self.wfile.write(output)
-                else:
-                    self.send_error(503, "Client triggered service, not yet available - pile file not yet created on server, please retry in few seconds")
+            else: 
+                if 1 == 2: #TODO remove disable
+                    _getrdincr_instance = ScriptRunner.get(jg_services.getrdincrement)
+                    _getrdincr_instance.resetargs(incr)
+                    _getrdincr_instance.run()
+                    self.standard_headers('application/json')
+                    output = _getrdincr_instance.get_output()
+                    if output != '':
+                        self.wfile.write(output)
+                    else:
+                        self.send_error(503, "Client triggered service, not yet available - pile file not yet created on server, please retry in few seconds")
         else:
             self.standard_headers()
             self.send_error(404, "> This is unknown command")
@@ -465,9 +466,9 @@ def ssdp_broadcast_daemon():
 
     # test in linux with nc -ul 6505
 
-    # struct is : VERSION|LAN_IP|WEBSERVICE_INTERNAL_PORT|KODI_MYSQL_PORT|WEBDAV_INTERNAL_PORT
-
-    msg = VERSION + "|" + LAN_IP + "|" + str(WEBSERVICE_INTERNAL_PORT) + "|" + str(KODI_MYSQL_CONFIG.get('port', '0')) + "|" + str(WEBDAV_INTERNAL_PORT)
+    # struct is : JGx|VERSION|LAN_IP|WEBSERVICE_INTERNAL_PORT|KODI_MYSQL_PORT|WEBDAV_INTERNAL_PORT
+    #      0       1               2                  3                                     4                                              5
+    msg = "JGx|" + VERSION + "|" + LAN_IP + "|" + str(WEBSERVICE_INTERNAL_PORT) + "|" + str(KODI_MYSQL_CONFIG.get('port', '0')) + "|" + str(WEBDAV_INTERNAL_PORT)
 
     encmsg = msg.encode("ascii")
 

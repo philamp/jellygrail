@@ -474,8 +474,10 @@ def restoreList():
     if len(backupList):
         return "</br>".join(backupList)
 
-def bonjourKodi():
+def bonjourKodi(): # return a list of detected databases that are suitable for Kodi add-on
     
+    
+
     return json.dumps({'message': 'Hello from JellyGrail'}).encode()
 
 # ----------------------------------
