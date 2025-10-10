@@ -29,6 +29,19 @@ is_scanning = False
 is_cleaning = False
 refresh_is_safe = False
 
+
+
+
+def askKodiDBs(): # return a list of detected databases that are suitable for Kodi add-on
+    
+    
+
+    return json.dumps({'message': 'Hello from JellyGrail'}).encode()
+
+# ----------------------------------
+# rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
+# getrdincrement
+
 def kodi_ui_refresh():
     fake_folder_path = 'dummy/path/just/to/refresh'
 

@@ -474,16 +474,6 @@ def restoreList():
     if len(backupList):
         return "</br>".join(backupList)
 
-def bonjourKodi(): # return a list of detected databases that are suitable for Kodi add-on
-    
-    
-
-    return json.dumps({'message': 'Hello from JellyGrail'}).encode()
-
-# ----------------------------------
-# rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
-# getrdincrement
-
 
         
 def getrdincrement(incr):
