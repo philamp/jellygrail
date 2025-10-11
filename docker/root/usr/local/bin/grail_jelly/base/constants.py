@@ -10,6 +10,7 @@ WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT', 0)) or 6502
 SSDP_PORT = int(os.getenv('SSDP_PORT', 0)) or 6505
 
 # kodi mysql config
+# used by ssdp message
 KODI_MYSQL_CONFIG = {
     'host' : 'localhost',
     'user' : 'kodi',
