@@ -467,8 +467,8 @@ def ssdp_broadcast_daemon():
     # test in linux with nc -ul 6505
 
     # struct is : JGx|VERSION|LAN_IP|WEBSERVICE_INTERNAL_PORT|KODI_MYSQL_PORT|WEBDAV_INTERNAL_PORT
-    #      0       1               2                  3                                     4                                              5
-    msg = "JGx|" + VERSION + "|" + LAN_IP + "|" + str(WEBSERVICE_INTERNAL_PORT) + "|" + str(KODI_MYSQL_CONFIG.get('port', '0')) + "|" + str(WEBDAV_INTERNAL_PORT)
+    #      0       1               2                  3                                     4                                              5                              6
+    msg = "JGx|" + VERSION + "|" + LAN_IP + "|" + str(WEBSERVICE_INTERNAL_PORT) + "|" + str(KODI_MYSQL_CONFIG.get('port', '0')) + "|" + str(WEBDAV_INTERNAL_PORT) + "|" + SSDP_TOKEN
 
     encmsg = msg.encode("ascii")
 
