@@ -116,7 +116,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         # parse the path
         url_path = urllib.parse.urlparse(self.path).path
 
-        if url_path == '/scan':
+        if url_path == '/test':
+            _test_instance = ScriptRunner.get(jg_services.test)
+            _test_instance.run()
+            dumped_data = _test_instance.get_output()
+            self.standard_headers()
+            self.wfile.write(bytes(dumped_data, "utf8"))
+
+        elif url_path == '/scan':
             _scan_instance = ScriptRunner.get(refresh_all)
             _scan_instance.resetargs(1)
             _scan_instance.run()
@@ -206,14 +213,6 @@ class RequestHandler(BaseHTTPRequestHandler):
                 message = "### remoteScan() directly executed ! (Checks for remote's new RD hashes)\n"
             self.standard_headers()
             self.wfile.write(bytes(message, "utf8"))
-
-
-        elif url_path == '/test':
-            _test_instance = ScriptRunner.get(jg_services.test)
-            _test_instance.run()
-            dumped_data = _test_instance.get_output()
-            self.standard_headers()
-            self.wfile.write(bytes(dumped_data, "utf8"))
 
 
         elif url_path == "/backup":
