@@ -1,52 +1,61 @@
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
-from base.constants import *
 
-# setup the logger once
+# all computed constants + stop event
+from base.constants import * 
+
+# logger
 from base import logger_setup
 logger = logger_setup.log_setup()
+# other modules will get the same logger instance by calling logging.getLogger("jellygrail") via "from base import *"
 
+from script_runner import refreshByStep
+refresher = refreshByStep()
 
-import time
+# jg connect points
+import jg_services
+# ...
 # --- TBC....
 
 # ---- new starlette related ----
 import asyncio
-import logging
 from concurrent.futures import ThreadPoolExecutor
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 
+
+def trigger_nfo_refresh():
+    refresher.run(start_at=2)
+
+    #call the refresh step scheduler with a given step (nfo_loop_service)
+
+def trigger_rd_progress():
+    if jg_services.rd_progress == "PLEASE_SCAN":
+        refresher.run(start_at=0)  
+    
+
+async def periodic_job_launcher(func, interval: int, stop_event: threading.Event):
+    loop = asyncio.get_running_loop()
+    while not stop_event.is_set():
+        # Lance ton job bloquant
+        try:
+            await loop.run_in_executor(None, func)
+        except Exception as e:
+            logger.error(f" SCHEDULER| ❌ In job run by {func.__name__} : {e}")
+
+        # Attente périodique (6 min) interrompable
+        try:
+            await asyncio.wait_for(
+                loop.run_in_executor(None, stop_event.wait),
+                interval
+            )
+        except asyncio.TimeoutError:
+            continue
+        else:
+            break
+
 '''
-# === Configuration du logger ===
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%H:%M:%S",
-)
-logger = logging.getLogger("jobs")
-'''
-
-# === Exécuteur pour les tâches CPU ===
-executor = ThreadPoolExecutor(max_workers=3)
-
-# === Exemple de jobs lourds ===
-def heavy_job_a():
-    logger.info("[A] Calcul d’un rapport…")
-    time.sleep(2)
-    return "[A] Rapport terminé"
-
-def heavy_job_b():
-    logger.info("[B] Compression de fichiers…")
-    time.sleep(3)
-    return "[B] Compression terminée"
-
-def heavy_job_c():
-    logger.info("[C] Analyse de logs système…")
-    time.sleep(1.5)
-    return "[C] Analyse terminée"
-
 # === Worker générique ===
 async def worker(name, interval, func, stop_event: asyncio.Event):
     loop = asyncio.get_running_loop()
@@ -68,6 +77,7 @@ async def worker(name, interval, func, stop_event: asyncio.Event):
         # On annule la tâche restante pour éviter les warnings
         for t in pending:
             t.cancel()
+'''
 
 # === Routes Starlette ===
 async def homepage(request):
@@ -80,37 +90,33 @@ routes = [
 app = Starlette(routes=routes)
 
 # === État global pour suivre les tâches et l’événement d’arrêt ===
-app.state.stop_event = asyncio.Event()
+app.state.stop_event = stopEvent
 app.state.tasks = []
 
 # === Startup hook ===
 @app.on_event("startup")
 async def startup_event():
-    logger.info("🚀 Démarrage du serveur Starlette et des jobs périodiques")
+    logger.info("🚀 JellyGrail launched")
 
     stop_event = app.state.stop_event
     app.state.tasks = [
-        asyncio.create_task(worker("A", 5, heavy_job_a, stop_event)),
-        asyncio.create_task(worker("B", 10, heavy_job_b, stop_event)),
-        asyncio.create_task(worker("C", 15, heavy_job_c, stop_event)),
+        asyncio.create_task(periodic_job_launcher(trigger_rd_progress, 5, stop_event)),
     ]
 
 # === Stopping hook ===
 @app.on_event("shutdown")
 async def shutdown_event():
-    logger.info("🛑 Arrêt du serveur demandé. Signal aux workers…")
+    logger.info("🛑 JellyGrail shutdown requested")
     stop_event = app.state.stop_event
     stop_event.set()
 
     # Attendre la fin propre des tâches
     await asyncio.gather(*app.state.tasks, return_exceptions=True)
-    logger.info("✅ Tous les workers ont été arrêtés proprement.")
-
-
+    logger.info("🔁 Periodic triggers stopped.")
 
 # === Launching the app with Uvicorn ===
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host="0.0.0.0", port=WEBSERVICE_INTERNAL_PORT, loop="asyncio")
+    uvicorn.run(app, host="0.0.0.0", port=WEBSERVICE_INTERNAL_PORT, loop="uvloop")
     #asyncio.run(server.serve())

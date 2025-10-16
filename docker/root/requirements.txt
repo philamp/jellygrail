@@ -10,3 +10,5 @@ python-dotenv
 websocket-client
 mysql-connector-python
 msgspec
+starlette
+uvicorn[standard]

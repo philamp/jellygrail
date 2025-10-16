@@ -1,5 +1,7 @@
 import os
 import secrets
+import threading
+stopEvent = threading.Event()
 
 SSDP_TOKEN = secrets.token_hex(16)
 
