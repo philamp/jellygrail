@@ -9,6 +9,8 @@ VERSION = "20250808" # Should be aligned to settings.env.template and early_init
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
 
+INCR_KODI_REFR_MAX = 8
+
 #default that can be overriden in config/settings.env
 WEBDAV_INTERNAL_PORT = os.getenv('WEBDAV_INTERNAL_PORT') or 8085
 WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT', 0)) or 6502

@@ -1,23 +1,14 @@
+### MAIN ONLY
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
-
-# all computed constants + stop event
-from base.constants import * 
-
-# logger
 from base import logger_setup
-logger = logger_setup.log_setup()
-# other modules will get the same logger instance by calling logging.getLogger("jellygrail") via "from base import *"
+logger = logger_setup.log_setup() # other modules will get the same logger instance by calling logging.getLogger("jellygrail") via "from base import *"
+### ---------
 
-from script_runner import refreshByStep
-refresher = refreshByStep()
+# CONSTANTS EVERYWHERE + stop event
+from base.constants import *
 
-# jg connect points
-import jg_services
-# ...
-# --- TBC....
-
-# ---- new starlette related ----
+# LIBS
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from starlette.applications import Starlette
@@ -25,26 +16,34 @@ from starlette.responses import JSONResponse
 from starlette.routing import Route
 
 
+# JG MODULES
+import jg_services
+
+# JG REFRESHER in main
+from script_runner import refreshByStep
+refresher = refreshByStep()
+
+
 def trigger_nfo_refresh():
-    refresher.run(start_at=2)
+    refresher.run(start_at=3)
 
     #call the refresh step scheduler with a given step (nfo_loop_service)
 
 def trigger_rd_progress():
     if jg_services.rd_progress == "PLEASE_SCAN":
-        refresher.run(start_at=0)  
+        refresher.run() # default is total steps
     
 
-async def periodic_job_launcher(func, interval: int, stop_event: threading.Event):
+async def periodic_trigger_launcher(func, interval: int, stop_event: threading.Event):
     loop = asyncio.get_running_loop()
     while not stop_event.is_set():
-        # Lance ton job bloquant
+        # Launch not async job
         try:
             await loop.run_in_executor(None, func)
         except Exception as e:
             logger.error(f" SCHEDULER| ❌ In job run by {func.__name__} : {e}")
 
-        # Attente périodique (6 min) interrompable
+        # Pause period or stop, using timeout error raise as a continue tool
         try:
             await asyncio.wait_for(
                 loop.run_in_executor(None, stop_event.wait),
@@ -96,23 +95,23 @@ app.state.tasks = []
 # === Startup hook ===
 @app.on_event("startup")
 async def startup_event():
-    logger.info("🚀 JellyGrail launched")
+    #logger.info("🚀 JellyGrail launched")
 
     stop_event = app.state.stop_event
     app.state.tasks = [
-        asyncio.create_task(periodic_job_launcher(trigger_rd_progress, 5, stop_event)),
+        asyncio.create_task(periodic_trigger_launcher(trigger_rd_progress, 120, stop_event)),
     ]
 
 # === Stopping hook ===
 @app.on_event("shutdown")
 async def shutdown_event():
-    logger.info("🛑 JellyGrail shutdown requested")
+    #logger.info("🛑 JellyGrail shutdown requested")
     stop_event = app.state.stop_event
     stop_event.set()
 
     # Attendre la fin propre des tâches
     await asyncio.gather(*app.state.tasks, return_exceptions=True)
-    logger.info("🔁 Periodic triggers stopped.")
+    logger.info("SCHEDULING| 🔁 Periodic triggers stopped.")
 
 # === Launching the app with Uvicorn ===
 if __name__ == "__main__":

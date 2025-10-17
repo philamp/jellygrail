@@ -1,10 +1,12 @@
-import logging
+# CONSTANTS EVERYWHERE + stop event
+from base.constants import *
+
+# LIBS
+from base import * # loads common libs
 import threading
 import queue
 
-# all computed constants + stop event
-from base.constants import *
-
+# JG MODULES
 from jgscan import multiScan
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL') or ""
@@ -20,61 +22,87 @@ logger = logging.getLogger('jellygrail')
 
 class refreshByStep:
     def __init__(self):
+        self.num_items = 0
         self.steps = [
-            self.step1_scan, #0
-            self.step2_kodi_refresh, #1
-            self.step3_jf_refresh, #2
-            self.step4_report, #3
-            self.step2_kodi_refresh, #4
-            self.step5_send_nfos, #5
+            self.step_scan, #0
+            self.step_kodi_refresh, #1
+            self.step_jf_refresh, #2
+            self.step_nfogen, #3
+            self.step_kodi_refresh, #4
+            self.step_send_nfos, #5
+            self.step_sqlops #6
         ]
-        self.completed = [False] * len(self.steps)
+        self.static_bypass_conditions = [ # = already completed = we dont do if
+            False,
+            not USE_KODI_ACTUALLY,
+            not JF_WANTED_ACTUALLY,
+            not JF_WANTED_ACTUALLY,
+            not USE_KODI_ACTUALLY,
+            not USE_KODI_ACTUALLY or not JF_WANTED_ACTUALLY,
+            not USE_KODI_ACTUALLY
+        ]
+
+        self.completed = [True] * len(self.steps)
         self.running = False
         self.queued_execution = False
+        self.at_least_once_done = [False] * len(self.steps)
 
-        if not JF_WANTED_ACTUALLY:
-
-            if not USE_KODI_ACTUALLY:
-                self.completed[5] = True
+    def onthefly_bypass_conditions(self, step): # = already completed = we dont do if
+        if step == 1:
+            if self.num_items > INCR_KODI_REFR_MAX or (self.num_items == 0 and self.at_least_once_done[step]):
+                return True
             
+        if step == 4:
+            if self.num_items <= INCR_KODI_REFR_MAX or (self.num_items == 0 and self.at_least_once_done[step]):
+                return True
+            
+        if step == 2:
+            if self.num_items == 0 and self.at_least_once_done[step]:
+                return True
 
-    # --- steps (chaque fonction retourne True/False) ---
-    def step1_scan(self):
-        #nb_items = multiScan()
-        
-        return True
+        #default = we do
+        return False
 
-    def step2_kodi_refresh(self):
-
-        return True
-
-    def step3_jf_refresh(self):
-
-        return True
-
-    def step4_report(self):
-
-        return True
     
-    def step5_send_nfos(self):
+    def step_send_nfos(self):
+        # control with config
+        if not JF_WANTED_ACTUALLY or not USE_KODI_ACTUALLY:
+            return True
+        # call the real funcfunc
 
-        return True
+    def runfunc(self, step):
+        if self._runfunc(self, step):
+            self.at_least_once_done[step] = True
+
+    def _runfunc(self, step):
+        if step == 0: #special case
+            self.num_items = self.steps[step]()
+            return True
+        else:
+            if self.steps[step]():
+                return True
+        return False
 
     def subrun(self):
         self.running = True
         for i, _ in enumerate(self.completed):
+            # play dynamic bypass
+            self.completed[i] = self.onthefly_bypass_conditions(i)
             if not self.completed[i]:
-                logger.info(f" REFRESHER| Launching {self.steps[i].__name__}")
-                self.completed[i] = self.steps[i]()
+                logger.info(f" REFRESHER| 🚀 Launching S{i} : {self.steps[i].__name__}")
+                self.completed[i] = self.runfunc(i)
         if not all(self.completed):
-            logger.info(" REFRESHER| 🔁 Some incomplete steps, retried upon kodi devices \n")
+            logger.info(" REFRESHER| 🔁 Some incomplete steps, retried upon devices availability \n")
         else:
             logger.info(" REFRESHER| ✅ All steps complete.")
         self.running = False
+
     # --- run driver ---
     def run(self, start_at=None, steps_to_run=None):
         
         total = len(self.steps)
+
+        has_to_queue = False
 
         # Ways to specify which steps to run start_at = index OR steps_to_run = [indices]
         if steps_to_run is not None:
@@ -84,17 +112,29 @@ class refreshByStep:
         else:
             indices = range(total)
 
-        # Marque les steps concernés comme non complétés
+        
+        
+        # queue if in steps asked at least one is already marked as completed
+        # = for i in indices if self.completed[i]
+        # Mark indicated steps as not completed
         for i in range(total):
             if i in indices:
+                if self.completed[i] == True and not self.static_bypass_conditions[i]:
+                    has_to_queue = True
                 self.completed[i] = False
+
+        # play static bypass conditions
+        for i in enumerate(self.static_bypass_conditions):
+            self.completed[i] = self.static_bypass_conditions[i]
+        
         
         if not self.running:
             self.subrun()
+            # ...then
             if self.queued_execution:
                 self.queued_execution = False
                 self.subrun()
-        else:
+        elif has_to_queue:
             self.queued_execution = True
             return 
 
