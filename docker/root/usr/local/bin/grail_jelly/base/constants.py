@@ -223,3 +223,9 @@ for code in codes:
     if code in SUB_LANG_EQUIVALENTS:
         USED_LANGS.add(SUB_LANG_EQUIVALENTS[code])
 USED_LANGS.add("und")
+
+KODI_MAIN_URL = os.getenv('KODI_MAIN_URL') or ""
+USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
+USE_KODI_ACTUALLY = USE_KODI and (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "" and KODI_MAIN_URL != "your-player-ip-or-hostname")
+JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
+JF_WANTED_ACTUALLY = JF_WANTED

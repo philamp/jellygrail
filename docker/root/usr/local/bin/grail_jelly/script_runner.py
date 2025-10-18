@@ -9,11 +9,7 @@ import queue
 # JG MODULES
 from jgscan import multiScan
 
-KODI_MAIN_URL = os.getenv('KODI_MAIN_URL') or ""
-USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
-USE_KODI_ACTUALLY = USE_KODI and (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "" and KODI_MAIN_URL != "your-player-ip-or-hostname")
-JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
-JF_WANTED_ACTUALLY = JF_WANTED
+
 
 # plug to same logging instance as main
 logger = logging.getLogger('jellygrail')
@@ -49,7 +45,7 @@ class refreshByStep:
 
     def onthefly_bypass_conditions(self, step): # = already completed = we dont do if
         if step == 1:
-            if self.num_items > INCR_KODI_REFR_MAX or (self.num_items == 0 and self.at_least_once_done[step]):
+            if self.num_items > INCR_KODI_REFR_MAX or (self.num_items == 0 and self.at_least_once_done[step]): # CUSTOM CASE : if 0 items but at least once done, we skip
                 return True
             
         if step == 4:
@@ -63,16 +59,18 @@ class refreshByStep:
         #default = we do
         return False
 
+    def once_done_set(self, step):
+        # CUSTOM CASE : set for 1 -> set for 4 also and vice versa
+        if step in [1,4]:
+            self.at_least_once_done[1] = True
+            self.at_least_once_done[4] = True 
+        else:
+            self.at_least_once_done[step] = True
     
-    def step_send_nfos(self):
-        # control with config
-        if not JF_WANTED_ACTUALLY or not USE_KODI_ACTUALLY:
-            return True
-        # call the real funcfunc
-
     def runfunc(self, step):
         if self._runfunc(self, step):
-            self.at_least_once_done[step] = True
+            self.once_done_set(step)
+            #self.at_least_once_done[step] = True
 
     def _runfunc(self, step):
         if step == 0: #special case
@@ -99,6 +97,16 @@ class refreshByStep:
 
     # --- run driver ---
     def run(self, start_at=None, steps_to_run=None):
+
+        # CUSTOM CASE : if step 1 is asked, force step 4 also
+        if steps_to_run is not None and 1 in steps_to_run:
+            steps_to_run.append(4)
+
+        steps_to_run = list(set(steps_to_run)) if steps_to_run is not None else None
+
+        # CUSTOM CASE TODO : if not step not totally completed, self.num_items should not bet set, let it previous value
+        # CUSTOM TODO: have "started_step"
+            
         
         total = len(self.steps)
 

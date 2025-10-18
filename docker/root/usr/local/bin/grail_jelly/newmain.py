@@ -21,7 +21,7 @@ import jg_services
 
 # JG REFRESHER in main
 from script_runner import refreshByStep
-refresher = refreshByStep()
+
 
 
 def trigger_nfo_refresh():
@@ -115,7 +115,10 @@ async def shutdown_event():
 
 # === Launching the app with Uvicorn ===
 if __name__ == "__main__":
-    import uvicorn
 
+    refresher = refreshByStep()
+
+    # HTTP Server
+    import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=WEBSERVICE_INTERNAL_PORT, loop="uvloop")
     #asyncio.run(server.serve())
