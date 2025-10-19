@@ -23,16 +23,18 @@ import jg_services
 from script_runner import refreshByStep
 
 
-
 def trigger_nfo_refresh():
-    refresher.run(start_at=3)
+    return refreshByStep.run(steps_to_run=[3,5,6])
 
     #call the refresh step scheduler with a given step (nfo_loop_service)
 
 def trigger_rd_progress():
     if jg_services.rd_progress == "PLEASE_SCAN":
-        refresher.run() # default is total steps
+        return refreshByStep.run() # default is total steps
     
+async def kodi_checkers():
+
+    pass
 
 async def periodic_trigger_launcher(func, interval: int, stop_event: threading.Event):
     loop = asyncio.get_running_loop()
@@ -115,8 +117,6 @@ async def shutdown_event():
 
 # === Launching the app with Uvicorn ===
 if __name__ == "__main__":
-
-    refresher = refreshByStep()
 
     # HTTP Server
     import uvicorn

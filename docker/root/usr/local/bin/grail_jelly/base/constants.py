@@ -1,9 +1,14 @@
 import os
 import secrets
 import threading
+from base.token import SSDPToken
+
+SSDPToken.set_path("/jellygrail/data/ssdp_token.txt")
+SSDP_TOKEN = SSDPToken.get()
+
 stopEvent = threading.Event()
 
-SSDP_TOKEN = secrets.token_hex(16)
+KODI_INSTANCES_JSON = "/jellygrail/data/kodi_instances.json"
 
 VERSION = "20250808" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)

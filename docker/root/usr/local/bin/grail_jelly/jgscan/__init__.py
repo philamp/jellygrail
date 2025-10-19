@@ -659,6 +659,9 @@ def scanThread(pnt, present_folders):
                 dual_ep.append(( MOUNTS_ROOT+"/"+pnt[0]+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+pnt[0]+"/"+d.name, pnt[1], d.name))
 
     for (src1, src2, storetype, sdname) in dual_ep:
+        if stopEvent.is_set():
+            logger.warning("      SCAN| Stop event detected, stopping scanThread...")
+            break
         logger.info(f"      SCAN| /{pnt[0]} /{sdname} ...")
         for f in os.scandir(src1):
             if f.path not in present_folders:
@@ -704,7 +707,7 @@ def scanThread(pnt, present_folders):
 
                 
                 elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
-                    jgScan.itemincr()
+
                     logger.info(f"          |🌼 (folder-orphan) {f.name}")
 
                     dvprofile = None
@@ -797,9 +800,11 @@ def scanThread(pnt, present_folders):
                         finally:
                             unmount_iso("/mnt/tmp")
                     
+                    
                     threadDB.insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
                     threadDB.insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
                     threadDB.sqcommit()
+                    jgScan.itemincr()
     threadDB.sqclose()
     return True
 

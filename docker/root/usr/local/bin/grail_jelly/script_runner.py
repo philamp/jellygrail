@@ -8,7 +8,7 @@ import queue
 
 # JG MODULES
 from jgscan import multiScan
-
+from kodi_services import refresh_kodi
 
 
 # plug to same logging instance as main
@@ -16,87 +16,127 @@ logger = logging.getLogger('jellygrail')
 
 # declare all global instances here
 
+# REFRESHER instance return codes:
+# 0 = at least one kodi missing
+# 1 = no kodi missing or queued execution so we don't know
+
 class refreshByStep:
-    def __init__(self):
-        self.num_items = 0
-        self.steps = [
-            self.step_scan, #0
-            self.step_kodi_refresh, #1
-            self.step_jf_refresh, #2
-            self.step_nfogen, #3
-            self.step_kodi_refresh, #4
-            self.step_send_nfos, #5
-            self.step_sqlops #6
-        ]
-        self.static_bypass_conditions = [ # = already completed = we dont do if
-            False,
-            not USE_KODI_ACTUALLY,
-            not JF_WANTED_ACTUALLY,
-            not JF_WANTED_ACTUALLY,
-            not USE_KODI_ACTUALLY,
-            not USE_KODI_ACTUALLY or not JF_WANTED_ACTUALLY,
-            not USE_KODI_ACTUALLY
-        ]
+    _num_items = 0
+    _steps = [
+        multiScan, #0
+        refresh_kodi, #1
+        self.step_jf_refresh, #2
+        self.step_nfogen, #3
+        refresh_kodi, #4
+        self.step_send_nfos, #5
+        self.step_sqlops #6
+    ]
+    _static_bypass_conditions = [ # = already completed = we dont do if
+        False,
+        not USE_KODI_ACTUALLY,
+        not JF_WANTED_ACTUALLY,
+        not JF_WANTED_ACTUALLY,
+        not USE_KODI_ACTUALLY,
+        not USE_KODI_ACTUALLY or not JF_WANTED_ACTUALLY,
+        not USE_KODI_ACTUALLY
+    ]
 
-        self.completed = [True] * len(self.steps)
-        self.running = False
-        self.queued_execution = False
-        self.at_least_once_done = [False] * len(self.steps)
+    _completed = [True] * len(_steps)
+    _last_completed = None
+    _running = False
+    _queued_execution = False
+    _at_least_once_done = [False] * len(_steps)
+    _started = [False] * len(_steps)
 
-    def onthefly_bypass_conditions(self, step): # = already completed = we dont do if
+    @classmethod
+    def onthefly_bypass_conditions(cls, step): # = already completed = we dont do if
         if step == 1:
-            if self.num_items > INCR_KODI_REFR_MAX or (self.num_items == 0 and self.at_least_once_done[step]): # CUSTOM CASE : if 0 items but at least once done, we skip
+            if cls._num_items > INCR_KODI_REFR_MAX or (cls._num_items == 0 and cls._at_least_once_done[step]): # CUSTOM CASE : if 0 items but at least once done, we skip
                 return True
             
         if step == 4:
-            if self.num_items <= INCR_KODI_REFR_MAX or (self.num_items == 0 and self.at_least_once_done[step]):
+            if cls._num_items <= INCR_KODI_REFR_MAX or (cls._num_items == 0 and cls._at_least_once_done[step]):
                 return True
             
         if step == 2:
-            if self.num_items == 0 and self.at_least_once_done[step]:
+            if cls._num_items == 0 and cls._at_least_once_done[step]:
                 return True
 
         #default = we do
         return False
 
-    def once_done_set(self, step):
+    @classmethod
+    def once_done_set(cls, step):
         # CUSTOM CASE : set for 1 -> set for 4 also and vice versa
         if step in [1,4]:
-            self.at_least_once_done[1] = True
-            self.at_least_once_done[4] = True 
+            cls._at_least_once_done[1] = True
+            cls._at_least_once_done[4] = True 
         else:
-            self.at_least_once_done[step] = True
-    
-    def runfunc(self, step):
-        if self._runfunc(self, step):
-            self.once_done_set(step)
-            #self.at_least_once_done[step] = True
+            cls._at_least_once_done[step] = True
 
-    def _runfunc(self, step):
+    @classmethod
+    def completed_set(cls, step):
+        # CUSTOM CASE : set for 1 -> set for 4 also and vice versa
+        if step in [1,4]:
+            cls._completed[1] = True
+            cls._completed[4] = True 
+        else:
+            cls._completed[step] = True
+
+    @classmethod
+    def started_set(cls, step):
+        # CUSTOM CASE : set for 1 -> set for 4 also and vice versa
+        if step in [1,4]:
+            cls._started[1] = True
+            cls._started[4] = True 
+        else:
+            cls._started[step] = True
+
+    @classmethod
+    def runfunc(cls, step):
+        if cls._runfunc(cls, step):
+            cls.once_done_set(step)
+            #cls.at_least_once_done[step] = True
+
+    @classmethod
+    def _runfunc(cls, step):
         if step == 0: #special case
-            self.num_items = self.steps[step]()
+            cls._num_items = cls._steps[step]()
             return True
         else:
-            if self.steps[step]():
+            if cls._steps[step]():
                 return True
         return False
 
-    def subrun(self):
-        self.running = True
-        for i, _ in enumerate(self.completed):
-            # play dynamic bypass
-            self.completed[i] = self.onthefly_bypass_conditions(i)
-            if not self.completed[i]:
-                logger.info(f" REFRESHER| 🚀 Launching S{i} : {self.steps[i].__name__}")
-                self.completed[i] = self.runfunc(i)
-        if not all(self.completed):
-            logger.info(" REFRESHER| 🔁 Some incomplete steps, retried upon devices availability \n")
-        else:
-            logger.info(" REFRESHER| ✅ All steps complete.")
-        self.running = False
+    @classmethod
+    def runEachStep(cls):
+        cls._running = True
+        for i, _ in enumerate(cls._completed):
+            # CUSTOM - play dynamic bypass if last_completed was True, otherwise, they won't be bypassed (= we want to try them again if they were not done in last run, even if onthefly_bypass_conditions say so)
+            if cls._last_completed[i]:
+                cls._completed[i] = cls.onthefly_bypass_conditions(i)
+            if not cls._completed[i]:
+                cls.started_set(i)
+
+                logger.info(f" REFRESHER| 🚀 Launching S{i} : {cls._steps[i].__name__}")
+                if cls.runfunc(i):
+                    cls.completed_set(i)
+                #cls._completed[i] = cls.runfunc(i)
+
+                # launch here the threaded kodi availabilty checker if step is kodi related and kodi is not available
+                if not cls._completed[i] and i in [1,4,5]:
+                    logger.warning(f" REFRESHER| S{i} could not be completed, likely due to device unavailability")
+                    
+                    
+        # CUSTOM - reset started flags
+        cls._started = [False] * len(cls._steps)
+        cls._running = False
+
+
 
     # --- run driver ---
-    def run(self, start_at=None, steps_to_run=None):
+    @classmethod
+    def run(cls, start_at=None, steps_to_run=None):
 
         # CUSTOM CASE : if step 1 is asked, force step 4 also
         if steps_to_run is not None and 1 in steps_to_run:
@@ -104,11 +144,10 @@ class refreshByStep:
 
         steps_to_run = list(set(steps_to_run)) if steps_to_run is not None else None
 
-        # CUSTOM CASE TODO : if not step not totally completed, self.num_items should not bet set, let it previous value
         # CUSTOM TODO: have "started_step"
             
         
-        total = len(self.steps)
+        total = len(cls._steps)
 
         has_to_queue = False
 
@@ -123,28 +162,43 @@ class refreshByStep:
         
         
         # queue if in steps asked at least one is already marked as completed
-        # = for i in indices if self.completed[i]
+        # = for i in indices if cls.completed[i]
         # Mark indicated steps as not completed
+
+        # memorize the last completed status before we change the current one
+        cls._last_completed = cls._completed.copy()
+
+        # Apply current run request, so apply "uncompleted" only to indicated steps
         for i in range(total):
             if i in indices:
-                if self.completed[i] == True and not self.static_bypass_conditions[i]:
+                cls._completed[i] = False
+                
+                if not has_to_queue and (cls._started[i] == True and not cls._static_bypass_conditions[i]):
                     has_to_queue = True
-                self.completed[i] = False
 
-        # play static bypass conditions
-        for i in enumerate(self.static_bypass_conditions):
-            self.completed[i] = self.static_bypass_conditions[i]
+        # play static bypass conditions // these always apply anyway
+        for i in enumerate(cls._static_bypass_conditions):
+            cls._completed[i] = cls._static_bypass_conditions[i]
         
         
-        if not self.running:
-            self.subrun()
+        if not cls._running:
+            cls.runEachStep()
             # ...then
-            if self.queued_execution:
-                self.queued_execution = False
-                self.subrun()
-        elif has_to_queue:
-            self.queued_execution = True
-            return 
+            if cls._queued_execution:
+                cls._queued_execution = False
+                cls.runEachStep()
+
+            if not all(cls._completed):
+                logger.info(" REFRESHER| 🔁 Some incomplete steps, retried upon devices availability")
+                return 0
+            else:
+                logger.info(" REFRESHER| ✅ All steps complete.") 
+                return 1
+
+        elif has_to_queue: # CUSTOM - if running and at least one of the steps to run is already started
+            cls._queued_execution = True
+            logger.info(" REFRESHER| ↘ Queued.") 
+            return 1
 
 
 
@@ -158,7 +212,7 @@ class refreshByStep:
             self.queued_execution = False
             logger.info(f"🚀 Starting refresh from step {start_at if start_at is not None else 0}")
             try:
-                self.subrun()
+                self.runEachStep()
             except Exception as e:
                 logger.critical(f" Error occurred during refresh: {e}", exc_info=True)
             finally:
