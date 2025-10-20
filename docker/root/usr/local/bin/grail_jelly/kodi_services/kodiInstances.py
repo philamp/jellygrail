@@ -38,6 +38,22 @@ class kodiDBRegistry:
     # ───────────────────────────────
     # Public API
     # ───────────────────────────────
+
+
+    # TODO : temp to renove later
+    @classmethod
+    def all_poc(cls):
+        # return a POC version of all entries
+        return {
+            "b1ba1e3c-9061-4d34-9a14-f6e3d9fc7506": 
+            {
+                "dbname": "b1ba1e3c",
+                "kodi_ip": "172.22.2.18",
+                "kodi_version": 20
+            }
+        }
+
+
     @classmethod
     def all(cls):
         """Return the full registry as a dict."""
@@ -62,19 +78,42 @@ class kodiDBRegistry:
             "db_created_date": db_created_date,
             "kodi_ip": kodi_ip,
             "kodi_version": kodi_version,
+            "alive": False,
+            "refreshed": False
         }
         cls._save()
         return cls._data[uid]
 
     @classmethod
-    def update(cls, uid, **updates):
-        """Update existing entry fields by UID."""
+    def is_alive_set(cls, uid, is_alive_now: bool):
+        """Update the 'alive' status of an entry."""
         cls._load()
-        if uid not in cls._data:
+        entry = cls._data.get(uid)
+        if not entry:
             return None
-        cls._data[uid].update(updates)
+
+        entry["alive"] = is_alive_now
+        return entry
+
+    @classmethod
+    def update(cls, uid, **updates):
+        """Update existing entry fields by UID, saving only if something changed."""
+        cls._load()
+        entry = cls._data.get(uid)
+        if not entry:
+            return None
+
+        # Compute which fields actually change
+        changed = {k: v for k, v in updates.items() if entry.get(k) != v}
+
+        # If nothing changed, skip saving
+        if not changed:
+            return entry
+
+        # Apply only changed fields
+        entry.update(changed)
         cls._save()
-        return cls._data[uid]
+        return entry
 
     @classmethod
     def remove(cls, uid):
