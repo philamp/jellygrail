@@ -114,7 +114,8 @@ def lib_refresh_all():
     if resp.status_code != 204:
         logger.critical(f"FAILURE to update library. Status code: {resp.status_code}")
         return False
-    return True
+
+    return wait_for_jfscan_to_finish()
 
 
 # maybe deprecated

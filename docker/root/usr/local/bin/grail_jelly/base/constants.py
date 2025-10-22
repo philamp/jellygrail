@@ -6,14 +6,17 @@ from base.token import SSDPToken
 SSDPToken.set_path("/jellygrail/data/ssdp_token.txt")
 SSDP_TOKEN = SSDPToken.get()
 
-stopEvent = threading.Event()
+VERSION = "20250808" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
+
+
+#stopEvent = threading.Event()
 
 KODI_INSTANCES_JSON = "/jellygrail/data/kodi_instances.json"
-
-VERSION = "20250808" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
+CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
+REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
-
+LAN_IP = "127.0.0.1" # will be guessed later
 INCR_KODI_REFR_MAX = 8
 
 #default that can be overriden in config/settings.env
@@ -234,3 +237,4 @@ USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
 USE_KODI_ACTUALLY = USE_KODI and (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "" and KODI_MAIN_URL != "your-player-ip-or-hostname")
 JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
 JF_WANTED_ACTUALLY = JF_WANTED
+PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')

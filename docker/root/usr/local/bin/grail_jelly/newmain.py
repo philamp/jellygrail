@@ -18,24 +18,31 @@ from starlette.routing import Route
 
 # JG MODULES
 import jg_services
+import nfo_generator
+import jfapi
+from jgscan import multiScan
+
+
+
 
 # JG REFRESHER in main
-from script_runner import refreshByStep
+#from script_runner import refreshByStep
+from base.jobmanager import JobManager
 
-
+'''
 def trigger_nfo_refresh():
     return refreshByStep.run(steps_to_run=[3,5,6])
 
     #call the refresh step scheduler with a given step (nfo_loop_service)
-
+'''
+    
 def trigger_rd_progress():
     if jg_services.rd_progress == "PLEASE_SCAN":
-        return refreshByStep.run() # default is total steps
+        JobManager.trigger_job("jgScanJob")
+        #return refreshByStep.run() # default is total steps
     
-async def kodi_checkers():
 
-    pass
-
+# TODO maybe deprecated to removve
 async def periodic_trigger_launcher(func, interval: int, stop_event: threading.Event):
     loop = asyncio.get_running_loop()
     while not stop_event.is_set():
@@ -82,7 +89,7 @@ async def worker(name, interval, func, stop_event: asyncio.Event):
 
 # === Routes Starlette ===
 async def homepage(request):
-    return JSONResponse({"status": "ok", "active_jobs": len(request.app.state.tasks)})
+    return JSONResponse({"status": "ok", "registered_jobs": len(request.app.state.tasks)})
 
 routes = [
     Route("/", homepage),
@@ -91,32 +98,48 @@ routes = [
 app = Starlette(routes=routes)
 
 # === État global pour suivre les tâches et l’événement d’arrêt ===
-app.state.stop_event = stopEvent
-app.state.tasks = []
+#app.state.tasks = []
 
 # === Startup hook ===
 @app.on_event("startup")
 async def startup_event():
     #logger.info("🚀 JellyGrail launched")
 
-    stop_event = app.state.stop_event
-    app.state.tasks = [
-        asyncio.create_task(periodic_trigger_launcher(trigger_rd_progress, 120, stop_event)),
-    ]
+    # START ALL TRIGGERED/PERIODIC JOBS
+    asyncio.create_task(JobManager.run_all())
+
+    #stop_event = app.state.stop_event
+    #app.state.tasks = [
+    #    asyncio.create_task(periodic_trigger_launcher(trigger_rd_progress, 120, stop_event)),
+    #]
 
 # === Stopping hook ===
 @app.on_event("shutdown")
 async def shutdown_event():
     #logger.info("🛑 JellyGrail shutdown requested")
-    stop_event = app.state.stop_event
-    stop_event.set()
-
+    #stop_event = app.state.stop_event
+    #stop_event.set()
+    # STOP ALL TRIGGERED/PERIODIC JOBS
+    JobManager.stop()
     # Attendre la fin propre des tâches
-    await asyncio.gather(*app.state.tasks, return_exceptions=True)
-    logger.info("SCHEDULING| 🔁 Periodic triggers stopped.")
+    #await asyncio.gather(*app.state.tasks, return_exceptions=True)
+
 
 # === Launching the app with Uvicorn ===
 if __name__ == "__main__":
+
+
+    # periodic jobs started in main
+    # check that each one supports stop event
+    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=30)
+
+    # triggered jobs
+    # check that each one supports stop event
+    # the order of declaration dictates the order of execution when dependencies are set
+    JobManager.register_job("jgScanJob", multiScan, is_sync=True)
+    JobManager.register_job("jfScan", jfapi.lib_refresh_all, dependencies=["jgScanJob"], is_sync=True)
+    JobManager.register_job("nfoGenJob", nfo_generator.nfo_loop_service, dependencies=["jfScan"], is_sync=True)
+
 
     # HTTP Server
     import uvicorn

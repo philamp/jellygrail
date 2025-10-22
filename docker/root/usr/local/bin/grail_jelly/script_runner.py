@@ -2,11 +2,11 @@
 from base.constants import *
 
 # LIBS
-from base import * # loads common libs
 import threading
 import queue
 
 # JG MODULES
+from base import * # loads common libs
 from jgscan import multiScan
 from kodi_services import refresh_kodi
 
@@ -16,9 +16,14 @@ logger = logging.getLogger('jellygrail')
 
 # declare all global instances here
 
+
+
+
 # REFRESHER instance return codes:
 # 0 = at least one kodi missing
 # 1 = no kodi missing or queued execution so we don't know
+
+#### DEPRECATED #######
 
 class refreshByStep:
     _num_items = 0
