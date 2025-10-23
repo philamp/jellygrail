@@ -569,11 +569,11 @@ def init_mountpoints():
     #global dual_endpoints
     global pointNamesAndType
     logger.info("   STORAGE/ Rclone startup (10s)...") #toimprove with s6 ?
-    time.sleep(10)
+    time.sleep(1)
     for f in os.scandir(MOUNTS_ROOT): 
         if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
             typem = "local" if f.name.startswith("local_") else "remote"
-            #logger.info(f"   STORAGE/ {f.name}")
+            logger.info(f"   STORAGE/ {f.name}")
             pointNamesAndType.append((f.name,typem))
             
     #print(dual_endpoints)
@@ -584,13 +584,17 @@ def init_mountpoints():
 #### new stuff BEGIN
 
 
-def multiScan():
+def multiScan(stopEvent):
+
+
+    if not pointNamesAndType:
+        init_mountpoints()
 
     jgScan.i_scanned = 0 
     # instanciate as many workers as there are
     if RD_API_SET:
         logger.info("MULTI-SCAN| Rclone update interval wait...") #toimprove
-        time.sleep(9)
+        time.sleep(1)
     logger.info(f"   STORAGE/ Found {len(pointNamesAndType)} mountpoint(s):")
     for src1, storetype in pointNamesAndType:
         logger.info(f"          - /{src1} | Type: {storetype}")
@@ -614,7 +618,7 @@ def multiScan():
 
     with ThreadPoolExecutor(max_workers=len(pointNamesAndType)) as executor:
         futures = {
-            executor.submit(scanThread, d, present_folders): d
+            executor.submit(scanThread, d, present_folders, stopEvent): d
             for d in pointNamesAndType
         }
 
@@ -643,7 +647,7 @@ def multiScan():
     return jgScan.i_scanned
         
 
-def scanThread(pnt, present_folders):
+def scanThread(pnt, present_folders, stopEvent):
 
     # open a dedicated sqlite connection for this thread
 

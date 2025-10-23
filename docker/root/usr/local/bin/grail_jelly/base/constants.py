@@ -8,7 +8,14 @@ SSDP_TOKEN = SSDPToken.get()
 
 VERSION = "20250808" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 
-
+# ANSI color codes
+RED = "\033[91m"
+GREEN = "\033[92m"
+YELLOW = "\033[93m"
+BLUE = "\033[94m"
+MAGENTA = "\033[95m"
+CYAN = "\033[96m"
+RESET = "\033[0m"
 #stopEvent = threading.Event()
 
 KODI_INSTANCES_JSON = "/jellygrail/data/kodi_instances.json"

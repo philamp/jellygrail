@@ -7,12 +7,22 @@ from typing import Callable, Coroutine, Optional
 from base import *
 
 class JobManager:
+    main_loop: Optional[asyncio.AbstractEventLoop] = None
     jobs: dict[str, dict] = {}
     job_order: list[str] = []
     running: bool = True
     executor = ThreadPoolExecutor()
-    stop_event = asyncio.Event()          # utilisé dans les coroutines
-    stop_flag = threading.Event()         # équivalent pour les jobs sync
+    stop_event = asyncio.Event()
+    stop_flag = threading.Event()
+    wfidincr = 0
+
+    # Nouveau : contexte partagé par wf_id
+    contexts: dict[str, dict] = {}
+
+    @staticmethod
+    def get_new_wfid():
+        JobManager.wfidincr += 1
+        return f"wf-{JobManager.wfidincr}"
 
     # === Enregistrement ===
     @staticmethod
@@ -20,117 +30,92 @@ class JobManager:
         name: str,
         coro: Callable[..., Coroutine] | Callable[..., None],
         *,
-        dependencies: Optional[list[str]] = None,
         is_sync: bool = False,
         interval: Optional[float] = None,
     ):
         JobManager.jobs[name] = {
             "name": name,
             "coro": coro,
-            "dependencies": dependencies or [],
             "is_sync": is_sync,
             "interval": interval,
-            "event": asyncio.Event(),
-            "lock": asyncio.Lock(),
+            "event": asyncio.Queue(),     # remplace asyncio.Event pour transporter wf_id
+            "lock": asyncio.Lock(),       # self-lock uniquement
         }
         JobManager.job_order.append(name)
 
     # === Déclenchement ===
     @staticmethod
-    def trigger(name: str):
-        if name in JobManager.jobs:
-            JobManager.jobs[name]["event"].set()
-
-    # === Résolution des dépendances transitives ===
-    @staticmethod
-    def _resolve_dependencies(name: str, seen=None) -> set[str]:
-        if seen is None:
-            seen = set()
-        for dep in JobManager.jobs[name]["dependencies"]:
-            if dep not in seen:
-                seen.add(dep)
-                seen |= JobManager._resolve_dependencies(dep, seen)
-        return seen
-
-    @staticmethod
-    def resolve_all_dependencies():
-        for name in JobManager.jobs:
-            all_deps = JobManager._resolve_dependencies(name)
-            JobManager.jobs[name]["dependencies"] = list(all_deps)
-
-    # === Tri dans l'ordre d'enregistrement ===
-    @staticmethod
-    def _sorted_deps(deps: list[str]) -> list[str]:
-        order_map = {n: i for i, n in enumerate(JobManager.job_order)}
-        return sorted(deps, key=lambda d: order_map.get(d, 9999))
-
-    # === Récupération du stop flag approprié ===
-    @staticmethod
-    def get_stop_flag():
-        """Retourne une version thread-safe du stop event."""
-        return JobManager.stop_flag
+    def trigger(name: str, wf_id: str, ctx: Optional[dict] = None):
+        """Déclenche un job pour un workflow donné (wf_id)."""
+        if name not in JobManager.jobs:
+            logger.warning(f"JOBMANAGER| Unknown job {name}")
+            return
+        # créer ou récupérer le contexte partagé
+        if wf_id not in JobManager.contexts:
+            JobManager.contexts[wf_id] = ctx or {}
+        loop = JobManager.main_loop
+        if loop is None:
+            raise RuntimeError("JobManager main_loop not initialized")
+        loop.call_soon_threadsafe(
+            JobManager.jobs[name]["event"].put_nowait, wf_id
+        )
 
     # === Boucle d’exécution des jobs ===
     @staticmethod
     async def _run_job(job: dict):
         name = job["name"]
-        event = job["event"]
+        queue = job["event"]
         lock = job["lock"]
-        deps = job["dependencies"]
         coro = job["coro"]
         is_sync = job["is_sync"]
         interval = job["interval"]
 
         while JobManager.running:
-            if interval:
-                try:
-                    await asyncio.wait_for(event.wait(), timeout=interval)
-                except asyncio.TimeoutError:
-                    pass
-            else:
-                await event.wait()
+            try:
+                # attente d’un wf_id ou d’un tick périodique
+                if interval:
+                    try:
+                        wf_id = await asyncio.wait_for(queue.get(), timeout=interval)
+                    except asyncio.TimeoutError:
+                        wf_id = None
+                else:
+                    wf_id = await queue.get()
+            except asyncio.CancelledError:
+                break
 
-            event.clear()
             if JobManager.stop_event.is_set():
-                logger.info(f"JOBMANAGER| 🛑 Stop signal received before starting {name}")
+                logger.info(f"JOBMANAGER| 🛑 Stop signal before starting {name}")
                 return
 
-
             async with lock:
-                # attendre les dépendances
-                for dep in JobManager._sorted_deps(deps):
-                    async with JobManager.jobs[dep]["lock"]:
-                        pass
-
-                logger.info(f"JOBMANAGER| ▶ Starting job {name}")
+                ctx = JobManager.contexts.get(wf_id, {}) if wf_id else {}
+                logger.info(f"JOBMANAGER| ▶ Starting job {name} (wf={wf_id})")
                 try:
                     if is_sync:
-                        stop_flag = JobManager.get_stop_flag()
                         await asyncio.get_event_loop().run_in_executor(
-                            JobManager.executor, coro, stop_flag
+                            JobManager.executor, coro, ctx, JobManager.stop_flag
                         )
                     else:
-                        await coro(JobManager.stop_event)
+                        await coro(ctx, JobManager.stop_event)
 
-                    logger.info(f"JOBMANAGER| ✅ Finished job {name}")
-                except asyncio.CancelledError:
-                    logger.info(f"JOBMANAGER| ⚠ {name} cancelled")
+                    logger.info(f"JOBMANAGER| ✅ Finished job {name} (wf={wf_id})")
                 except Exception as e:
-                    logger.info(f"JOBMANAGER| 💥 Exception not catched in job {name}: {type(e).__name__} — {e}")
-                    # ici tu pourrais logguer plus proprement avec traceback
                     import traceback
+                    logger.error(f"JOBMANAGER| 💥 Exception in job {name}: {e}")
                     traceback.print_exc()
 
-
             if JobManager.stop_event.is_set():
-                logger.info(f"JOBMANAGER| 🛑 Stop signal detected after {name}")
+                logger.info(f"JOBMANAGER| 🛑 Stop detected after {name}")
                 break
 
     # === Lancement global ===
     @staticmethod
     async def run_all():
-        JobManager.resolve_all_dependencies()
-        await asyncio.gather(*(JobManager._run_job(job) for job in JobManager.jobs.values()), return_exceptions=True)
+        JobManager.main_loop = asyncio.get_running_loop()
+        await asyncio.gather(
+            *(JobManager._run_job(job) for job in JobManager.jobs.values()),
+            return_exceptions=True,
+        )
 
     # === Arrêt global ===
     @staticmethod
@@ -142,5 +127,4 @@ class JobManager:
             loop = asyncio.get_event_loop()
             loop.call_soon_threadsafe(JobManager.stop_event.set)
         except RuntimeError:
-            # si le loop est fermé ou non dispo
             JobManager.stop_event.set()
