@@ -8,10 +8,11 @@ from base.splashandchecks import play_config_check, play_splash
 
 # CONSTANTS EVERYWHERE + stop event
 from base.constants import *
+from base.SSDPandsockets import SSDPTask, start_uvloop_thread
 
 # LIBS
 import asyncio
-from concurrent.futures import ThreadPoolExecutor
+#from concurrent.futures import ThreadPoolExecutor
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
@@ -23,6 +24,9 @@ import jg_services
 import nfo_generator
 import jfapi
 from jgscan import multiScan
+from jgscan.jgsql import jellyDB, staticDB, bdd_install
+from jfconfig import jfconfig
+
 
 
 
@@ -105,59 +109,34 @@ app = Starlette(routes=routes)
 # === Startup hook ===
 @app.on_event("startup")
 async def startup_event():
-    #logger.info("🚀 JellyGrail launched")
+
     
     play_config_check()
     play_splash()
+
+    if JF_WANTED:
+        jfconfig()
+            
     # START ALL TRIGGERED/PERIODIC JOBS
     asyncio.create_task(JobManager.run_all())
+    await asyncio.sleep(0)
+    JobManager.trigger("ssdpBroadcast", "🔁 5s included") #5s is handled in the job itself not in the jobmanager
+    JobManager.trigger("rdProgressLoop", "periodic") #ticker handled by jobmanager
 
-    #stop_event = app.state.stop_event
-    #app.state.tasks = [
-    #    asyncio.create_task(periodic_trigger_launcher(trigger_rd_progress, 120, stop_event)),
-    #]
+
 
 # === Stopping hook ===
 @app.on_event("shutdown")
 async def shutdown_event():
-    #logger.info("🛑 JellyGrail shutdown requested")
-    #stop_event = app.state.stop_event
-    #stop_event.set()
-    # STOP ALL TRIGGERED/PERIODIC JOBS
-    JobManager.stop()
-    # Attendre la fin propre des tâches
-    #await asyncio.gather(*app.state.tasks, return_exceptions=True)
-
-async def SSDPTask(ctx, stop):
-    # ctx not used, would be elegant to put sock in ctx and to use integrated timeout handling in jobmanager
     
-    # testablée with nc -ul 
-    pause = 5
+    JobManager.stop()
+    staticDB.s.sqclose()
 
-    loop = asyncio.get_running_loop()
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    sock.setblocking(False)  # <-- important
-
-    #       0    1         2        3                          4                                  5                      6
-    msg = f"JGx|{VERSION}|{LAN_IP}|{WEBSERVICE_INTERNAL_PORT}|{KODI_MYSQL_CONFIG.get('port', 0)}|{WEBDAV_INTERNAL_PORT}|{SSDP_TOKEN}"
-
-    logger.info(f"      SSDP| Broadcasting (every {pause}secs) this SSDP msg: {msg} ")
-    try:
-        while not stop.is_set():
-            await loop.sock_sendto(sock, msg.encode("ascii"), ("<broadcast>", SSDP_PORT))
-            try:
-                await asyncio.wait_for(stop.wait(), timeout=pause)
-            except asyncio.TimeoutError:
-                pass
-    finally:
-        sock.close()
-        logger.info("      SSDP| Broadcast socket closed.")
 
 def trigger_rd_progress(ctx, stop):
-    if jg_services.rd_progress != "PLEASE_SCAN":
+    if jg_services.rd_progress == "PLEASE_SCAN":
         wf_id = JobManager.get_new_wfid()
-        JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id}) # the first job that inits the wf id
+        JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id}) # the first job of the WF marks the wf_id
 
 def multiScanWrapper(ctx, stop):
     # run the job and take total
@@ -182,11 +161,14 @@ def nfo_generatorWrapper(ctx, stop):
 
 
 if __name__ == "__main__":
-    
 
+    bdd_install()
+    staticDB.sinit()
     # periodic jobs started in main
     # check that each one supports stop event
-    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=15)
+    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=30)
+    JobManager.register_job("ssdpBroadcast", SSDPTask, is_sync=False) #ASYNC !
+
 
     # triggered jobs
     # check that each one supports stop event
@@ -198,7 +180,14 @@ if __name__ == "__main__":
     #JobManager.register_job("kodiScanLater", kodiScanWrapper, is_sync=True)
 
 
+    
+    # UNIX sockets thread using uvloop
+    t = threading.Thread(target=start_uvloop_thread, name="uvloop-thread", daemon=True)
+    t.start()
+
     # HTTP Server
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=WEBSERVICE_INTERNAL_PORT, loop="asyncio") #careful, loop.sock_sento is not implemented in uvloop
     #asyncio.run(server.serve())
+
+    staticDB.s.sqclose()

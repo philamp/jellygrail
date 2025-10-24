@@ -3,6 +3,21 @@ from base.littles import *
 import sqlite3
 # logger = logging.getLogger('jellygrail')
 
+def bdd_install():
+
+    dbinstance = jellyDB()
+    #init_database() already in the object init
+    # Play migrations
+    dbinstance.jg_datamodel_migration()
+
+    # create movies and shows parent folders
+    dbinstance.insert_data("/movies", None, None, None, 'all')
+    dbinstance.insert_data("/shows", None, None, None, 'all')
+    #insert_data("/concerts", None, None, None, 'all')
+    dbinstance.sqcommit()
+    dbinstance.sqclose()
+    
+    del dbinstance
 
 class jellyDB:
     db_path = "/jellygrail/data/bindfs/.bindfs_jelly.db"

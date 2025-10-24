@@ -42,7 +42,7 @@ LAN_IP = guess_lan_ip() or "127.0.0.1"
 INCR_KODI_REFR_MAX = 8
 
 #default that can be overriden in config/settings.env
-WEBDAV_INTERNAL_PORT = int(os.getenv('WEBDAV_INTERNAL_PORT')) or 8085
+WEBDAV_INTERNAL_PORT = int(os.getenv('WEBDAV_INTERNAL_PORT', 0)) or 8085
 WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT', 0)) or 6502
 SSDP_PORT = int(os.getenv('SSDP_PORT', 0)) or 6505
 
@@ -258,7 +258,7 @@ KODI_MAIN_URL = os.getenv('KODI_MAIN_URL') or ""
 USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
 USE_KODI_ACTUALLY = USE_KODI and (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "" and KODI_MAIN_URL != "your-player-ip-or-hostname")
 JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
-JF_WANTED_ACTUALLY = JF_WANTED
+JF_WANTED_ACTUALLY = JF_WANTED # ...AND config is true but we don't do config here TODO low-priority
 PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')
 
 USE_PLEX = (os.getenv('USE_PLEX') or "y") != "n"

@@ -94,7 +94,10 @@ class JobManager:
 
             async with lock:
                 ctx = JobManager.contexts.get(wf_id, {}) if wf_id else {}
-                logger.info(f"JOBMANAGER| ▶ Starting job {name} (wf={wf_id})")
+                # periodic must be in the wf_id string for jobs using integrated ticker, third party (like SSDP) can put anything
+                if interval and "periodic" in wf_id:
+                    wf_id = f"🔁 {interval}s"
+                logger.info(f"JOBMANAGER| ▶ Job {name} ({wf_id})")
                 try:
                     if is_sync:
                         await asyncio.get_event_loop().run_in_executor(
@@ -103,7 +106,7 @@ class JobManager:
                     else:
                         await coro(ctx, JobManager.stop_event)
 
-                    logger.info(f"JOBMANAGER| ✅ Finished job {name} (wf={wf_id})")
+                    logger.info(f"JOBMANAGER| ✅ Job {name} ({wf_id})")
                 except Exception as e:
                     import traceback
                     logger.error(f"JOBMANAGER| 💥 Exception in job {name}: {e}")

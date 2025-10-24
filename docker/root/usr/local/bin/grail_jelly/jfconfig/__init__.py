@@ -55,6 +55,7 @@ def jfconfig():
     if is_jf_available(): #JG STARTUP
         return jfsetup_req()
     else:
+        logger.critical("  JELLYFIN/ Config failed, please stop the container and fix the error. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders but it will remove all your Jellyfin libraries, configuration and users.")
         return False
     
 def jfsetup_req():
