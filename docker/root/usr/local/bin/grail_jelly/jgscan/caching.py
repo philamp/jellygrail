@@ -9,6 +9,9 @@ def get_plain_ffprobe(file_path):
     # this is plain ffprobe command call returning each part in separated vars, 
     # not decoding stdout !!
     # migrating to 6000000 analyse duration also
+
+    timeout = 8
+
     try:
         command = [
             "ffprober", 
@@ -21,10 +24,15 @@ def get_plain_ffprobe(file_path):
         ]
 
         # Execute the command
-        result = subprocess.run(command, capture_output=True, check=True, text=False)
+        result = subprocess.run(command, capture_output=True, check=True, text=False, timeout=timeout)
+
+    except subprocess.TimeoutExpired as e:
+        logger.warning(f"   CACHING| get_plain_ffprobe timeout ({timeout}s) on {file_path}")
+        # e.stdout / e.stderr peuvent exister même en cas de timeout
+        return (e.stdout or b"", e.stderr or b"Timeout expired", 1)
 
     except subprocess.CalledProcessError as e:
-        logger.warning(f"get_plain_ffprobe failure on {file_path}:\nReturn code:{e.returncode}\nstdout:{e.output}\nstderr:{e.stderr}")
+        logger.warning(f"   CACHING| get_plain_ffprobe failure on {file_path}:\nReturn code:{e.returncode}\nstdout:{e.output}\nstderr:{e.stderr}")
         return (e.output, e.stderr, e.returncode)
     
     #logger.info(f"get_plain_ffprobe success:\nReturn code:{result.returncode}\nstdout:{result.stdout}\nstderr:{result.stderr}")

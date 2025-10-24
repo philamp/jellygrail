@@ -32,7 +32,12 @@ class JobManager:
         *,
         is_sync: bool = False,
         interval: Optional[float] = None,
+        cond: bool = True
     ):
+        
+        if not cond:
+            return
+
         JobManager.jobs[name] = {
             "name": name,
             "coro": coro,
@@ -48,7 +53,7 @@ class JobManager:
     def trigger(name: str, wf_id: str, ctx: Optional[dict] = None):
         """Déclenche un job pour un workflow donné (wf_id)."""
         if name not in JobManager.jobs:
-            logger.warning(f"JOBMANAGER| Unknown job {name}")
+            logger.info(f"JOBMANAGER| Job {name} disabled due to configuration")
             return
         # créer ou récupérer le contexte partagé
         if wf_id not in JobManager.contexts:
