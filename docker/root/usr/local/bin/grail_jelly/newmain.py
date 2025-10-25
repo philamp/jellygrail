@@ -17,6 +17,7 @@ from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.routing import Route
 import time
+import threading
 
 
 # JG MODULES
@@ -24,9 +25,9 @@ import jg_services
 import nfo_generator
 import jfapi
 from jgscan import multiScan
-from jgscan.jgsql import jellyDB, staticDB, bdd_install
+from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
-
+from kodi_services.sqlkodi import kodi_mysql_verify
 
 
 
@@ -113,6 +114,7 @@ async def startup_event():
     
     play_config_check()
     play_splash()
+    kodi_mysql_verify()
 
     if JF_WANTED:
         jfconfig()
@@ -121,7 +123,7 @@ async def startup_event():
     asyncio.create_task(JobManager.run_all())
     await asyncio.sleep(0)
     JobManager.trigger("ssdpBroadcast", "🔁 5s included") #5s is handled in the job itself not in the jobmanager
-    JobManager.trigger("rdProgressLoop", "periodic") #ticker handled by jobmanager
+    JobManager.trigger("rdProgressLoop", "periodic_rdProgressLoop") #ticker handled by jobmanager periodic also set the job not to print the start message each time
 
 
 

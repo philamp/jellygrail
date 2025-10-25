@@ -8,6 +8,7 @@ import websocket
 import threading
 from datetime import datetime
 from jg_services import get_premium_time_left
+from kodi_services.kodiInstances import kodiDBRegistry
 
 KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
 
@@ -30,6 +31,10 @@ is_cleaning = False
 refresh_is_safe = False
 
 
+def reset_kodi_instances_refresh():
+    for kodi_inst in kodiDBRegistry.get_full_kodi_db_pointer():
+        kodi_inst["refreshed"] = False
+    # we don't save, it's volatile only
 
 
 def askKodiDBs(): # return a list of detected databases that are suitable for Kodi add-on

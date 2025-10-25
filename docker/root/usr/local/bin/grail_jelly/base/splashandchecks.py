@@ -52,22 +52,22 @@ def play_splash():
 
     # Some info to reassure user
     logger.info(f"|")
-    logger.info(f"|  - Prefered languages:             {os.getenv('INTERESTED_LANGUAGES')}")
+    logger.info(f"|  {CYAN}- Prefered languages:             {os.getenv('INTERESTED_LANGUAGES')}")
     if JF_WANTED:
-        logger.info(f"|  - Jellyfin Metadata:              Country: {os.getenv('JF_COUNTRY')}")
-        logger.info(f"|                                    Language: {os.getenv('JF_LANGUAGE')}")
-        logger.info(f"|  - Jellyfin host:                  http://{LAN_IP}:8096 (login: {os.getenv('JF_LOGIN') or 'admin'})")
-        logger.info(f"|  - Nginx WebDAV server:            http://{WEBDAV_HOST_PORT} (no auth, local access only! see README! don't expose it!)")
-        logger.info(f"|  - JellyGrail WebService:          http://{LAN_IP}:{WEBSERVICE_INTERNAL_PORT} (no auth, local access only! see README! don't expose it!)")
-        logger.info(f"|  - SSDP Broadcasting on port:      {SSDP_PORT} (for Kodi auto-discovery)")
+        logger.info(f"|  {CYAN}- Jellyfin Metadata:              Country: {os.getenv('JF_COUNTRY')}")
+        logger.info(f"|  {CYAN}                                  Language: {os.getenv('JF_LANGUAGE')}")
+        logger.info(f"|  {CYAN}- Jellyfin host:                  http://{LAN_IP}:8096 (login: {os.getenv('JF_LOGIN') or 'admin'})")
+        logger.info(f"|  {CYAN}- Nginx WebDAV server:            http://{WEBDAV_HOST_PORT} (no auth, local access only! see README! don't expose it!)")
+        logger.info(f"|  {CYAN}- JellyGrail WebService:          http://{LAN_IP}:{WEBSERVICE_INTERNAL_PORT} (no auth, local access only! see README! don't expose it!)")
+        logger.info(f"|  {CYAN}- SSDP Broadcasting on port:      {SSDP_PORT} (for Kodi auto-discovery)")
     if USE_KODI_ACTUALLY:
-        logger.info(f"|  - Kodi host:                      {KODI_MAIN_URL}")
-        logger.info(f"|                                    (NFO sync: {'enabled' if JF_WANTED else 'disabled'})""")
+        logger.info(f"|  {CYAN}- Kodi host:                      {KODI_MAIN_URL}")
+        logger.info(f"|  {CYAN}                                  (NFO sync: {'enabled' if JF_WANTED else 'disabled'})""")
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http') or REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234":
-        logger.info(f"|  - Remote JellyGrail URL:          {REMOTE_RDUMP_BASE_LOCATION}")
+        logger.info(f"|  {CYAN}- Remote JellyGrail URL:          {REMOTE_RDUMP_BASE_LOCATION}")
     if RD_API_SET:  
-        logger.info(f"|  - Real-Debrid API:                Enabled (token set)")
+        logger.info(f"|  {CYAN}- Real-Debrid API:                Enabled (token set)")
     if USE_PLEX_ACTUALLY:
-        logger.info(f"|  - Plex refresh URL(s): {', '.join(PLEX_URLS_ARRAY)}")
+        logger.info(f"|  {CYAN}- Plex refresh URL(s): {', '.join(PLEX_URLS_ARRAY)}")
     logger.info(f"|________________________________________ __ _")
     logger.info(f" ")

@@ -4,10 +4,11 @@ from pathlib import Path
 from datetime import datetime
 from base.constants import *
 
+# careful : the update method works only in one depth (no nested dict update)
 class kodiDBRegistry:
     """Static registry of Kodi Grail databases with automatic persistence."""
 
-    _path = Path("/etc/myapp/grail_dbs.json")
+    _path = Path(KODI_INSTANCES_FILE)
     _data = {}
     _loaded = False
 
@@ -55,10 +56,10 @@ class kodiDBRegistry:
 
 
     @classmethod
-    def all(cls):
-        """Return the full registry as a dict."""
+    def get_full_kodi_db_pointer(cls):
+        """Return the full registry pointer"""
         cls._load()
-        return dict(cls._data)
+        return cls._data
 
     @classmethod
     def get(cls, uid):
@@ -83,6 +84,16 @@ class kodiDBRegistry:
         }
         cls._save()
         return cls._data[uid]
+
+    '''
+    @classmethod # set refresh = False to all known kodi instances
+    def reset_all_refresh(cls):
+        """Reset 'refreshed' status for all entries."""
+        cls._load()
+        for entry in cls._data.values():
+            entry["refreshed"] = False
+        cls._save()
+    '''
 
     @classmethod
     def is_alive_set(cls, uid, is_alive_now: bool):

@@ -1,6 +1,4 @@
 import os
-import secrets
-import threading
 from base.token import SSDPToken
 import socket
 
@@ -20,6 +18,8 @@ def guess_lan_ip():
 
 SSDPToken.set_path("/jellygrail/data/ssdp_token.txt")
 SSDP_TOKEN = SSDPToken.get()
+
+KODI_INSTANCES_FILE = "/jellygrail/data/kodi_instances.json"
 
 VERSION = "20250808" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 

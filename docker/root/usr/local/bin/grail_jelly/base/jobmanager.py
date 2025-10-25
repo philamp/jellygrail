@@ -57,7 +57,7 @@ class JobManager:
             return
         # créer ou récupérer le contexte partagé
         if wf_id not in JobManager.contexts:
-            JobManager.contexts[wf_id] = ctx or {}
+            JobManager.contexts[wf_id] = ctx or {"wf_id": wf_id}
         loop = JobManager.main_loop
         if loop is None:
             raise RuntimeError("JobManager main_loop not initialized")
@@ -65,6 +65,7 @@ class JobManager:
             JobManager.jobs[name]["event"].put_nowait, wf_id
         )
 
+    # carefull: when putting a wf-id in the trigger
     # === Boucle d’exécution des jobs ===
     @staticmethod
     async def _run_job(job: dict):
@@ -82,7 +83,8 @@ class JobManager:
                     try:
                         wf_id = await asyncio.wait_for(queue.get(), timeout=interval)
                     except asyncio.TimeoutError:
-                        wf_id = None
+                        pass
+                        #wf_id = None
                 else:
                     wf_id = await queue.get()
             except asyncio.CancelledError:
@@ -95,9 +97,12 @@ class JobManager:
             async with lock:
                 ctx = JobManager.contexts.get(wf_id, {}) if wf_id else {}
                 # periodic must be in the wf_id string for jobs using integrated ticker, third party (like SSDP) can put anything
-                if interval and "periodic" in wf_id:
-                    wf_id = f"🔁 {interval}s"
-                logger.info(f"JOBMANAGER| ▶ Job {name} ({wf_id})")
+                if interval and "periodic" in str(wf_id):
+                    log_info = f"🔁 {interval}s (not displayed in the log during 30mn)"
+                else:
+                    log_info = f"{wf_id}"
+                
+                logger.info(f"JOBMANAGER| ▶ Job {name} ({log_info})")
                 try:
                     if is_sync:
                         await asyncio.get_event_loop().run_in_executor(
@@ -105,8 +110,8 @@ class JobManager:
                         )
                     else:
                         await coro(ctx, JobManager.stop_event)
-
-                    logger.info(f"JOBMANAGER| ✅ Job {name} ({wf_id})")
+                    if "🔁" not in log_info:
+                        logger.info(f"JOBMANAGER| ✅ Job {name} ({log_info})")
                 except Exception as e:
                     import traceback
                     logger.error(f"JOBMANAGER| 💥 Exception in job {name}: {e}")

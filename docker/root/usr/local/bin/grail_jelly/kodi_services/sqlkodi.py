@@ -3,11 +3,80 @@ from mysql.connector import errorcode
 from base import *
 from base.constants import *
 
+
 conn = None
-
-
-
 found_db = ""
+
+
+def kodi_mysql_verify():
+
+    try:
+        conn = mysql.connector.connect(**KODI_MYSQL_CONFIG)
+        cursor = conn.cursor(buffered=True)
+
+        cursor.execute("SHOW DATABASES LIKE '%_JGx_%'")
+        result = cursor.fetchall()
+        cursor.close() # important
+
+        if result:
+            logger.info(f"  SQL-KODI/ {len(result)} Kodi database(s) detected:")
+            # we don't close connection
+            # list the DBs detected
+            dbs = [res[0] for res in result]
+            logger.info(f"          | {dbs}")
+
+            return True
+        else:
+            logger.warning("  SQL-KODI/ No DBs detected. Please instanciate DB using JellyGrail Kodi addon, no need to restart JellyGrail")
+            return False
+
+    except mysql.connector.Error as err:
+        if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+            logger.error("  SQL-KODI/ Authentication failed. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container")
+        else:
+            logger.critical(f"  SQL-KODI/ SQL server messed-up. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container. Error is: {err}")
+        return False
+    
+    finally:
+        conn.close()
+
+# the prefix naming convention is : 
+# uid_JGx_
+# , so results will be like :
+# uid_JGx_131
+# uid_JGx_121
+# etc...
+
+class sqlKodiDB:
+    '''dynamic interface to Kodi's MariaDB database for JellyGrail purposes'''
+
+    def __init__(self, uid):
+
+        self.conn = mysql.connector.connect(**KODI_MYSQL_CONFIG)
+        cursor = self.conn.cursor(buffered=True)
+
+        cursor.execute(f"SHOW DATABASES LIKE '{uid}_JGx_%'")
+        result = cursor.fetchall()
+        results = [res[0] for res in result]
+        cursor.close() # important
+        if results:
+            self.db_name = results[-1]
+
+
+
+
+    def __enter__(self):
+        self.cursor = self.conn.cursor(buffered=True)
+        self.cursor.execute(f"USE {self.db_name}")
+        return self.cursor  # on retourne le curseur utilisable dans le bloc with
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        self.cursor.close()
+
+
+    def close(self):
+        global conn
+        conn.close()
 
 
 # only kodi_mysql_init_and_verify has smart try-except fallbacks as other calls must 100% work if database is not messed up during process
@@ -41,7 +110,7 @@ def kodi_mysql_init_and_verify(just_verify=False):
                 # we don't close connection
             return True
         else:
-            logger.warning("  SQL-KODI| Not working. Please instanciate DB in Kodi (guide: https://github.com/philamp/jellygrail/wiki/Configure-Kodi), no need to restart Jellygrail")
+            logger.warning("  SQL-KODI| No DBs detected. Please instanciate DB with the JellyGrail kodi addon, no need to restart Jellygrail")
             mariadb_close()
             return False
 
