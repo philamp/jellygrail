@@ -112,8 +112,9 @@ app = Starlette(routes=routes)
 async def startup_event():
 
     
-    play_config_check()
+    
     play_splash()
+    play_config_check()
     kodi_mysql_verify()
 
     if JF_WANTED:
@@ -173,7 +174,9 @@ if __name__ == "__main__":
 
 
     # triggered jobs
-    # check that each one supports stop event
+    
+    # !!!!!!!!!!!!!!!!!! check that each one supports stop event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
     JobManager.register_job("jgScanJob", multiScanWrapper, is_sync=True)
     JobManager.register_job("jfScan", lib_refresh_allWrapper, is_sync=True, cond=JF_WANTED_ACTUALLY)
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)

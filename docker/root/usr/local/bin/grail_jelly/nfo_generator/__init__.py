@@ -85,7 +85,7 @@ def fetch_nfo(nfopath):
         return NFO_FALLBACK
 
 
-def nfo_loop_service() -> bool:
+def nfo_loop_service(stopEvent) -> bool:
     nbofmovieorepisode = 0
     nbofmovie = 0
     nbofepisode = 0

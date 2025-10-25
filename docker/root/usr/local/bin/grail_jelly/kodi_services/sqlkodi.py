@@ -63,8 +63,6 @@ class sqlKodiDB:
             self.db_name = results[-1]
 
 
-
-
     def __enter__(self):
         self.cursor = self.conn.cursor(buffered=True)
         self.cursor.execute(f"USE {self.db_name}")
@@ -75,8 +73,27 @@ class sqlKodiDB:
 
 
     def close(self):
-        global conn
-        conn.close()
+        self.conn.close()
+
+    def check_if_vvtype_exists(self, test_string):
+        with self as cursor:
+            cursor.execute(f"SELECT id FROM videoversiontype where name = %s", (test_string,))
+            result = cursor.fetchone()
+
+        if result:
+            return result[0]
+        
+        return 0
+    
+    def return_last_played_max(self):
+        with self as cursor:
+            cursor.execute(f"SELECT MAX(files.lastPlayed) FROM files INNER JOIN movie_view mv on mv.videoVersionIdFile = files.idFile")
+            result = cursor.fetchone()
+
+        if result:
+            return result[0]
+        
+        return None
 
 
 # only kodi_mysql_init_and_verify has smart try-except fallbacks as other calls must 100% work if database is not messed up during process
@@ -121,6 +138,8 @@ def kodi_mysql_init_and_verify(just_verify=False):
             logger.critical(f"  SQL-KODI| SQL server messed-up. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container. Error is: {err}")
         return False
 
+
+## transfered
 def check_if_vvtype_exists(test_string):
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
@@ -139,6 +158,7 @@ def check_if_vvtype_exists(test_string):
     
     return 0
 
+## transfered
 def return_last_played_max():
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL

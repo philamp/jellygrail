@@ -92,11 +92,11 @@ def jellyfin_req(path, method='get', **kwargs):
     logger.critical(f"    JF-API/ Failed after {retries} attempts to reach {url}")
     return None
 
-def wait_for_jfscan_to_finish():
+def wait_for_jfscan_to_finish(stopEvent):
     if tasks := jellyfin('ScheduledTasks').json():
         tasks_name_mapping = {task.get('Key'): task for task in tasks}
         ref_task_id = tasks_name_mapping.get('RefreshLibrary').get('Id')
-        while True:
+        while True and not stopEvent.is_set():
             task = jellyfin(f'ScheduledTasks/{ref_task_id}').json()
             if task.get('State') != "Running":
                 break
@@ -109,13 +109,13 @@ def wait_for_jfscan_to_finish():
     logger.info("         3| ...Jellyfin Library refresh complete")
     return True
 
-def lib_refresh_all():
+def lib_refresh_all(stopEvent):
     resp = jellyfin(f'Library/Refresh', method='post')
     if resp.status_code != 204:
         logger.critical(f"FAILURE to update library. Status code: {resp.status_code}")
         return False
 
-    return wait_for_jfscan_to_finish()
+    return wait_for_jfscan_to_finish(stopEvent)
 
 
 # maybe deprecated
