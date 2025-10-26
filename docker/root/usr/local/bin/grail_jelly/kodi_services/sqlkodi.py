@@ -4,8 +4,8 @@ from base import *
 from base.constants import *
 
 
-conn = None
-found_db = ""
+#conn = None
+#found_db = ""
 
 
 def kodi_mysql_verify():
@@ -47,6 +47,8 @@ def kodi_mysql_verify():
 # uid_JGx_121
 # etc...
 
+# dbname must containe the uid + _JGx_ prefix to be recognized as a JellyGrail Kodi database
+
 class sqlKodiDB:
     '''
     Dynamic interface to Kodi's MariaDB database for JellyGrail purposes. 
@@ -54,12 +56,12 @@ class sqlKodiDB:
     Use at your own risk.
     '''
     
-    def __init__(self, uid):
+    def __init__(self, dbname):
 
         self.conn = mysql.connector.connect(**KODI_MYSQL_CONFIG)
         cursor = self.conn.cursor(buffered=True)
 
-        cursor.execute(f"SHOW DATABASES LIKE '{uid}_JGx_%'")
+        cursor.execute(f"SHOW DATABASES LIKE '{dbname}%'")
         result = cursor.fetchall()
         results = [res[0] for res in result]
         cursor.close() # important

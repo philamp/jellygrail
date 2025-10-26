@@ -28,7 +28,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-
+from kodi_services import get_kodi_instances_by_kodi_version
 
 
 
@@ -96,10 +96,19 @@ async def worker(name, interval, func, stop_event: asyncio.Event):
 
 # === Routes Starlette ===
 async def homepage(request):
-    return JSONResponse({"status": "ok", "registered_jobs": len(request.app.state.tasks)})
+    return JSONResponse({"status": "ok", "registered_jobs": "BETA"})
+
+async def get_compatible_kodiDBs(request):
+    kodi_version = request.query_params.get("kodi_version")
+    uid = request.query_params.get("uid")
+    if not kodi_version or not uid:
+        return JSONResponse({"error": "Missing parameters"}, status_code=400)
+
+    return JSONResponse(get_kodi_instances_by_kodi_version(int(kodi_version), uid))
 
 routes = [
     Route("/", homepage),
+    Route("/get_compatible_kodiDBs", get_compatible_kodiDBs),
 ]
 
 app = Starlette(routes=routes)

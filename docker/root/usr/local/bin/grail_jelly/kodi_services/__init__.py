@@ -31,6 +31,32 @@ is_cleaning = False
 refresh_is_safe = False
 
 
+def get_kodi_instances_by_kodi_version(pkodi_version, puid):
+    # TODO POC for now
+
+    for uid, entry in kodiDBRegistry.all_poc().items():
+        if uid == puid and entry.get("kodi_version") == pkodi_version:
+            return {
+                uid: entry
+            }
+
+
+    else:
+        available_instances = {
+            uid: entry
+            for uid, entry in kodiDBRegistry.all_poc().items()
+            if entry.get("kodi_version") == pkodi_version
+        }
+
+        available_instances[puid] = {
+            "dbname": f"{puid}_JGx_"
+        }
+
+        return available_instances
+    
+
+
+
 def reset_kodi_instances_refresh():
     for kodi_inst in kodiDBRegistry.get_full_kodi_db_pointer():
         kodi_inst["refreshed"] = False
