@@ -48,8 +48,12 @@ def kodi_mysql_verify():
 # etc...
 
 class sqlKodiDB:
-    '''dynamic interface to Kodi's MariaDB database for JellyGrail purposes'''
-
+    '''
+    Dynamic interface to Kodi's MariaDB database for JellyGrail purposes. 
+    This is experimental as it's not recommended at all by XBMC/Kodi team to access directly the database. 
+    Use at your own risk.
+    '''
+    
     def __init__(self, uid):
 
         self.conn = mysql.connector.connect(**KODI_MYSQL_CONFIG)
@@ -95,8 +99,122 @@ class sqlKodiDB:
         
         return None
 
+    def return_last_file_id_max(self):
+        with self as cursor:
+            cursor.execute(f"SELECT MAX(idMovie) FROM movie")
+            result = cursor.fetchone()
 
-# only kodi_mysql_init_and_verify has smart try-except fallbacks as other calls must 100% work if database is not messed up during process
+        if result:
+            return result[0]
+        
+        return None
+    
+    def delete_other_mediaid(self, imediatodel):
+        with self as cursor:
+            cursor.execute(f"DELETE FROM movie where idMovie = %s", (imediatodel,))
+            self.conn.commit()
+
+        return True
+
+    def define_kept_mediaid(self, idfile, strpath, imediatokeep):
+
+        with self as cursor:
+            cursor.execute(f"UPDATE movie set idFile = %s, c22 = %s where idMovie = %s", (idfile,strpath,imediatokeep))
+            self.conn.commit()
+
+        return True
+
+
+    def insert_new_vvtype(self, new_string):
+        with self as cursor:
+            cursor.execute(f"insert into videoversiontype (name, owner, itemType) values (%s, 0,0)", (new_string,))
+            self.conn.commit()
+            inserted_id = cursor.lastrowid
+
+        return inserted_id
+
+
+    def new_set_resume_times_and_lastplayed(self, timesec, lastplayedstr, fileidsstr, idfiles, highest_tt):
+        with self as cursor:
+
+            if timesec != 0 and highest_tt !=0:
+
+                for fileid in idfiles:
+                    
+                    cursor.execute(f"SELECT idFile FROM bookmark where idFile = %s", (fileid,))
+                    result = cursor.fetchone()
+
+                    if result:
+                        cursor.execute(f"UPDATE bookmark set timeInSeconds = %s WHERE idFile = %s", (timesec,fileid))
+                    else:
+                        cursor.execute(f"INSERT INTO bookmark (idFile, timeInSeconds, totalTimeInSeconds, player, type) VALUES (%s, %s, %s, 'VideoPlayer', 1) ON DUPLICATE KEY UPDATE timeInSeconds = VALUES(timeInSeconds)", (fileid,timesec,highest_tt))
+
+
+            else:
+                # propagate the absence of bookmark for the last played item
+                cursor.execute(f"DELETE FROM bookmark WHERE idFile in ({fileidsstr})")
+
+            if lastplayedstr != "0":
+                # propagate the last_played value to all files belonging to same unique id pool
+                cursor.execute(f"UPDATE files set lastPlayed = %s WHERE idFile in ({fileidsstr})", (lastplayedstr,))
+
+            self.conn.commit()
+
+        return True
+
+
+    def link_vv_to_kept_mediaid(self, vvid, keptmid, new_type_id):
+        with self as cursor:
+            cursor.execute(f"UPDATE videoversion set idMedia = %s, idType = %s where idFile = %s", (keptmid,new_type_id,vvid))
+            self.conn.commit()
+
+        return True
+
+    def delete_other_showid(self, idshowtodel):
+        with self as cursor:
+            cursor.execute(f"DELETE FROM tvshow where idShow = %s", (idshowtodel,))
+            self.conn.commit()
+
+        return True
+
+
+    def link_all_shows_to_keptone(self, showsR, keptone):
+        with self as cursor:        
+            cursor.execute(f"UPDATE seasons set idShow = %s where idShow in ({showsR})", (keptone,))
+            self.conn.commit()
+
+        return True
+
+    def separated_seasons(self):
+        with self as cursor:
+            cursor.execute(f"select group_concat(idShow), group_concat(uid.value) from tvshow tvs inner join uniqueid uid on uid.media_id = tvs.idShow and uid.type = 'tvdb' GROUP BY uid.value HAVING COUNT(*) > 1")
+            return cursor.fetchall()
+
+    def video_versions(self):
+        with self as cursor:
+            cursor.execute(f"SELECT uid.value as tmdbid, group_concat(mvb.idMovie SEPARATOR ' ') as idmedia, group_concat(mvb.strPath SEPARATOR ' ') as strpath, group_concat(mvb.strFileName SEPARATOR ' ') as strfilename, group_concat(mvb.videoVersionIdFile SEPARATOR ',') as idfile, group_concat(isDefaultVersion SEPARATOR ' ') as isdefault, GROUP_CONCAT(CONCAT(IFNULL(mvb.lastPlayed, 0), '#',IFNULL(mvb.resumeTimeInSeconds, 0), '#',IFNULL(mvb.totalTimeInSeconds, 0)) ORDER BY mvb.lastPlayed DESC) AS bmk_stuff FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie where uid.type = 'tmdb' GROUP BY uid.value HAVING COUNT(*) > 1")
+            return cursor.fetchall()
+
+
+    def fetch_media_id(self, path, tabletofetch, idtofetch):
+        like_param = f"%{path}%"
+        with self as cursor:
+            cursor.execute(f"SELECT ttf.{idtofetch}, MAX(IF(uid.type = 'jellygrail', 'jellygrail', 'imdb-tmdb')) as type FROM {tabletofetch} ttf LEFT JOIN uniqueid uid on uid.media_id = ttf.{idtofetch} WHERE strPath like %s GROUP BY ttf.{idtofetch}", (like_param,))
+            return cursor.fetchall()
+    
+
+    def get_undefined_collection_arts(self):
+        with self as cursor:
+            cursor.execute("SELECT * FROM sets s WHERE NOT EXISTS (SELECT 1 FROM art a WHERE a.media_type = 'set' AND a.media_id = s.idSet)")
+            return cursor.fetchall()
+
+
+    def insert_collection_art(self, id, strpath):
+        with self as cursor:
+            cursor.execute("INSERT INTO art (media_id, media_type, type, url) VALUES (%s, 'set', 'thumb', %s)", (id, strpath))
+            self.conn.commit()
+
+        return True
 
 def kodi_mysql_init_and_verify(just_verify=False):
     global conn
@@ -177,6 +295,7 @@ def return_last_played_max():
     
     return None
 
+## transfered
 def return_last_file_id_max():
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
@@ -196,7 +315,7 @@ def return_last_file_id_max():
     return None
 
 
-
+## transfered
 def delete_other_mediaid(imediatodel):
     global conn
     cursor = conn.cursor()
@@ -211,6 +330,7 @@ def delete_other_mediaid(imediatodel):
     # Récupération des résultats
     return True
 
+## transfered
 def define_kept_mediaid(idfile, strpath, imediatokeep):
     global conn
     cursor = conn.cursor()
@@ -225,6 +345,7 @@ def define_kept_mediaid(idfile, strpath, imediatokeep):
     # Récupération des résultats
     return True
 
+## transfered
 def insert_new_vvtype(new_string):
 
     global conn
@@ -242,7 +363,7 @@ def insert_new_vvtype(new_string):
 
     return inserted_id
 
-
+## transfered
 def new_set_resume_times_and_lastplayed(timesec, lastplayedstr, fileidsstr, idfiles, highest_tt):
     #todo update or insert !!
     global conn
@@ -309,7 +430,7 @@ def set_resume_times_and_lastplayed(timesec, lastplayedstr, fileidsstr, idfiles,
     return True
 '''
 
-
+## transfered
 def link_vv_to_kept_mediaid(vvid, keptmid, new_type_id):
     global conn
     cursor = conn.cursor()
@@ -323,6 +444,7 @@ def link_vv_to_kept_mediaid(vvid, keptmid, new_type_id):
 
     return True
 
+## transfered
 def delete_other_showid(idshowtodel):
     global conn
     cursor = conn.cursor()
@@ -337,6 +459,7 @@ def delete_other_showid(idshowtodel):
     # Récupération des résultats
     return True
 
+## transfered
 def link_all_shows_to_keptone(showsR, keptone):
     global conn
     cursor = conn.cursor()
@@ -350,6 +473,7 @@ def link_all_shows_to_keptone(showsR, keptone):
 
     return True
 
+## transfered
 def separated_seasons():
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
@@ -364,6 +488,7 @@ def separated_seasons():
     # Récupération des résultats
     return result
 
+## transfered
 def video_versions():
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
@@ -378,6 +503,7 @@ def video_versions():
     # Récupération des résultats
     return result
 
+## transfered
 def fetch_media_id(path, tabletofetch, idtofetch):
     global conn
     # Création d'un curseur pour exécuter des requêtes SQL
@@ -394,6 +520,7 @@ def fetch_media_id(path, tabletofetch, idtofetch):
     # Récupération des résultats
     return result
 
+## transfered
 def get_undefined_collection_arts():
     global conn
     cursor = conn.cursor()
@@ -401,7 +528,7 @@ def get_undefined_collection_arts():
     cursor.execute("SELECT * FROM sets s WHERE NOT EXISTS (SELECT 1 FROM art a WHERE a.media_type = 'set' AND a.media_id = s.idSet)")
     return cursor.fetchall()
 
-
+## transfered
 def insert_collection_art(id, strpath):
     global conn
     cursor = conn.cursor()

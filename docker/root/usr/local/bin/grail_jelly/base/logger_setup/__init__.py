@@ -1,6 +1,7 @@
 import logging
 from colorlog import ColoredFormatter
 import time
+from collections import deque
 '''
 class LevelLetterFilter(logging.Filter):
     def filter(self, record):
@@ -8,39 +9,44 @@ class LevelLetterFilter(logging.Filter):
         return True
 '''
 
-class NoRepeatPrefixFilter(logging.Filter):
-    """ 
-    - Suppresses identical messages within `ttl` seconds.
-    - Replaces first 10 chars with spaces if prefix matches previous message.
+class RecentDedupFilter(logging.Filter):
+    """
+    - Suppresses duplicate messages if they appeared in the last 10 messages within 30 min.
+    - Replaces the first 10 chars with spaces if they match the prefix of the last message.
     """
 
-    def __init__(self, ttl=1800, prefix_len=10):
+    def __init__(self, ttl=1800, max_recent=10, prefix_len=10):
         super().__init__()
         self.ttl = ttl
+        self.max_recent = max_recent
         self.prefix_len = prefix_len
-        self.last_msg = None
-        self.last_time = 0.0
+        self.recent = deque(maxlen=max_recent)  # (timestamp, message)
         self.last_prefix = None
 
     def filter(self, record):
-        msg = record.getMessage()
         now = time.time()
+        msg = record.getMessage()
 
-        # suppress exact duplicate within TTL
-        if msg == self.last_msg and now - self.last_time < self.ttl:
+        # purge old entries
+        self.recent = deque(
+            [(t, m) for t, m in self.recent if now - t < self.ttl],
+            maxlen=self.max_recent,
+        )
+
+        # suppress if seen recently
+        if any(m == msg for _, m in self.recent):
             return False
 
+        # prefix blanking (compare only to last message)
         prefix = msg[:self.prefix_len]
-
-        # replace prefix if same as previous
         if prefix == self.last_prefix:
             msg = " " * self.prefix_len + msg[self.prefix_len:]
             record.msg = msg
-            record.args = ()  # ensure logging doesn't reformat
+            record.args = ()  # prevent reformatting issues
 
-        self.last_msg = msg
-        self.last_time = now
+        # update state
         self.last_prefix = prefix
+        self.recent.append((now, msg))
         return True
         
 def log_setup():
@@ -57,7 +63,7 @@ def log_setup():
     # Create console handler with a higher log level
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)  # Set the level for the stream handler; adjust as needed
-    ch.addFilter(NoRepeatPrefixFilter(ttl=1800,prefix_len=10)) #30mn no-repeat
+    ch.addFilter(RecentDedupFilter(ttl=1800, max_recent=10, prefix_len=10)) #30mn no-repeat on the last 10 items
     #ch.addFilter(LevelLetterFilter()) 
 
     # Create formatter and add it to the handlers
