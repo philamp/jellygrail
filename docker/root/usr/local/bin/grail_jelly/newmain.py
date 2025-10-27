@@ -15,7 +15,7 @@ import asyncio
 #from concurrent.futures import ThreadPoolExecutor
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
-from starlette.routing import Route
+from starlette.routing import Route, Router
 import time
 import threading
 
@@ -94,6 +94,14 @@ async def worker(name, interval, func, stop_event: asyncio.Event):
             t.cancel()
 '''
 
+
+
+
+
+
+
+
+
 # === Routes Starlette ===
 async def homepage(request):
     return JSONResponse({"status": "ok", "registered_jobs": "BETA"})
@@ -106,12 +114,45 @@ async def get_compatible_kodiDBs(request):
 
     return JSONResponse(get_kodi_instances_by_kodi_version(int(kodi_version), uid))
 
-routes = [
-    Route("/", homepage),
-    Route("/get_compatible_kodiDBs", get_compatible_kodiDBs),
-]
+# ------------ TOKEN HANDLING -----------------
+async def verify_token(request):
+    token = request.query_params.get("token")
+    if token != SSDP_TOKEN:
+        return JSONResponse({"error": "Invalid token"}, status_code=401)
+    return None
 
-app = Starlette(routes=routes)
+def tokenize(*routes):
+    
+    wrapped_routes = []
+    
+    def make_wrapped(original):
+        async def wrapped(request, *args, **kwargs):
+            error = await verify_token(request)
+            if error:
+                return error
+            return await original(request, *args, **kwargs)
+        return wrapped
+
+    for route in routes:
+        wrapped_endpoint = make_wrapped(route.endpoint)
+        wrapped_routes.append(Route(route.path, wrapped_endpoint, methods=route.methods, name=route.name))
+
+    return Router(routes=wrapped_routes)
+
+
+api_routes = tokenize(
+    Route("/health", homepage),
+    Route("/get_compatible_kodiDBs", get_compatible_kodiDBs),
+)
+
+app = Starlette()
+app.mount("/api", api_routes) # tokenized paths
+#public paths:
+app.mount("/", Router(
+    routes=[
+        Route("/health", homepage)
+    ]
+))
 
 # === État global pour suivre les tâches et l’événement d’arrêt ===
 #app.state.tasks = []

@@ -30,6 +30,12 @@ is_scanning = False
 is_cleaning = False
 refresh_is_safe = False
 
+# update or insert
+def set_kodi_instance(puid, pdbname, pkodi_ip, pkodi_version):
+
+    if not kodiDBRegistry.update(puid, dbname=pdbname, kodi_ip=pkodi_ip, kodi_version = pkodi_version):
+        kodiDBRegistry.add(puid, pdbname, pkodi_ip, pkodi_version)
+
 
 def get_kodi_instances_by_kodi_version(pkodi_version, puid):
     # TODO POC for now
@@ -41,18 +47,19 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
             }
 
 
-    else:
-        available_instances = {
-            uid: entry
-            for uid, entry in kodiDBRegistry.all_poc().items()
-            if entry.get("kodi_version") == pkodi_version
-        }
 
-        available_instances[puid] = {
-            "dbname": f"{puid}_JGx_"
-        }
+    available_instances = {
+        uid: entry
+        for uid, entry in kodiDBRegistry.all_poc().items()
+        if entry.get("kodi_version") == pkodi_version
+    }
 
-        return available_instances
+    available_instances[puid] = {
+        "dbname": f"{puid}_JGx_",
+        "db_created_date": "New DB"
+    }
+
+    return available_instances
     
 
 
@@ -62,12 +69,6 @@ def reset_kodi_instances_refresh():
         kodi_inst["refreshed"] = False
     # we don't save, it's volatile only
 
-
-def askKodiDBs(): # return a list of detected databases that are suitable for Kodi add-on
-    
-    
-
-    return json.dumps({'message': 'Hello from JellyGrail'}).encode()
 
 # ----------------------------------
 # rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives

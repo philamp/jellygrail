@@ -46,11 +46,11 @@ class kodiDBRegistry:
     def all_poc(cls):
         # return a POC version of all entries
         return {
-            "b1ca1e3c-9061-4d34-9a14-f6e3d9fc7506": 
+            "b1a1e3c-9061-4d34-9a14-f6e3d9fc7506": 
             {
-                "dbname": "b1ba1e3c-9061-4d34-9a14-f6e3d9fc7506_JGx_",
+                "dbname": "shouldmatch_JGx_",
                 "kodi_ip": "172.22.2.18",
-                "kodi_version": 21,
+                "kodi_version": 20,
                 "db_created_date": "2024-05-15T10:20:30",
                 "alive": False,
                 "refreshed": True
@@ -59,8 +59,8 @@ class kodiDBRegistry:
             {
                 "dbname": "wqefwvrf-9061-4d34-9a14-f6e3d9fc7506_JGx_",
                 "kodi_ip": "172.22.2.27",
-                "kodi_version": 21,
-                "db_created_date": "2024-05-15T10:20:30",
+                "kodi_version": 20,
+                "db_created_date": "2024-05-16T10:20:30",
                 "alive": False,
                 "refreshed": True
             }
