@@ -28,7 +28,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version
+from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance
 
 
 
@@ -114,6 +114,14 @@ async def get_compatible_kodiDBs(request):
 
     return JSONResponse(get_kodi_instances_by_kodi_version(int(kodi_version), uid))
 
+async def create_or_update_kodi_instance(request):
+
+    if set_kodi_instance(request.query_params.get("uid"), request.query_params.get("choice"), request.query_params.get("ip"), int(request.query_params.get("kodi_version"))):
+        return JSONResponse({"status": 200}, status_code=200)
+
+
+
+
 # ------------ TOKEN HANDLING -----------------
 async def verify_token(request):
     token = request.query_params.get("token")
@@ -143,6 +151,7 @@ def tokenize(*routes):
 api_routes = tokenize(
     Route("/health", homepage),
     Route("/get_compatible_kodiDBs", get_compatible_kodiDBs),
+    Route("/set_db_for_this_kodi", create_or_update_kodi_instance)
 )
 
 app = Starlette()
@@ -173,7 +182,7 @@ async def startup_event():
     # START ALL TRIGGERED/PERIODIC JOBS
     asyncio.create_task(JobManager.run_all())
     await asyncio.sleep(0)
-    JobManager.trigger("ssdpBroadcast", "🔁 5s included") #5s is handled in the job itself not in the jobmanager
+    JobManager.trigger("ssdpBroadcast", "🔁 5s, in thread, silent") #5s is handled in the job itself not in the jobmanager
     JobManager.trigger("rdProgressLoop", "periodic_rdProgressLoop") #ticker handled by jobmanager periodic also set the job not to print the start message each time
 
 

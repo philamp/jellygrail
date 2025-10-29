@@ -98,7 +98,7 @@ class JobManager:
                 ctx = JobManager.contexts.get(wf_id, {}) if wf_id else {}
                 # periodic must be in the wf_id string for jobs using integrated ticker, third party (like SSDP) can put anything
                 if interval and "periodic" in str(wf_id):
-                    log_info = f"🔁 {interval}s (not displayed in the log during 30mn)"
+                    log_info = f"🔁 {interval}s, async, 30m silent"
                 else:
                     log_info = f"{wf_id}"
                 

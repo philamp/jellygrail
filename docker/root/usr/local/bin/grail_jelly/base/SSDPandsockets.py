@@ -22,7 +22,8 @@ async def SSDPTask(ctx, stop):
 
     loop = asyncio.get_running_loop()
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.setsockopt(socket.IPPROTO_IP, socket.IP_MULTICAST_TTL, 1)
+    #sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.setblocking(False)  # <-- important
 
     #       0    1         2        3                          4                                  5                      6
@@ -31,7 +32,7 @@ async def SSDPTask(ctx, stop):
     logger.info(f"      SSDP| Broadcasting this SSDP msg: {msg} ")
     try:
         while not stop.is_set():
-            await loop.sock_sendto(sock, msg.encode("ascii"), ("<broadcast>", SSDP_PORT))
+            await loop.sock_sendto(sock, msg.encode("ascii"), ("239.255.255.250", SSDP_PORT))
             try:
                 await asyncio.wait_for(stop.wait(), timeout=pause)
             except asyncio.TimeoutError:

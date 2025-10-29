@@ -30,27 +30,41 @@ is_scanning = False
 is_cleaning = False
 refresh_is_safe = False
 
+
+
 # update or insert
 def set_kodi_instance(puid, pdbname, pkodi_ip, pkodi_version):
 
     if not kodiDBRegistry.update(puid, dbname=pdbname, kodi_ip=pkodi_ip, kodi_version = pkodi_version):
         kodiDBRegistry.add(puid, pdbname, pkodi_ip, pkodi_version)
 
+    return True
+
 
 def get_kodi_instances_by_kodi_version(pkodi_version, puid):
-    # TODO POC for now
 
-    for uid, entry in kodiDBRegistry.all_poc().items():
+
+    jginfo = {
+        "version": VERSION,
+        "port": KODI_MYSQL_CONFIG.get('port', 0),
+        "user": KODI_MYSQL_CONFIG.get('user', "0"), 
+        "pwd": KODI_MYSQL_CONFIG.get('password', "0")
+    }
+
+    for uid, entry in kodiDBRegistry.get_full_kodi_db_pointer().items():
         if uid == puid and entry.get("kodi_version") == pkodi_version:
-            return {
-                uid: entry
-            }
 
+            return {
+                "jginfo": jginfo,
+                "avail_dbs": {
+                    uid: entry
+                }
+            }
 
 
     available_instances = {
         uid: entry
-        for uid, entry in kodiDBRegistry.all_poc().items()
+        for uid, entry in kodiDBRegistry.get_full_kodi_db_pointer().items()
         if entry.get("kodi_version") == pkodi_version
     }
 
@@ -59,8 +73,10 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
         "db_created_date": "New DB"
     }
 
-    return available_instances
-    
+    return {
+        "jginfo": jginfo,
+        "avail_dbs": available_instances
+    }
 
 
 

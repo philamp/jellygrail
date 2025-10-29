@@ -91,8 +91,8 @@ class kodiDBRegistry:
             "db_created_date": db_created_date,
             "kodi_ip": kodi_ip,
             "kodi_version": kodi_version,
-            "alive": False,
-            "refreshed": False
+            "alive": True,
+            "refreshed": True
         }
         cls._save()
         return cls._data[uid]
