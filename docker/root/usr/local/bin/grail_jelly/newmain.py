@@ -29,6 +29,7 @@ from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
 from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance
+from jg_services import premium_timeleft
 
 
 
@@ -175,6 +176,7 @@ async def startup_event():
     play_splash()
     play_config_check()
     kodi_mysql_verify()
+    logger.warning(f"REALDEBRID/ Premium days remaining: {str(premium_timeleft()/86400)[:4]}")
 
     if JF_WANTED:
         jfconfig()
@@ -196,7 +198,7 @@ async def shutdown_event():
 
 
 def trigger_rd_progress(ctx, stop):
-    if jg_services.rd_progress == "PLEASE_SCAN":
+    if 1 == 0 and jg_services.rd_progress() == "PLEASE_SCAN": #TODO remove
         wf_id = JobManager.get_new_wfid()
         JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id}) # the first job of the WF marks the wf_id
 
