@@ -176,7 +176,8 @@ async def startup_event():
     play_splash()
     play_config_check()
     kodi_mysql_verify()
-    logger.warning(f"REALDEBRID/ Premium days remaining: {str(premium_timeleft()/86400)[:4]}")
+    if RD_API_SET:
+        logger.warning(f"REALDEBRID/ Premium days remaining: {str(premium_timeleft()/86400)[:4]}")
 
     if JF_WANTED:
         jfconfig()

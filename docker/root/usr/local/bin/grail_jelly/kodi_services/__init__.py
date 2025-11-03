@@ -45,6 +45,7 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
 
 
     jginfo = {
+        "pdays": get_premium_time_left(),
         "version": VERSION,
         "port": KODI_MYSQL_CONFIG.get('port', 0),
         "user": KODI_MYSQL_CONFIG.get('user', "0"), 
