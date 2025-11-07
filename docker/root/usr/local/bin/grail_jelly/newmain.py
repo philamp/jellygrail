@@ -155,10 +155,11 @@ api_routes = tokenize(
     Route("/set_db_for_this_kodi", create_or_update_kodi_instance)
 )
 
+# no / route here to let the user put a proxy in front of this and the webdav server
 app = Starlette()
 app.mount("/api", api_routes) # tokenized paths
 #public paths:
-app.mount("/", Router(
+app.mount("/app", Router(
     routes=[
         Route("/health", homepage)
     ]
