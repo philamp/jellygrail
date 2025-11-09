@@ -44,7 +44,7 @@ INCR_KODI_REFR_MAX = 8
 #default that can be overriden in config/settings.env
 WEBDAV_INTERNAL_PORT = int(os.getenv('WEBDAV_INTERNAL_PORT', 0)) or 8085
 WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT', 0)) or 6502
-SSDP_PORT = int(os.getenv('SSDP_PORT', 0)) or 6505
+SSDP_PORT = int(os.getenv('SSDP_PORT', 0)) or 1900
 
 # kodi mysql config
 # used by ssdp message
@@ -53,7 +53,7 @@ KODI_MYSQL_CONFIG = {
     'user' : 'kodi',
     'password' : 'kodi',
     #'database' : 'kodi_video131',
-    'port' : 6503
+    'port' : int(os.getenv('MYSQL_INTERNAL_PORT', 0)) or 6503
 }
 
 # ip set in config:
@@ -254,9 +254,10 @@ for code in codes:
         USED_LANGS.add(SUB_LANG_EQUIVALENTS[code])
 USED_LANGS.add("und")
 
-KODI_MAIN_URL = os.getenv('KODI_MAIN_URL') or ""
+PROXY_URL = os.getenv('PROXY_URL') or "0"
+
 USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
-USE_KODI_ACTUALLY = USE_KODI and (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "" and KODI_MAIN_URL != "your-player-ip-or-hostname")
+USE_KODI_ACTUALLY = USE_KODI
 JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
 JF_WANTED_ACTUALLY = JF_WANTED # ...AND config is true but we don't do config here TODO low-priority
 PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')

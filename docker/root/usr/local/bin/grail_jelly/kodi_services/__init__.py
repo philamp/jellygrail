@@ -10,7 +10,7 @@ from datetime import datetime
 from jg_services import get_premium_time_left
 from kodi_services.kodiInstances import kodiDBRegistry
 
-KODI_MAIN_URL = os.getenv('KODI_MAIN_URL')
+KODI_MAIN_URL = "172.22.2.28" # TODO remove, to be deprecated
 
 kodi_url = f"http://{KODI_MAIN_URL}:8080/jsonrpc"
 kodi_ws_url = f"ws://{KODI_MAIN_URL}:9090/jsonrpc"
@@ -47,6 +47,8 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
     jginfo = {
         "pdays": get_premium_time_left(),
         "version": VERSION,
+        "davport": WEBDAV_INTERNAL_PORT,
+        "proxyurl": PROXY_URL,
         "port": KODI_MYSQL_CONFIG.get('port', 0),
         "user": KODI_MYSQL_CONFIG.get('user', "0"), 
         "pwd": KODI_MYSQL_CONFIG.get('password', "0")

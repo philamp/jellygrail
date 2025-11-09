@@ -18,10 +18,8 @@ def play_config_check():
     if not USE_KODI:
         logger.warning("    CONFIG/ Kodi not wanted, maybe intentionnaly ? Otherwise please rerun jg-config.sh and restart container.")
     else:
-        if not USE_KODI_ACTUALLY:
-            logger.error("    CONFIG/ Kodi wanted but Kodi main url not defined, please check your settings.env file")
         if not JF_WANTED:
-            logger.warning("    CONFIG/ Kodi wanted but embedded Jellyfin disabled, Kodi can work without NFO sync from jellyfin, however make sure not to use the Local NFO data scrapper in Kodi video sources configuration.")
+            logger.warning("    CONFIG/ Kodi wanted but embedded Jellyfin disabled, Kodi can work without NFO sync from jellyfin, but make sure not to use the Local NFO data scrapper in Kodi video sources configuration.")
 
     if not USE_PLEX:
         logger.info("    CONFIG/ Plex integration not wanted.")
@@ -59,12 +57,12 @@ def play_splash():
         print(f"|  - Jellyfin host:                  http://{LAN_IP}:8096 (login: {os.getenv('JF_LOGIN') or 'admin'})")
         print(f"|  - Nginx WebDAV server:            http://{WEBDAV_HOST_PORT} (no auth, local access only! see README! don't expose it!)")
         print(f"|  - JellyGrail WebService:          http://{LAN_IP}:{WEBSERVICE_INTERNAL_PORT} (no auth, local access only! see README! don't expose it!)")
-        print(f"|  - SSDP Broadcasting on port:      {SSDP_PORT} (for Kodi auto-discovery)")
+        print(f"|  - SSDP Multicast on port:         {SSDP_PORT} (for auto-discovery)")
+        print(f"|  - MySQL Port:                     {KODI_MYSQL_CONFIG.get('port', 0)}")
     if USE_KODI_ACTUALLY:
-        print(f"|  - Kodi host:                      {KODI_MAIN_URL}")
-        print(f"|                                    (NFO sync: {'enabled' if JF_WANTED else 'disabled'})""")
+        print(f"|  - Kodi NFO Sync:                  {'Enabled' if JF_WANTED else 'Disabled, do not use Kodi NFO scrapper'}")                       
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http') or REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234":
-        print(f"|  - Remote JellyGrail URL:          {REMOTE_RDUMP_BASE_LOCATION}")
+        print(f"|  - Friend JellyGrail URL:          {REMOTE_RDUMP_BASE_LOCATION}")
     if RD_API_SET:  
         print(f"|  - Real-Debrid API:                Enabled (token set)")
     if USE_PLEX_ACTUALLY:

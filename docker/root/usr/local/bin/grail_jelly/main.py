@@ -43,7 +43,7 @@ JF_WANTED_ACTUALLY = JF_WANTED
 USE_PLEX = (os.getenv('USE_PLEX') or "y") != "n"
 USE_PLEX_ACTUALLY = USE_PLEX and len(PLEX_URLS_ARRAY) > 0 and PLEX_URLS_ARRAY[0] != ""
 USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
-USE_KODI_ACTUALLY = USE_KODI and (KODI_MAIN_URL != "PASTE_KODIMAIN_URL_HERE" and KODI_MAIN_URL != "" and KODI_MAIN_URL != "your-player-ip-or-hostname")
+USE_KODI_ACTUALLY = USE_KODI
 
 #default filling
 socket_started = False
@@ -78,8 +78,6 @@ else:
         logger.warning("    CONFIG/ JF wanted but JF_LOGIN environment variable not set. admin will be used as default login")
     if os.getenv('JF_PASSWORD') is None or os.getenv('JF_PASSWORD') == "":
         logger.critical("    CONFIG/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
-    if USE_KODI and (os.getenv('WEBDAV_LAN_HOST') is None or os.getenv('WEBDAV_LAN_HOST') == "" or os.getenv('WEBDAV_LAN_HOST') == "PASTE-WEBDAV-LAN-HOST-HERE" or os.getenv('WEBDAV_LAN_HOST') == "your-nas-ip-or-hostname"):
-        logger.critical("    CONFIG/ WEBDAV_LAN_HOST environment variable not set. Nginx WebDAV server will not be reachable by Kodi")
 
 if not USE_KODI:
     logger.warning("    CONFIG/ Kodi not wanted, maybe intentionnaly ? Otherwise please rerun jg-config.sh and restart container.")

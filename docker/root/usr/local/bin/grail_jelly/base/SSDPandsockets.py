@@ -26,8 +26,8 @@ async def SSDPTask(ctx, stop):
     #sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.setblocking(False)  # <-- important
 
-    #       0    1         2        3                          4                                  5                      6
-    msg = f"JGx|{VERSION}|{LAN_IP}|{WEBSERVICE_INTERNAL_PORT}|{KODI_MYSQL_CONFIG.get('port', 0)}|{WEBDAV_INTERNAL_PORT}|{SSDP_TOKEN}"
+    #       0    1         2        3                          4                                  5          6
+    msg = f"JGx|{VERSION}|{LAN_IP}|{WEBSERVICE_INTERNAL_PORT}|{KODI_MYSQL_CONFIG.get('port', 0)}|{PROXY_URL}|{SSDP_TOKEN}"
 
     logger.info(f"      SSDP| Broadcasting this SSDP msg: {msg} ")
     try:
