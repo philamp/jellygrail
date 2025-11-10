@@ -1,7 +1,7 @@
 from base import *
 from base.littles import *
 from base.constants import *
-from kodi_services.sqlkodi import fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, get_undefined_collection_arts, insert_collection_art, new_set_resume_times_and_lastplayed, return_last_played_max, return_last_file_id_max, separated_seasons, link_all_shows_to_keptone, delete_other_showid
+from kodi_services.sqlkodi import sqlKodiDB, fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, get_undefined_collection_arts, insert_collection_art, new_set_resume_times_and_lastplayed, return_last_played_max, return_last_file_id_max, separated_seasons, link_all_shows_to_keptone, delete_other_showid
 import requests
 import urllib.parse
 import websocket
@@ -82,10 +82,22 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
     }
 
 
+def kodi_marks_will_update(puid):
 
+    if thiskodi := kodiDBRegistry.get(puid):
+        #thiskodi.get('dbname')
+    #find the good datamodel for DBs with an event
+    # register_dav_if_empty
+    db = sqlKodiDB(dbname)
+    db.register_dav_if_empty(f"{LAN_IP}:{WEBDAV_INTERNAL_PORT}")
+
+
+
+# rework:
 def reset_kodi_instances_refresh():
     for kodi_inst in kodiDBRegistry.get_full_kodi_db_pointer():
         kodi_inst["refreshed"] = False
+
     # we don't save, it's volatile only
 
 

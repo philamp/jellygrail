@@ -135,6 +135,49 @@ class sqlKodiDB:
 
         return inserted_id
 
+    def register_dav_if_empty(self, ipport, roots = ["movies", "shows"]):
+        #provide urls with final slashs
+
+        with self as cursor:
+            for root in roots:
+
+                if "show" in root:
+                    content = "tvshows"
+                else:
+                    content = "movies"
+                    
+
+                cursor.execute(f"""INSERT INTO path (
+                    idPath,
+                    strPath,
+                    strContent,
+                    strScraper,
+                    scanRecursive,
+                    useFolderNames,
+                    noUpdate,
+                    exclude,
+                    allAudio,
+                )
+                SELECT
+                    1,
+                    'dav://{ipport}/virtual/{root}/',
+                    '{content}',
+                    'metadata.local',
+                    2147483647,
+                    0,
+                    0,
+                    0,
+                    0,
+                WHERE NOT EXISTS (
+                    SELECT 1
+                    FROM path
+                    WHERE strPath = 'dav://{ipport}/virtual/{root}/'
+                )"""
+                )
+
+            self.conn.commit()
+
+        return True
 
     def new_set_resume_times_and_lastplayed(self, timesec, lastplayedstr, fileidsstr, idfiles, highest_tt):
         with self as cursor:

@@ -34,8 +34,8 @@ class RecentDedupFilter(logging.Filter):
         )
 
         # suppress if seen recently
-        if any(m == msg for _, m in self.recent):
-            return False
+        #if any(m == msg for _, m in self.recent):
+        #    return False
 
         # prefix blanking (compare only to last message)
         prefix = msg[:self.prefix_len]

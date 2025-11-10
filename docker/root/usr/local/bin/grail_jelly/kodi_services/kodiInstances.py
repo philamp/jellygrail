@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from datetime import datetime
 from base.constants import *
+import asyncio
 
 # careful : the update method works only in one depth (no nested dict update)
 class kodiDBRegistry:
@@ -94,6 +95,7 @@ class kodiDBRegistry:
             "alive": True,
             "refreshed": True
         }
+
         cls._save()
         return cls._data[uid]
 
