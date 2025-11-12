@@ -28,7 +28,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance
+from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry
 from jg_services import premium_timeleft
 
 
@@ -107,18 +107,45 @@ async def worker(name, interval, func, stop_event: asyncio.Event):
 async def homepage(request):
     return JSONResponse({"status": "ok", "registered_jobs": "BETA"})
 
+
+async def should_refresh(request):
+    # long polling call
+    db = request.query_params.get("db")
+
+    if dbentry := get_kodidb_entry(db):
+
+        event = dbentry["toRefresh"]
+
+        try:
+            # Attend un signal ou timeout de 30s
+            await asyncio.wait_for(event.wait(), timeout=30)
+            event.clear()  # Reset pour la prochaine fois
+            return JSONResponse({"refresh": True, "broken": False})
+        except asyncio.TimeoutError:
+            return JSONResponse({"refresh": False, "broken": False})
+        
+    else:
+        return JSONResponse({"refresh": False, "broken": True})
+
+
 async def get_compatible_kodiDBs(request):
     kodi_version = request.query_params.get("kodi_version")
     uid = request.query_params.get("uid")
     if not kodi_version or not uid:
         return JSONResponse({"error": "Missing parameters"}, status_code=400)
 
-    return JSONResponse(get_kodi_instances_by_kodi_version(int(kodi_version), uid))
+    return JSONResponse(get_kodi_instances_by_kodi_version(int(kodi_version), uid), status_code=201)
 
 async def create_or_update_kodi_instance(request):
 
-    if set_kodi_instance(request.query_params.get("uid"), request.query_params.get("choice"), request.query_params.get("ip"), int(request.query_params.get("kodi_version"))):
-        return JSONResponse({"status": 200}, status_code=200)
+    choice = request.query_params.get("choice")
+
+    if set_kodi_instance(request.query_params.get("uid"), choice, request.query_params.get("ip"), int(request.query_params.get("kodi_version"))):
+        
+        if kodi_mysql_verify(str=choice):
+            return JSONResponse({"status": 201}, status_code=201) #db is here
+        else:
+            return JSONResponse({"status": 200}, status_code=200) #db not here yet
 
 
 
@@ -152,7 +179,8 @@ def tokenize(*routes):
 api_routes = tokenize(
     Route("/health", homepage),
     Route("/get_compatible_kodiDBs", get_compatible_kodiDBs),
-    Route("/set_db_for_this_kodi", create_or_update_kodi_instance)
+    Route("/set_db_for_this_kodi", create_or_update_kodi_instance),
+    Route("/what_should_do", should_refresh)
 )
 
 # no / route here to let the user put a proxy in front of this and the webdav server
@@ -176,14 +204,14 @@ async def startup_event():
     
     play_splash()
     play_config_check()
-    kodi_mysql_verify()
+    kodi_mysql_verify(logit = True)
     if RD_API_SET:
         logger.warning(f"REALDEBRID/ Premium days remaining: {str(premium_timeleft()/86400)[:4]}")
 
     if JF_WANTED:
         jfconfig()
             
-    # START ALL TRIGGERED/PERIODIC JOBS
+    # START ALL ROOT TRIGGERED/PERIODIC JOBS
     asyncio.create_task(JobManager.run_all())
     await asyncio.sleep(0)
     JobManager.trigger("ssdpBroadcast", "🔁 5s, in thread, silent") #5s is handled in the job itself not in the jobmanager
@@ -202,7 +230,7 @@ async def shutdown_event():
 def trigger_rd_progress(ctx, stop):
     if 1 == 0 and jg_services.rd_progress() == "PLEASE_SCAN": #TODO remove
         wf_id = JobManager.get_new_wfid()
-        JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id}) # the first job of the WF marks the wf_id
+        JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id, "later": False}) # the first job of the WF marks the wf_id
 
 def multiScanWrapper(ctx, stop):
     # run the job and take total
@@ -215,7 +243,8 @@ def multiScanWrapper(ctx, stop):
         
     JobManager.trigger("jfScan", ctx["wf_id"])
     JobManager.trigger("plexScan", ctx["wf_id"])
-    JobManager.trigger("kodiScanNow", ctx["wf_id"]) # and inside it is depending on later or not
+    if not ctx["later"]:
+        JobManager.trigger("kodiScan", ctx["wf_id"])
 
 def lib_refresh_allWrapper(ctx, stop):
     jfapi.lib_refresh_all(stop)
@@ -223,7 +252,13 @@ def lib_refresh_allWrapper(ctx, stop):
 
 def nfo_generatorWrapper(ctx, stop):
     nfo_generator.nfo_loop_service(stop)
-    JobManager.trigger("kodiScanLater", ctx["wf_id"])
+    if ctx["later"]:
+        JobManager.trigger("kodiScan", ctx["wf_id"])
+
+    # send nfos
+
+async def kodiScanWrapper(ctx, stop):
+    reset_kodi_instances_refresh()
 
 
 if __name__ == "__main__":
@@ -243,9 +278,9 @@ if __name__ == "__main__":
     JobManager.register_job("jgScanJob", multiScanWrapper, is_sync=True)
     JobManager.register_job("jfScan", lib_refresh_allWrapper, is_sync=True, cond=JF_WANTED_ACTUALLY)
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
-    #JobManager.register_job("kodiScanNow", kodiScanWrapper, is_sync=True)
+    JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
     JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY))
-    #JobManager.register_job("kodiScanLater", kodiScanWrapper, is_sync=True)
+
 
 
     

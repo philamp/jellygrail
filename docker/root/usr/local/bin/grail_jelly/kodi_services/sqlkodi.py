@@ -8,22 +8,21 @@ from base.constants import *
 #found_db = ""
 
 
-def kodi_mysql_verify():
+def kodi_mysql_verify(str = "%_JGx_", logit = False):
 
     try:
         conn = mysql.connector.connect(**KODI_MYSQL_CONFIG)
         cursor = conn.cursor(buffered=True)
 
-        cursor.execute("SHOW DATABASES LIKE '%_JGx_%'")
+        cursor.execute(f"SHOW DATABASES LIKE '{str}%'")
         result = cursor.fetchall()
         cursor.close() # important
 
         if result:
-            logger.info(f"  SQL-KODI/ {len(result)} Kodi database(s) detected:")
-            # we don't close connection
-            # list the DBs detected
-            dbs = [res[0] for res in result]
-            logger.info(f"          | {dbs}")
+            if logit:
+                logger.info(f"  SQL-KODI/ {len(result)} Kodi database(s) detected:")
+                dbs = [res[0] for res in result]
+                logger.info(f"          | {dbs}")
 
             return True
         else:
@@ -57,16 +56,28 @@ class sqlKodiDB:
     '''
     
     def __init__(self, dbname):
+        try:
+            self.conn = mysql.connector.connect(**KODI_MYSQL_CONFIG)
+            cursor = self.conn.cursor(buffered=True)
 
-        self.conn = mysql.connector.connect(**KODI_MYSQL_CONFIG)
-        cursor = self.conn.cursor(buffered=True)
+            cursor.execute(f"SHOW DATABASES LIKE '{dbname}%'")
+            result = cursor.fetchall()
+            results = [res[0] for res in result]
+            cursor.close() # important
+            if results:
+                self.db_name = results[-1]
+            else:
+                raise ValueError(f"Database '{dbname}' does not exist yet.")
 
-        cursor.execute(f"SHOW DATABASES LIKE '{dbname}%'")
-        result = cursor.fetchall()
-        results = [res[0] for res in result]
-        cursor.close() # important
-        if results:
-            self.db_name = results[-1]
+
+        except mysql.connector.Error as err:
+            if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
+                logger.error("  SQL-KODI/ Authentication failed. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container")
+            else:
+                logger.critical(f"  SQL-KODI/ SQL server messed-up. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container. Error is: {err}")
+            raise ValueError(f"Impossible to connect or other error")
+
+            
 
 
     def __enter__(self):

@@ -132,7 +132,9 @@ def nfo_loop_service(stopEvent) -> bool:
 
     # --- full dump (movies + episodes + seasons) ---
 
-    
+    if stopEvent.is_set():
+        return False
+
     if dump_raw := jfapi.jellyfin(
         "Items",
         params=dict(
@@ -173,6 +175,10 @@ def nfo_loop_service(stopEvent) -> bool:
                 s_data[item.ParentId].append({"sidx": item.IndexNumber, "suid": item.Id})
 
     # --- fetch TV shows ---
+
+    if stopEvent.is_set():
+        return False
+
     if dump_s_raw := jfapi.jellyfin(
         "Items",
         params=dict(
@@ -188,6 +194,9 @@ def nfo_loop_service(stopEvent) -> bool:
         whole_jf_json_dump = None
         return False
 
+    if stopEvent.is_set():
+        return False
+
     # --- XML creation for movies & episodes ---
     for item in whole_jf_json_dump:
         for item_id, is_updated in items_added_and_updated:
@@ -200,6 +209,9 @@ def nfo_loop_service(stopEvent) -> bool:
                     nbofepisode += 1
                 if nbofmovieorepisode % 10 == 0:
                     logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
+
+    if stopEvent.is_set():
+        return False
 
     # --- XML creation for TV shows ---
     for item in whole_jf_json_dump_s:

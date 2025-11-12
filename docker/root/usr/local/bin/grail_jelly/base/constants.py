@@ -3,8 +3,6 @@ from base.token import SSDPToken
 import socket
 
 def guess_lan_ip():
-
-    global LAN_IP
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         s.connect(("8.8.8.8", 80))
@@ -57,7 +55,7 @@ KODI_MYSQL_CONFIG = {
 }
 
 # ip set in config:
-WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
+#WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
 DEFAULT_JF_COUNTRY = "CH"
 
@@ -244,7 +242,7 @@ RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" and RD_APITOKEN != ""
 
 INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
 
-WEBDAV_HOST_PORT = WEBDAV_LAN_HOST + ":" + str(WEBDAV_INTERNAL_PORT)
+WEBDAV_HOST_PORT = LAN_IP + ":" + str(WEBDAV_INTERNAL_PORT)
 
 codes = set(INTERESTED_LANGUAGES.split())
 USED_LANGS = set(codes) # the result

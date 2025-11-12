@@ -11,6 +11,7 @@ class kodiDBRegistry:
 
     _path = Path(KODI_INSTANCES_FILE)
     _data = {}
+    _dbs = {}
     _loaded = False
 
     # ───────────────
@@ -26,6 +27,11 @@ class kodiDBRegistry:
                 cls._data = json.loads(cls._path.read_text())
             except json.JSONDecodeError:
                 cls._data = {}
+            for _,dct in cls._data.items():
+                cls._dbs[dct.get("dbname")] = {
+                    "toRefresh": asyncio.Event()
+                }
+
         else:
             cls._path.parent.mkdir(parents=True, exist_ok=True)
             cls._data = {}
@@ -54,7 +60,6 @@ class kodiDBRegistry:
                 "kodi_version": 20,
                 "db_created_date": "2024-05-15T10:20:30",
                 "alive": False,
-                "refreshed": True
             },
             "wqcfwvrf-9061-4d34-9a14-f6e3d9fc7506": 
             {
@@ -63,16 +68,20 @@ class kodiDBRegistry:
                 "kodi_version": 20,
                 "db_created_date": "2024-05-16T10:20:30",
                 "alive": False,
-                "refreshed": True
             }
         }
 
 
     @classmethod
-    def get_full_kodi_db_pointer(cls):
+    def get_all_instances_pointer(cls):
         """Return the full registry pointer"""
         cls._load()
         return cls._data
+    
+    def get_all_dbs_pointer(cls):
+        """Return the full registry pointer"""
+        cls._load()
+        return cls._dbs
 
     @classmethod
     def get(cls, uid):
@@ -93,7 +102,10 @@ class kodiDBRegistry:
             "kodi_ip": kodi_ip,
             "kodi_version": kodi_version,
             "alive": True,
-            "refreshed": True
+        }
+
+        cls._dbs[dbname] = {
+            "toRefresh": asyncio.Event()
         }
 
         cls._save()

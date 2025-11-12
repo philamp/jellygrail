@@ -54,7 +54,7 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
         "pwd": KODI_MYSQL_CONFIG.get('password', "0")
     }
 
-    for uid, entry in kodiDBRegistry.get_full_kodi_db_pointer().items():
+    for uid, entry in kodiDBRegistry.get_all_instances_pointer().items():
         if uid == puid and entry.get("kodi_version") == pkodi_version:
 
             return {
@@ -67,7 +67,7 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
 
     available_instances = {
         uid: entry
-        for uid, entry in kodiDBRegistry.get_full_kodi_db_pointer().items()
+        for uid, entry in kodiDBRegistry.get_all_instances_pointer().items()
         if entry.get("kodi_version") == pkodi_version
     }
 
@@ -82,24 +82,31 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
     }
 
 
+
 def kodi_marks_will_update(puid):
 
     if thiskodi := kodiDBRegistry.get(puid):
-        #thiskodi.get('dbname')
-    #find the good datamodel for DBs with an event
-    # register_dav_if_empty
-    db = sqlKodiDB(dbname)
-    db.register_dav_if_empty(f"{LAN_IP}:{WEBDAV_INTERNAL_PORT}")
+
+        try:
+            db = sqlKodiDB(thiskodi.get('dbname'))
+            db.register_dav_if_empty(f"{LAN_IP}:{WEBDAV_INTERNAL_PORT}")
+
+        except ValueError as e:
+            return False
+
+        return True
 
 
-
-# rework:
 def reset_kodi_instances_refresh():
-    for kodi_inst in kodiDBRegistry.get_full_kodi_db_pointer():
-        kodi_inst["refreshed"] = False
+    for _, dbdict in kodiDBRegistry.get_all_dbs_pointer().items():
+        dbevent = dbdict["toRefresh"]
+        dbevent.set()
 
     # we don't save, it's volatile only
 
+def get_kodidb_entry(pdbname):
+
+    return kodiDBRegistry.get_all_dbs_pointer().get("pdbname", None)
 
 # ----------------------------------
 # rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives

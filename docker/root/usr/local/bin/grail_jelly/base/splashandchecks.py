@@ -12,8 +12,6 @@ def play_config_check():
             logger.warning("    CONFIG/ JF wanted but JF_LOGIN environment variable not set. admin will be used as default login")
         if os.getenv('JF_PASSWORD') is None or os.getenv('JF_PASSWORD') == "":
             logger.critical("    CONFIG/ JF wanted but JF_PASSWORD environment variable not set. admin will be used as default password")
-        if USE_KODI and (os.getenv('WEBDAV_LAN_HOST') is None or os.getenv('WEBDAV_LAN_HOST') == "" or os.getenv('WEBDAV_LAN_HOST') == "PASTE-WEBDAV-LAN-HOST-HERE" or os.getenv('WEBDAV_LAN_HOST') == "your-nas-ip-or-hostname"):
-            logger.critical("    CONFIG/ WEBDAV_LAN_HOST environment variable not set. Nginx WebDAV server will not be reachable by Kodi")
 
     if not USE_KODI:
         logger.warning("    CONFIG/ Kodi not wanted, maybe intentionnaly ? Otherwise please rerun jg-config.sh and restart container.")
@@ -29,8 +27,6 @@ def play_config_check():
 
     if LAN_IP == '127.0.0.1':
         logger.warning("    CONFIG/ LAN IP could not be guessed, is the container connected to the network properly ? is 8.8.8.8 reachable from inside the container ?")
-    elif LAN_IP != WEBDAV_LAN_HOST and USE_KODI_ACTUALLY:
-        logger.warning(f"    CONFIG/ LAN IP ({LAN_IP}) is different from WEBDAV_LAN_HOST ({WEBDAV_LAN_HOST}), NFOs might not reference correct URLs")
     
 
 def play_splash():
