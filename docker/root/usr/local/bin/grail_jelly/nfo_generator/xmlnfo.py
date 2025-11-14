@@ -224,8 +224,8 @@ def add_images_from_fs_people(s: io.StringIO, pname: str, tstmp: int):
 
     for fpath in glob.glob(os.path.join(folder, "*")):
         fname = os.path.basename(fpath).lower()
-        #url = f"http://[HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
-        url = f"http://[HOST_PORT]/pics{urllib.parse.quote(fpath[JF_MD_SHIFT:], safe=SAFE)}?{tstmp}"
+        #url = f"http://[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
+        url = f"[PROTO_HOST_PORT]/pics{urllib.parse.quote(fpath[JF_MD_SHIFT:], safe=SAFE)}?{tstmp}"
         if "folder" in fname:
             s.write(f"<thumb>{url}</thumb>\n")
 
@@ -242,7 +242,7 @@ def add_images_from_fs_season(s: io.StringIO, season: list, tstmp: int):
 
     for fpath in glob.glob(os.path.join(folder, "*")):
         fname = os.path.basename(fpath).lower()
-        url = f"http://[HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
+        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
 
         if "poster" in fname:
             s.write(f"<thumb aspect=\"poster\" type=\"season\" season=\"{season['sidx']}\">{escape(url)}</thumb>\n")
@@ -260,7 +260,7 @@ def add_images_from_fs(s: io.StringIO, item: Item, tstmp: int):
 
     for fpath in glob.glob(os.path.join(folder, "*")):
         fname = os.path.basename(fpath).lower()
-        url = f"http://[HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
+        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
 
 
         if "poster" in fname:
@@ -430,7 +430,7 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
             write_to_disk(xml, nfo_full_path, is_updated)
 
 
-def write_to_disk(root, nfo_full_path, is_updated):
+def write_to_disk_OLD(root, nfo_full_path, is_updated):
 
     files_to_delete = []
     
@@ -457,3 +457,54 @@ def write_to_disk(root, nfo_full_path, is_updated):
             pass
         except Exception as e:
             logger.debug(f"An error occurred while deleting the file: {e}")
+
+
+def write_to_disk(root, nfo_full_path, is_updated):
+    """
+    Writes `root` to disk only if the content differs.
+    Returns True if the file was written (i.e., content changed), False otherwise.
+    """
+
+    files_to_delete = []
+    
+
+    # Determine target path
+    if is_updated:
+        nfo_full_path_towrite = nfo_full_path + ".updated"
+        files_to_delete.append(nfo_full_path)  # delete legacy version if it exists
+    else:
+        nfo_full_path_towrite = nfo_full_path
+
+    logger.debug(f"Preparing to write NFO: {nfo_full_path_towrite}")
+
+    # --- Detect if new content differs ---
+    write_needed = True
+    if os.path.exists(nfo_full_path_towrite):
+        try:
+            with open(nfo_full_path_towrite, "r", encoding="utf-8") as existing:
+                if existing.read() == root:
+                    logger.debug(f"No write needed, content identical: {nfo_full_path_towrite}")
+                    write_needed = False
+        except Exception as e:
+            logger.debug(f"Could not read existing file (will overwrite): {e}")
+
+    # --- Write only if needed ---
+    if write_needed:
+        os.makedirs(os.path.dirname(nfo_full_path_towrite), exist_ok=True)
+        with open(nfo_full_path_towrite, "w", encoding="utf-8") as file:
+            file.write(root)
+        logger.debug(f"Updated NFO written: {nfo_full_path_towrite}")
+    else:
+        logger.debug(f"Skipped writing unchanged NFO: {nfo_full_path_towrite}")
+
+    # --- Cleanup for .done and legacy file ---
+    files_to_delete.append(nfo_full_path + ".done")
+    for file_to_del in files_to_delete:
+        try:
+            os.remove(file_to_del)
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            logger.debug(f"An error occurred while deleting {file_to_del}: {e}")
+
+    return write_needed

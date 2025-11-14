@@ -108,26 +108,6 @@ async def homepage(request):
     return JSONResponse({"status": "ok", "registered_jobs": "BETA"})
 
 
-async def should_refresh(request):
-    # long polling call
-    db = request.query_params.get("db")
-
-    if dbentry := get_kodidb_entry(db):
-
-        event = dbentry["toRefresh"]
-
-        try:
-            # Attend un signal ou timeout de 30s
-            await asyncio.wait_for(event.wait(), timeout=30)
-            event.clear()  # Reset pour la prochaine fois
-            return JSONResponse({"refresh": True, "broken": False})
-        except asyncio.TimeoutError:
-            return JSONResponse({"refresh": False, "broken": False})
-        
-    else:
-        return JSONResponse({"refresh": False, "broken": True})
-
-
 async def get_compatible_kodiDBs(request):
     kodi_version = request.query_params.get("kodi_version")
     uid = request.query_params.get("uid")
@@ -227,6 +207,29 @@ async def shutdown_event():
     staticDB.s.sqclose()
 
 
+async def should_refresh(request):
+    # long polling call
+    db = request.query_params.get("db")
+
+    if dbentry := get_kodidb_entry(db):
+
+        event = dbentry["toRefresh"]
+
+        try:
+            # Attend un signal ou timeout de 30s
+            await asyncio.wait_for(event.wait(), timeout=30)
+            event.clear()  # Reset pour la prochaine fois
+            return JSONResponse({"refresh": True, "broken": False})
+        except asyncio.TimeoutError:
+            return JSONResponse({"refresh": False, "broken": False})
+        
+    else:
+        return JSONResponse({"refresh": False, "broken": True}) # should not happen unless DB is deleted externally db is verified at choice
+
+async def kodiScanWrapper(ctx, stop):
+    reset_kodi_instances_refresh()
+
+
 def trigger_rd_progress(ctx, stop):
     if 1 == 0 and jg_services.rd_progress() == "PLEASE_SCAN": #TODO remove
         wf_id = JobManager.get_new_wfid()
@@ -255,10 +258,11 @@ def nfo_generatorWrapper(ctx, stop):
     if ctx["later"]:
         JobManager.trigger("kodiScan", ctx["wf_id"])
 
-    # send nfos
+    # send nfos TODO
+    # nfo gen knows wether there is work to do or not, but let the event consumption do it
 
-async def kodiScanWrapper(ctx, stop):
-    reset_kodi_instances_refresh()
+    
+
 
 
 if __name__ == "__main__":

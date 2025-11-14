@@ -43,7 +43,7 @@ class JobManager:
             "coro": coro,
             "is_sync": is_sync,
             "interval": interval,
-            "event": asyncio.Queue(),     # remplace asyncio.Event pour transporter wf_id
+            "event": asyncio.Queue(maxsize=1),     # remplace asyncio.Event pour transporter wf_id
             "lock": asyncio.Lock(),       # self-lock uniquement
         }
         JobManager.job_order.append(name)
@@ -62,7 +62,11 @@ class JobManager:
         if loop is None:
             raise RuntimeError("JobManager main_loop not initialized")
         loop.call_soon_threadsafe(
-            JobManager.jobs[name]["event"].put_nowait, wf_id
+            lambda job=JobManager.jobs[name]: (
+                job["event"].put_nowait(wf_id)
+                if not job["event"].full()
+                else logger.info(f"JOBMANAGER | event [{name}/{wf_id}] redondant, ignored")
+            )
         )
 
     # carefull: when putting a wf-id in the trigger

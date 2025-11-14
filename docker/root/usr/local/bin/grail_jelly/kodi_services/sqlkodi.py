@@ -258,6 +258,10 @@ class sqlKodiDB:
             cursor.execute(f"SELECT ttf.{idtofetch}, MAX(IF(uid.type = 'jellygrail', 'jellygrail', 'imdb-tmdb')) as type FROM {tabletofetch} ttf LEFT JOIN uniqueid uid on uid.media_id = ttf.{idtofetch} WHERE strPath like %s GROUP BY ttf.{idtofetch}", (like_param,))
             return cursor.fetchall()
     
+    def fetch_media_str_with_id(self, idtofetch, tabletofetch, columntofetch):
+        with self as cursor:
+            cursor.execute(f"SELECT ttf.strPath FROM {tabletofetch}_view ttf WHERE {columntofetch} = %d", (idtofetch,))
+            return cursor.fetchall()
 
     def get_undefined_collection_arts(self):
         with self as cursor:

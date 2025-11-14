@@ -1,7 +1,7 @@
 from base import *
 from base.littles import *
 from base.constants import *
-from kodi_services.sqlkodi import sqlKodiDB, fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, get_undefined_collection_arts, insert_collection_art, new_set_resume_times_and_lastplayed, return_last_played_max, return_last_file_id_max, separated_seasons, link_all_shows_to_keptone, delete_other_showid
+from kodi_services.sqlkodi import sqlKodiDB, fetch_media_id, video_versions, link_vv_to_kept_mediaid,define_kept_mediaid, delete_other_mediaid, kodi_mysql_init_and_verify, check_if_vvtype_exists, insert_new_vvtype, mariadb_close, get_undefined_collection_arts, insert_collection_art, new_set_resume_times_and_lastplayed, return_last_played_max, return_last_file_id_max, separated_seasons, link_all_shows_to_keptone, delete_other_showid, fetch_media_str_with_id
 import requests
 import urllib.parse
 import websocket
@@ -82,6 +82,33 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
     }
 
 
+def set_nfo_done(puid, pid, ptable):
+
+
+    sqlmatch = {
+        "movie": "idMovie",
+        "tvshow": "idShow",
+        "episode": "idEpisode"
+    }
+
+
+    if thiskodi := kodiDBRegistry.get(puid):
+        try:
+            db = sqlKodiDB(thiskodi.get('dbname'))
+
+
+        except ValueError as e:
+            return False
+
+        else:
+            for (strPath,) in db.fetch_media_str_with_id(pid, ptable, sqlmatch.get(ptable)):
+                # rename NFO to done TODO
+                pass
+
+        finally:
+            db.close()
+
+
 
 def kodi_marks_will_update(puid):
 
@@ -94,7 +121,10 @@ def kodi_marks_will_update(puid):
         except ValueError as e:
             return False
 
+        finally:
+            db.close()
         return True
+
 
 
 def reset_kodi_instances_refresh():
