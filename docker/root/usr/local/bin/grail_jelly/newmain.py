@@ -28,7 +28,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry
+from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update
 from jg_services import premium_timeleft
 
 
@@ -44,13 +44,10 @@ def trigger_nfo_refresh():
     return refreshByStep.run(steps_to_run=[3,5,6])
 
     #call the refresh step scheduler with a given step (nfo_loop_service)
-'''
+
     
 
-
-
-
-# TODO maybe deprecated to removve
+# TODO maybe deprecated to removve
 async def periodic_trigger_launcher(func, interval: int, stop_event: threading.Event):
     loop = asyncio.get_running_loop()
     while not stop_event.is_set():
@@ -71,7 +68,7 @@ async def periodic_trigger_launcher(func, interval: int, stop_event: threading.E
         else:
             break
 
-'''
+
 # === Worker générique ===
 async def worker(name, interval, func, stop_event: asyncio.Event):
     loop = asyncio.get_running_loop()
@@ -128,7 +125,65 @@ async def create_or_update_kodi_instance(request):
             return JSONResponse({"status": 200}, status_code=200) #db not here yet
 
 
+async def should_refresh(request):
+    # long polling call
+    db = request.query_params.get("db")
 
+    if not (dbentry := get_kodidb_entry(db)):
+        return JSONResponse({
+            "nforefresh": False,
+            "scan": False,
+            "broken": True
+        })
+
+    tasks = {
+        "toNfoRefresh": asyncio.create_task(dbentry["toNfoRefresh"].wait()),
+        "toScan": asyncio.create_task(dbentry["toScan"].wait())
+    }
+
+    # first completed task waiter
+    done, pending = await asyncio.wait(
+        tasks.values(),
+        return_when=asyncio.FIRST_COMPLETED,
+        timeout=14
+    )
+
+    # Timeout handling (= no event fired)
+    if not done:
+        # Annule les tasks restantes
+        for t in pending:
+            t.cancel()
+        return JSONResponse({
+            "nforefresh": False,
+            "scan": False,
+            "broken": False
+        })
+
+    # Clean other waiting tasks
+    for t in pending:
+        t.cancel()
+
+    # Find the triggered task
+    for name, task in tasks.items():
+        if task in done:
+
+            if name == "toScan":
+                kodi_marks_will_update(request.query_params.get("uid"))
+
+            dbentry[name].clear()
+
+            return JSONResponse({
+                "nforefresh": name == "toNfoRefresh",
+                "scan": name == "toScan",
+                "broken": False
+            })
+
+    # (should never happen)
+    return JSONResponse({
+        "nforefresh": False,
+        "scan": False,
+        "broken": True
+    })
 
 # ------------ TOKEN HANDLING -----------------
 async def verify_token(request):
@@ -154,6 +209,8 @@ def tokenize(*routes):
         wrapped_routes.append(Route(route.path, wrapped_endpoint, methods=route.methods, name=route.name))
 
     return Router(routes=wrapped_routes)
+
+
 
 
 api_routes = tokenize(
@@ -207,24 +264,6 @@ async def shutdown_event():
     staticDB.s.sqclose()
 
 
-async def should_refresh(request):
-    # long polling call
-    db = request.query_params.get("db")
-
-    if dbentry := get_kodidb_entry(db):
-
-        event = dbentry["toRefresh"]
-
-        try:
-            # Attend un signal ou timeout de 30s
-            await asyncio.wait_for(event.wait(), timeout=30)
-            event.clear()  # Reset pour la prochaine fois
-            return JSONResponse({"refresh": True, "broken": False})
-        except asyncio.TimeoutError:
-            return JSONResponse({"refresh": False, "broken": False})
-        
-    else:
-        return JSONResponse({"refresh": False, "broken": True}) # should not happen unless DB is deleted externally db is verified at choice
 
 async def kodiScanWrapper(ctx, stop):
     reset_kodi_instances_refresh()
@@ -234,6 +273,10 @@ def trigger_rd_progress(ctx, stop):
     if 1 == 0 and jg_services.rd_progress() == "PLEASE_SCAN": #TODO remove
         wf_id = JobManager.get_new_wfid()
         JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id, "later": False}) # the first job of the WF marks the wf_id
+
+    #else: #TODO temp toremove
+    #    JobManager.trigger("kodiScan", ctx["wf_id"])
+
 
 def multiScanWrapper(ctx, stop):
     # run the job and take total
@@ -269,14 +312,14 @@ if __name__ == "__main__":
 
     bdd_install()
     staticDB.sinit()
-    # periodic jobs started in main
-    # check that each one supports stop event
-    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=30)
+    # ---------------periodic jobs launched once in startup event
+    # !!!!!!!!!!!!!!!!!! check that each one supports stop event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=20)
     JobManager.register_job("ssdpBroadcast", SSDPTask, is_sync=False) #ASYNC !
 
 
-    # triggered jobs
-    
+    # ----------------triggered jobs launched on cascade on event
     # !!!!!!!!!!!!!!!!!! check that each one supports stop event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
     JobManager.register_job("jgScanJob", multiScanWrapper, is_sync=True)

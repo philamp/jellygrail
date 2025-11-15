@@ -82,7 +82,7 @@ class sqlKodiDB:
 
     def __enter__(self):
         self.cursor = self.conn.cursor(buffered=True)
-        self.cursor.execute(f"USE {self.db_name}")
+        self.cursor.execute(f"USE `{self.db_name}`")
         return self.cursor  # on retourne le curseur utilisable dans le bloc with
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -159,7 +159,6 @@ class sqlKodiDB:
                     
 
                 cursor.execute(f"""INSERT INTO path (
-                    idPath,
                     strPath,
                     strContent,
                     strScraper,
@@ -167,10 +166,9 @@ class sqlKodiDB:
                     useFolderNames,
                     noUpdate,
                     exclude,
-                    allAudio,
+                    allAudio
                 )
                 SELECT
-                    1,
                     'dav://{ipport}/virtual/{root}/',
                     '{content}',
                     'metadata.local',
@@ -178,7 +176,8 @@ class sqlKodiDB:
                     0,
                     0,
                     0,
-                    0,
+                    0
+                FROM DUAL
                 WHERE NOT EXISTS (
                     SELECT 1
                     FROM path

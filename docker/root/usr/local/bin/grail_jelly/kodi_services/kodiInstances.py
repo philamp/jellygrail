@@ -29,7 +29,9 @@ class kodiDBRegistry:
                 cls._data = {}
             for _,dct in cls._data.items():
                 cls._dbs[dct.get("dbname")] = {
-                    "toRefresh": asyncio.Event()
+                    "toScan": asyncio.Event(),
+                    "toNfoRefresh": asyncio.Event(),
+                    "nfoRefreshBatches": {}
                 }
 
         else:
@@ -78,6 +80,7 @@ class kodiDBRegistry:
         cls._load()
         return cls._data
     
+    @classmethod
     def get_all_dbs_pointer(cls):
         """Return the full registry pointer"""
         cls._load()
@@ -105,7 +108,9 @@ class kodiDBRegistry:
         }
 
         cls._dbs[dbname] = {
-            "toRefresh": asyncio.Event()
+            "toScan": asyncio.Event(),
+            "toNfoRefresh": asyncio.Event(),
+            "nfoRefreshBatches": {}
         }
 
         cls._save()
@@ -147,6 +152,15 @@ class kodiDBRegistry:
         if not changed:
             return entry
 
+        '''
+        if dbname := changed.get('dbname'):
+            cls._dbs[dbname] = {
+                "toScan": asyncio.Event(),
+                "toNfoRefresh": asyncio.Event(),
+                "nfoRefreshBatches": {}
+            }
+        '''
+        
         # Apply only changed fields
         entry.update(changed)
         cls._save()
