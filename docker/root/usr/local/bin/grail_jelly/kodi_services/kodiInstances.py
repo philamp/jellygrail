@@ -10,9 +10,31 @@ class kodiDBRegistry:
     """Static registry of Kodi Grail databases with automatic persistence."""
 
     _path = Path(KODI_INSTANCES_FILE)
-    _data = {}
-    _dbs = {}
     _loaded = False
+    _data = {}
+    
+    _dbs = {}
+
+    
+    _nfoBatchesPath = Path(NFO_BATCHES_FILES)
+    _nfoBatchesLoaded = False
+    _nfoBatchesData = {}
+
+    @classmethod
+    def _loadNfoBatches(cls):
+        """Load registry data from file (once)."""
+        if cls._nfoBatchesLoaded:
+            return
+        if cls._nfoBatchesPath.exists():
+            try:
+                cls._nfoBatchesData = json.loads(cls._nfoBatchesPath.read_text())
+            except json.JSONDecodeError:
+                cls._nfoBatchesData = {}
+        else:
+            cls._nfoBatchesPath.parent.mkdir(parents=True, exist_ok=True)
+            cls._nfoBatchesData = {}
+        cls._nfoBatchesLoaded = True
+
 
     # ───────────────
     # Core persistence
@@ -31,7 +53,6 @@ class kodiDBRegistry:
                 cls._dbs[dct.get("dbname")] = {
                     "toScan": asyncio.Event(),
                     "toNfoRefresh": asyncio.Event(),
-                    "nfoRefreshBatches": {}
                 }
 
         else:
@@ -105,12 +126,12 @@ class kodiDBRegistry:
             "kodi_ip": kodi_ip,
             "kodi_version": kodi_version,
             "alive": True,
+            "consumedBatches": []
         }
 
         cls._dbs[dbname] = {
             "toScan": asyncio.Event(),
             "toNfoRefresh": asyncio.Event(),
-            "nfoRefreshBatches": {}
         }
 
         cls._save()
