@@ -35,6 +35,28 @@ class kodiDBRegistry:
             cls._nfoBatchesData = {}
         cls._nfoBatchesLoaded = True
 
+    @classmethod
+    def newNfoBatch(cls):
+        # create a new nfo batch entrey wth  a unique uid and return it
+        cls._loadNfoBatches()
+        new_uid = str(datetime.now().timestamp()).replace('.','')  # simple unique id
+        cls._nfoBatchesData[new_uid] = []
+        #cls._saveNfoBatches()
+        return new_uid
+    
+    @classmethod
+    def addToNfoBatch(cls, batch_uid, item):
+        cls._loadNfoBatches()
+        if batch_uid not in cls._nfoBatchesData:
+            return False
+        cls._nfoBatchesData[batch_uid].append(item)
+        #cls._saveNfoBatches()
+        return True
+    
+    @classmethod
+    def _saveNfoBatches(cls):
+        cls._nfoBatchesPath.parent.mkdir(parents=True, exist_ok=True)
+        cls._nfoBatchesPath.write_text(json.dumps(cls._data, indent=2, ensure_ascii=False))
 
     # ───────────────
     # Core persistence

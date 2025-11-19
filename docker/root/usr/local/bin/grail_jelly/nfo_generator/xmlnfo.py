@@ -16,6 +16,7 @@ import copy
 import msgspec
 import io
 import glob
+from kodi_services.kodiInstances import kodiDBRegistry
 
 
 # for build_jg_nfo_video()
@@ -430,9 +431,26 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
             write_to_disk(xml, nfo_full_path, is_updated)
 
 
+def new_write_to_disk(root, nfo_full_path, batchUid):
+    # write to file if changed
+    # return True if written, False if not changed
+    with open(nfo_full_path, "r", encoding="utf-8") as existing:
+        if existing.read() == root:
+            logger.debug(f"No write needed, content identical: {nfo_full_path}")
+            return False  # no write needed
+
+    with open(nfo_full_path, "w", encoding="utf-8") as file:
+        file.write(root)
+
+    kodiDBRegistry.addToNfoBatch(batchUid, nfo_full_path)
+    return True
+
+
 def write_to_disk_OLD(root, nfo_full_path, is_updated):
 
     files_to_delete = []
+
+
     
     if is_updated:
         nfo_full_path_towrite = nfo_full_path + ".updated"
