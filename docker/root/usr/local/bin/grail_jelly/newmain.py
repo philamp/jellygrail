@@ -125,6 +125,32 @@ async def create_or_update_kodi_instance(request):
             return JSONResponse({"status": 200}, status_code=200) #db not here yet
 
 
+async def gimmeNfos(request):
+    kdb = request.query_params.get("db")
+    kid = request.query_params.get("uid")
+
+    if not get_kodidb_entry(kdb):
+        return JSONResponse({
+            "status": 404
+        }, status_code=404)
+    
+
+    # call new_send_nfo_batch in a thread
+    result = await asyncio.get_running_loop().run_in_executor(None, jg_services.new_send_nfo_batch, kid, kdb)
+
+    if result is None:
+        return JSONResponse({
+            "status": 204
+        }, status_code=204)
+    
+    #else
+    return JSONResponse({
+        "payload": result,
+        "status": 201
+    }, status_code=201)
+
+
+
 async def should_refresh(request):
     # long polling call
     db = request.query_params.get("db")
@@ -172,6 +198,7 @@ async def should_refresh(request):
 
             dbentry[name].clear()
 
+            # it breaks so the other event is not checked, perfectly fine
             return JSONResponse({
                 "nforefresh": name == "toNfoRefresh",
                 "scan": name == "toScan",
@@ -217,7 +244,8 @@ api_routes = tokenize(
     Route("/health", homepage),
     Route("/get_compatible_kodiDBs", get_compatible_kodiDBs),
     Route("/set_db_for_this_kodi", create_or_update_kodi_instance),
-    Route("/what_should_do", should_refresh)
+    Route("/what_should_do", should_refresh),
+    Route("/gimme_nfos", gimmeNfos)
 )
 
 # no / route here to let the user put a proxy in front of this and the webdav server
@@ -253,7 +281,7 @@ async def startup_event():
     await asyncio.sleep(0)
     JobManager.trigger("ssdpBroadcast", "🔁 5s, in thread, silent") #5s is handled in the job itself not in the jobmanager
     JobManager.trigger("rdProgressLoop", "periodic_rdProgressLoop") #ticker handled by jobmanager periodic also set the job not to print the start message each time
-
+    JobManager.trigger("nfoGenJob", "periodic_nfoGenJob")
 
 
 # === Stopping hook ===
@@ -266,7 +294,7 @@ async def shutdown_event():
 
 
 async def kodiScanWrapper(ctx, stop):
-    reset_kodi_instances_refresh()
+    reset_kodi_instances_refresh("toScan")
 
 
 def trigger_rd_progress(ctx, stop):
@@ -288,7 +316,7 @@ def multiScanWrapper(ctx, stop):
     ctx["later"] = True if nbitems > INCR_KODI_REFR_MAX else False
         
     JobManager.trigger("jfScan", ctx["wf_id"])
-    JobManager.trigger("plexScan", ctx["wf_id"])
+    #JobManager.trigger("plexScan", ctx["wf_id"])
     if not ctx["later"]:
         JobManager.trigger("kodiScan", ctx["wf_id"])
 
@@ -297,9 +325,17 @@ def lib_refresh_allWrapper(ctx, stop):
     JobManager.trigger("nfoGenJob", ctx["wf_id"])
 
 def nfo_generatorWrapper(ctx, stop):
-    nfo_generator.nfo_loop_service(stop)
+    if nfo_generator.nfo_loop_service(stop):
+        willNfoRefresh = True
+
     if ctx["later"]:
         JobManager.trigger("kodiScan", ctx["wf_id"])
+
+    time.sleep(0.5)
+    if willNfoRefresh:
+        
+        reset_kodi_instances_refresh("toNfoRefresh")
+        time.sleep(0.1)
 
     # send nfos TODO
     # nfo gen knows wether there is work to do or not, but let the event consumption do it
@@ -326,7 +362,7 @@ if __name__ == "__main__":
     JobManager.register_job("jfScan", lib_refresh_allWrapper, is_sync=True, cond=JF_WANTED_ACTUALLY)
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
-    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY))
+    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=20)
 
 
 

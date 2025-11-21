@@ -6,6 +6,7 @@ from datetime import datetime
 # from jfconfig.jfsql import *
 import jfapi
 from nfo_generator.xmlnfo import Item, build_jg_nfo_video, jf_xml_create
+from kodi_services.kodiInstances import kodiDBRegistry
 from pathlib import Path
 import msgspec
 
@@ -118,7 +119,10 @@ def nfo_loop_service(stopEvent) -> bool:
 
     items_added_and_updated_pre = syncqueue.ItemsAdded + syncqueue.ItemsUpdated
     if not items_added_and_updated_pre:
-        return True
+        return False
+    
+    # new nfo batch generation
+    batchId = kodiDBRegistry.newNfoBatch()
 
     logger.info("   NFO-GEN| ...New NFOs: metadata JSON dump (can take a while)...")
 
@@ -201,7 +205,7 @@ def nfo_loop_service(stopEvent) -> bool:
     for item in whole_jf_json_dump:
         for item_id, is_updated in items_added_and_updated:
             if item.Id == item_id and item.Type in ("Movie", "Episode"):
-                jf_xml_create(item, is_updated)
+                jf_xml_create(item, is_updated, sdata=None, batchUid=batchId)
                 nbofmovieorepisode += 1
                 if item.Type == "Movie":
                     nbofmovie += 1
@@ -217,7 +221,7 @@ def nfo_loop_service(stopEvent) -> bool:
     for item in whole_jf_json_dump_s:
         for item_id, is_updated in items_added_and_updated:
             if item.Id == item_id and item.Type == "Series":
-                jf_xml_create(item, is_updated, sdata=s_data)
+                jf_xml_create(item, is_updated, sdata=s_data, batchUid=batchId)
                 nboftvshow += 1
                 if nboftvshow % 10 == 0:
                     logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
@@ -226,7 +230,7 @@ def nfo_loop_service(stopEvent) -> bool:
 
     whole_jf_json_dump = None
     whole_jf_json_dump_s = None
-
+    kodiDBRegistry.saveNfoBatches()
     save_jfsqdate_to_file(nowdate)
     return True
 

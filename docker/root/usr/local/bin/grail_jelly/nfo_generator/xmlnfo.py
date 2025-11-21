@@ -276,7 +276,12 @@ def add_images_from_fs(s: io.StringIO, item: Item, tstmp: int):
 
 
 
-def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | None = None):
+def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | None = None, batchUid: str | None = None):
+
+    if not batchUid:
+        logger.critical("jf_xml_create called without batchUid")
+        return
+
     tstmp = int(time.time())
     s = io.StringIO()
     # --- ouverture
@@ -422,13 +427,13 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
 
             xml = svariant.getvalue()
 
-            write_to_disk(xml, nfo_full_path, is_updated)
+            new_write_to_disk(xml, nfo_full_path, batchUid)
 
     else:
         if item.Path:
             xml = s.getvalue()
             nfo_full_path = JFSQ_STORED_NFO + item.Path[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf"
-            write_to_disk(xml, nfo_full_path, is_updated)
+            new_write_to_disk(xml, nfo_full_path, batchUid)
 
 
 def new_write_to_disk(root, nfo_full_path, batchUid):
@@ -442,6 +447,7 @@ def new_write_to_disk(root, nfo_full_path, batchUid):
     with open(nfo_full_path, "w", encoding="utf-8") as file:
         file.write(root)
 
+    # else
     kodiDBRegistry.addToNfoBatch(batchUid, nfo_full_path)
     return True
 

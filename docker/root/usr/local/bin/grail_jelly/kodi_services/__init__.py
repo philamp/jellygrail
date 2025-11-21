@@ -128,15 +128,19 @@ def kodi_marks_will_update(puid):
 
 
 
-def reset_kodi_instances_refresh():
+def reset_kodi_instances_refresh(service="toScan"):
+    # warning, called by sync and async funcitons, dont' put blocking code here
     for _, dbdict in kodiDBRegistry.get_all_dbs_pointer().items():
-        dbdict["toScan"].set()
-
+        dbdict[service].set()
     # we don't save, it's volatile only
 
 def get_kodidb_entry(pdbname):
 
     return kodiDBRegistry.get_all_dbs_pointer().get(pdbname, None)
+
+def get_kodiid_entry(pid):
+
+    return kodiDBRegistry.get_all_instances_pointer().get(pid, None)
 
 # ----------------------------------
 # rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
@@ -412,8 +416,73 @@ def refresh_kodi():
     ws.close()
     return True
 
-def send_nfo_to_kodi():
 
+def new_send_nfo_to_kodi(kid, kdb):
+
+    batchesToDo = [key for key,_ in kodiDBRegistry.get_all_batches_pointer().items() if key not in kodiDBRegistry.get_all_instances_pointer().get(kid, {}).get("consumedBatches", [])]
+
+    already_sent_ids = []
+
+    try:
+        dbo = sqlKodiDB(kdb)
+
+
+        for batchid in batchesToDo:
+            nfo_entries = kodiDBRegistry.get_all_batches_pointer().get(batchid, {}).get("nfoEntries", [])
+
+            for path in nfo_entries:
+                root = os.path.dirname(path)
+                tofetch = os.path.basename(root)
+                filename = os.path.basename(path)
+                if filename.lower().endswith(('.nfo.jf',)):
+                    xiem += 1
+                    if root == previous_root: #nfo refresh is on parent folder basis (root), so no need to trigger upon next nfo files found in same folder
+                        files_to_rename.append(root + "/" + filename)
+                        continue
+                    previous_root = root
+                    # very small chance that a movie or episode contains those strings but theorically we should test substring with endswith()
+                    if "video_ts.nfo.jf" in filename.lower() or "index.nfo.jf" in filename.lower(): 
+                        tofetch = os.path.basename(os.path.dirname(root))
+                        tabletofetch = "movie_view"
+                        idtofetch = "idMovie"
+                        reftype = "Movie"
+                        typeid = "movieid"
+                    elif "tvshow.nfo.jf" in filename.lower():
+                        tabletofetch = "tvshow_view"
+                        idtofetch = "idShow"
+                        reftype = "TVShow"
+                        typeid = "tvshowid"
+                    elif "/shows" == root[JFSQ_STORED_NFO_SHIFT:JFSQ_STORED_NFO_SHIFT+6]:
+                        tabletofetch = "episode_view"
+                        idtofetch = "idEpisode"
+                        reftype = "Episode"
+                        typeid = "episodeid"
+                        # put full path without like ?
+                    else:
+                        idtofetch = "idMovie"
+                        tabletofetch = "movie_view"
+                        reftype = "Movie"
+                        typeid = "movieid"
+
+                    tofetch = urllib.parse.quote(tofetch, safe=SAFE)
+                    tofetch = tofetch.replace("%", r"\%")
+
+
+
+    except ValueError as e:
+        return False
+
+    finally:
+        if dbo is not None:
+            dbo.close()
+        kodiDBRegistry.get_all_instances_pointer()[kid]["consumedBatches"].append(batchid)
+        kodiDBRegistry.save()
+
+
+
+
+
+def send_nfo_to_kodi():
 
     if not is_kodi_alive() or not kodi_mysql_init_and_verify():
         return False

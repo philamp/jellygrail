@@ -54,7 +54,7 @@ class kodiDBRegistry:
         return True
     
     @classmethod
-    def _saveNfoBatches(cls):
+    def saveNfoBatches(cls):
         cls._nfoBatchesPath.parent.mkdir(parents=True, exist_ok=True)
         cls._nfoBatchesPath.write_text(json.dumps(cls._data, indent=2, ensure_ascii=False))
 
@@ -128,7 +128,15 @@ class kodiDBRegistry:
         """Return the full registry pointer"""
         cls._load()
         return cls._dbs
+    
+    @classmethod
+    def get_all_batches_pointer(cls):
+        """Return the full registry pointer"""
+        cls._loadNfoBatches()
+        return cls._nfoBatchesData
+    
 
+    # TODO deprecated ?
     @classmethod
     def get(cls, uid):
         """Retrieve an entry by UID."""
