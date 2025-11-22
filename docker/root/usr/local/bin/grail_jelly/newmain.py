@@ -28,7 +28,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, get_kodiid_entry
+from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, get_kodiid_entry, append_batch_to_kodi_instance
 from jg_services import premium_timeleft
 
 
@@ -138,10 +138,8 @@ async def gimmeNfos(request):
     # call new_send_nfo_batch in a thread
     result = await asyncio.get_running_loop().run_in_executor(None, new_send_nfo_to_kodi, kid, kdb)
 
-    if result is None:
-        return JSONResponse({
-            "status": 204
-        }, status_code=204)
+    if result == {}:
+        return JSONResponse(None, status_code=204)
     
     #else
     return JSONResponse({
@@ -151,7 +149,7 @@ async def gimmeNfos(request):
 
 async def setConsumed(request):
 
-    kdb = request.query_params.get("db")
+    kdb = request.query_params.get("db") # TODO later use to get all kodi instances for this db
     kid = request.query_params.get("uid")
     batchid = request.query_params.get("batchid")
 
@@ -160,9 +158,7 @@ async def setConsumed(request):
             "status": 404
         }, status_code=404)
     
-    instance = get_kodiid_entry(kid)
-    if batchid not in instance.get("consumedBatches", []):
-        instance.setdefault("consumedBatches", []).append(batchid)
+    append_batch_to_kodi_instance(kid, batchid)
 
     return JSONResponse({
         "status": 201
@@ -334,7 +330,7 @@ def multiScanWrapper(ctx, stop):
     ctx["later"] = True if nbitems > INCR_KODI_REFR_MAX else False
         
     JobManager.trigger("jfScan", ctx["wf_id"])
-    #JobManager.trigger("plexScan", ctx["wf_id"])
+    #JobManager.trigger("plexScan", ctx["wf_id"]) 
     if not ctx["later"]:
         JobManager.trigger("kodiScan", ctx["wf_id"])
 
@@ -343,10 +339,14 @@ def lib_refresh_allWrapper(ctx, stop):
     JobManager.trigger("nfoGenJob", ctx["wf_id"])
 
 def nfo_generatorWrapper(ctx, stop):
-    if nfo_generator.nfo_loop_service(stop):
+
+    willNfoRefresh = False
+    if nfo_generator.nfo_loop_service(stop) or ctx.get("wf-id", "") == "wf-1" or 1==1: #TODO temp # always refresh on wf-1 (cascade trigger)
         willNfoRefresh = True
 
-    if ctx["later"]:
+
+    #only called if ctx has later (launched from a scan job) ctx is always a dict here
+    if ctx.get("later", False):
         JobManager.trigger("kodiScan", ctx["wf_id"])
 
     time.sleep(0.5)

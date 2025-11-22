@@ -439,11 +439,13 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
 def new_write_to_disk(root, nfo_full_path, batchUid):
     # write to file if changed
     # return True if written, False if not changed
-    with open(nfo_full_path, "r", encoding="utf-8") as existing:
-        if existing.read() == root:
-            logger.debug(f"No write needed, content identical: {nfo_full_path}")
-            return False  # no write needed
+    if os.path.exists(nfo_full_path):
+        with open(nfo_full_path, "r", encoding="utf-8") as existing:
+            if existing.read() == root:
+                logger.debug(f"No write needed, content identical: {nfo_full_path}")
+                return False  # no write needed
 
+    os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
     with open(nfo_full_path, "w", encoding="utf-8") as file:
         file.write(root)
 

@@ -56,7 +56,7 @@ class kodiDBRegistry:
     @classmethod
     def saveNfoBatches(cls):
         cls._nfoBatchesPath.parent.mkdir(parents=True, exist_ok=True)
-        cls._nfoBatchesPath.write_text(json.dumps(cls._data, indent=2, ensure_ascii=False))
+        cls._nfoBatchesPath.write_text(json.dumps(cls._nfoBatchesData, indent=2, ensure_ascii=False))
 
     # ───────────────
     # Core persistence

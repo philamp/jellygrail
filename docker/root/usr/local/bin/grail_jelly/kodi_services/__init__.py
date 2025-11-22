@@ -145,6 +145,16 @@ def get_kodiid_entry(pid):
 
     return kodiDBRegistry.get_all_instances_pointer().get(pid, None)
 
+def append_batch_to_kodi_instance(kid, batchid):
+
+    if instance := kodiDBRegistry.get_all_instances_pointer().get(kid, None):
+        if batchid not in instance.get("consumedBatches", []):
+            instance.setdefault("consumedBatches", []).append(batchid)
+            kodiDBRegistry._save()
+            return True
+
+    return False
+
 # ----------------------------------
 # rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
 # getrdincrement
@@ -436,7 +446,7 @@ def new_send_nfo_to_kodi(kid, kdb):
 
 
         for batchid in batchesToDo:
-            if nfo_entries := kodiDBRegistry.get_all_batches_pointer().get(batchid, {}).get("nfoEntries", []):
+            if nfo_entries := kodiDBRegistry.get_all_batches_pointer().get(batchid, []):
                 
 
                 payload[batchid] = {
@@ -456,26 +466,28 @@ def new_send_nfo_to_kodi(kid, kdb):
                             tabletofetch = "movie_view"
                             idtofetch = "idMovie"
                             reftype = "Movie"
-                            typeid = "movieid"
+                            #typeid = "movieid"
                         elif "tvshow.nfo.jf" in filename.lower():
                             tabletofetch = "tvshow_view"
                             idtofetch = "idShow"
                             reftype = "TVShow"
-                            typeid = "tvshowid"
-                        elif "show" in root[JFSQ_STORED_NFO_SHIFT:].split("/")[1]:
+                            #typeid = "tvshowid"
+                        elif "/shows" == root[JFSQ_STORED_NFO_SHIFT:JFSQ_STORED_NFO_SHIFT+6]:
                             tabletofetch = "episode_view"
                             idtofetch = "idEpisode"
                             reftype = "Episode"
-                            typeid = "episodeid"
+                            #typeid = "episodeid"
                             # put full path without like ?
                         else:
                             idtofetch = "idMovie"
                             tabletofetch = "movie_view"
                             reftype = "Movie"
-                            typeid = "movieid"
+                            #typeid = "movieid"
 
                         tofetch = urllib.parse.quote(tofetch, safe=SAFE)
                         tofetch = tofetch.replace("%", r"\%")
+
+                        logger.info(f". Kodi mysqldb fetching : {root}/{filename} as {tofetch} IN TABLE {tabletofetch}")
 
                         for (result, uidtype) in dbo.fetch_media_id(tofetch, tabletofetch, idtofetch):
 
@@ -488,7 +500,7 @@ def new_send_nfo_to_kodi(kid, kdb):
 
 
     except ValueError as e:
-        return None
+        return {}
 
     finally:
         if dbo is not None:
