@@ -230,6 +230,7 @@ def nfo_loop_service(stopEvent) -> bool:
 
     whole_jf_json_dump = None
     whole_jf_json_dump_s = None
+    
     kodiDBRegistry.saveNfoBatches()
     save_jfsqdate_to_file(nowdate)
     return True

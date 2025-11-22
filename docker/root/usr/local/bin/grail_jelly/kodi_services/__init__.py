@@ -126,7 +126,10 @@ def kodi_marks_will_update(puid):
                 db.close()
         return True
 
-
+    # put existing nfobatches to consumed for this kodi instances:
+    for batchid, batchdict in kodiDBRegistry.get_all_batches_pointer().items():
+        if puid not in kodiDBRegistry.get_all_instances_pointer().get(puid, {}).get("consumedBatches", []):
+            kodiDBRegistry.get_all_instances_pointer().get(puid, {}).setdefault("consumedBatches", []).append(batchid)
 
 def reset_kodi_instances_refresh(service="toScan"):
     # warning, called by sync and async funcitons, dont' put blocking code here
@@ -419,64 +422,80 @@ def refresh_kodi():
 
 def new_send_nfo_to_kodi(kid, kdb):
 
-    batchesToDo = [key for key,_ in kodiDBRegistry.get_all_batches_pointer().items() if key not in kodiDBRegistry.get_all_instances_pointer().get(kid, {}).get("consumedBatches", [])]
+    if not (batchesToDo := [key for key,_ in kodiDBRegistry.get_all_batches_pointer().items() if key not in kodiDBRegistry.get_all_instances_pointer().get(kid, {}).get("consumedBatches", [])]):
+        return {}
+
+
 
     already_sent_ids = []
+
+    payload = {}
 
     try:
         dbo = sqlKodiDB(kdb)
 
 
         for batchid in batchesToDo:
-            nfo_entries = kodiDBRegistry.get_all_batches_pointer().get(batchid, {}).get("nfoEntries", [])
+            if nfo_entries := kodiDBRegistry.get_all_batches_pointer().get(batchid, {}).get("nfoEntries", []):
+                
 
-            for path in nfo_entries:
-                root = os.path.dirname(path)
-                tofetch = os.path.basename(root)
-                filename = os.path.basename(path)
-                if filename.lower().endswith(('.nfo.jf',)):
-                    xiem += 1
-                    if root == previous_root: #nfo refresh is on parent folder basis (root), so no need to trigger upon next nfo files found in same folder
-                        files_to_rename.append(root + "/" + filename)
-                        continue
-                    previous_root = root
-                    # very small chance that a movie or episode contains those strings but theorically we should test substring with endswith()
-                    if "video_ts.nfo.jf" in filename.lower() or "index.nfo.jf" in filename.lower(): 
-                        tofetch = os.path.basename(os.path.dirname(root))
-                        tabletofetch = "movie_view"
-                        idtofetch = "idMovie"
-                        reftype = "Movie"
-                        typeid = "movieid"
-                    elif "tvshow.nfo.jf" in filename.lower():
-                        tabletofetch = "tvshow_view"
-                        idtofetch = "idShow"
-                        reftype = "TVShow"
-                        typeid = "tvshowid"
-                    elif "/shows" == root[JFSQ_STORED_NFO_SHIFT:JFSQ_STORED_NFO_SHIFT+6]:
-                        tabletofetch = "episode_view"
-                        idtofetch = "idEpisode"
-                        reftype = "Episode"
-                        typeid = "episodeid"
-                        # put full path without like ?
-                    else:
-                        idtofetch = "idMovie"
-                        tabletofetch = "movie_view"
-                        reftype = "Movie"
-                        typeid = "movieid"
+                payload[batchid] = {
+                    "Movie": [],
+                    "TVShow": [],
+                    "Episode": []
+                }
 
-                    tofetch = urllib.parse.quote(tofetch, safe=SAFE)
-                    tofetch = tofetch.replace("%", r"\%")
+                for path in nfo_entries:
+                    root = os.path.dirname(path)
+                    tofetch = os.path.basename(root)
+                    filename = os.path.basename(path)
+                    if filename.lower().endswith(('.nfo.jf',)):
+                        # very small chance that a movie or episode contains those strings but theorically we should test substring with endswith()
+                        if "video_ts.nfo.jf" in filename.lower() or "index.nfo.jf" in filename.lower(): 
+                            tofetch = os.path.basename(os.path.dirname(root))
+                            tabletofetch = "movie_view"
+                            idtofetch = "idMovie"
+                            reftype = "Movie"
+                            typeid = "movieid"
+                        elif "tvshow.nfo.jf" in filename.lower():
+                            tabletofetch = "tvshow_view"
+                            idtofetch = "idShow"
+                            reftype = "TVShow"
+                            typeid = "tvshowid"
+                        elif "show" in root[JFSQ_STORED_NFO_SHIFT:].split("/")[1]:
+                            tabletofetch = "episode_view"
+                            idtofetch = "idEpisode"
+                            reftype = "Episode"
+                            typeid = "episodeid"
+                            # put full path without like ?
+                        else:
+                            idtofetch = "idMovie"
+                            tabletofetch = "movie_view"
+                            reftype = "Movie"
+                            typeid = "movieid"
 
+                        tofetch = urllib.parse.quote(tofetch, safe=SAFE)
+                        tofetch = tofetch.replace("%", r"\%")
+
+                        for (result, uidtype) in dbo.fetch_media_id(tofetch, tabletofetch, idtofetch):
+
+                            if result not in already_sent_ids:
+                                already_sent_ids.append(result)
+                                payload[batchid][reftype].append(result)
+
+
+        return payload
 
 
     except ValueError as e:
-        return False
+        return None
 
     finally:
         if dbo is not None:
             dbo.close()
-        kodiDBRegistry.get_all_instances_pointer()[kid]["consumedBatches"].append(batchid)
-        kodiDBRegistry.save()
+        # todo done later
+        #kodiDBRegistry.get_all_instances_pointer()[kid]["consumedBatches"].append(batchid)
+        #kodiDBRegistry.save()
 
 
 

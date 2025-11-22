@@ -28,7 +28,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update
+from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, get_kodiid_entry
 from jg_services import premium_timeleft
 
 
@@ -136,7 +136,7 @@ async def gimmeNfos(request):
     
 
     # call new_send_nfo_batch in a thread
-    result = await asyncio.get_running_loop().run_in_executor(None, jg_services.new_send_nfo_batch, kid, kdb)
+    result = await asyncio.get_running_loop().run_in_executor(None, new_send_nfo_to_kodi, kid, kdb)
 
     if result is None:
         return JSONResponse({
@@ -149,7 +149,24 @@ async def gimmeNfos(request):
         "status": 201
     }, status_code=201)
 
+async def setConsumed(request):
 
+    kdb = request.query_params.get("db")
+    kid = request.query_params.get("uid")
+    batchid = request.query_params.get("batchid")
+
+    if not get_kodiid_entry(kid):
+        return JSONResponse({
+            "status": 404
+        }, status_code=404)
+    
+    instance = get_kodiid_entry(kid)
+    if batchid not in instance.get("consumedBatches", []):
+        instance.setdefault("consumedBatches", []).append(batchid)
+
+    return JSONResponse({
+        "status": 201
+    }, status_code=201)
 
 async def should_refresh(request):
     # long polling call
@@ -245,7 +262,8 @@ api_routes = tokenize(
     Route("/get_compatible_kodiDBs", get_compatible_kodiDBs),
     Route("/set_db_for_this_kodi", create_or_update_kodi_instance),
     Route("/what_should_do", should_refresh),
-    Route("/gimme_nfos", gimmeNfos)
+    Route("/gimme_nfos", gimmeNfos),
+    Route("/set_consumed", setConsumed)
 )
 
 # no / route here to let the user put a proxy in front of this and the webdav server
