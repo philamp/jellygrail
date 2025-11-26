@@ -40,7 +40,8 @@ class kodiDBRegistry:
         # create a new nfo batch entrey wth  a unique uid and return it
         cls._loadNfoBatches()
         new_uid = str(datetime.now().timestamp()).replace('.','')  # simple unique id
-        cls._nfoBatchesData[new_uid] = []
+        cls._nfoBatchesData[new_uid] = {"items":[], "done": False}
+
         #cls._saveNfoBatches()
         return new_uid
     
@@ -49,12 +50,18 @@ class kodiDBRegistry:
         cls._loadNfoBatches()
         if batch_uid not in cls._nfoBatchesData:
             return False
-        cls._nfoBatchesData[batch_uid].append(item)
+        cls._nfoBatchesData[batch_uid]["items"].append(item)
         #cls._saveNfoBatches()
         return True
     
     @classmethod
-    def saveNfoBatches(cls):
+    def saveNfoBatches(cls, batch_uid):
+
+        cls._loadNfoBatches()
+        if batch_uid not in cls._nfoBatchesData:
+            return False
+
+        cls._nfoBatchesData[batch_uid]["done"] = True
         cls._nfoBatchesPath.parent.mkdir(parents=True, exist_ok=True)
         cls._nfoBatchesPath.write_text(json.dumps(cls._nfoBatchesData, indent=2, ensure_ascii=False))
 

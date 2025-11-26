@@ -112,24 +112,29 @@ def set_nfo_done(puid, pid, ptable):
 
 def kodi_marks_will_update(puid):
 
-    if thiskodi := kodiDBRegistry.get(puid):
+    if not (thiskodi := kodiDBRegistry.get(puid)):
+        return
 
-        try:
-            db = sqlKodiDB(thiskodi.get('dbname'))
-            db.register_dav_if_empty(f"{LAN_IP}:{WEBDAV_INTERNAL_PORT}")
+    try:
+        db = sqlKodiDB(thiskodi.get('dbname'))
+        db.register_dav_if_empty(f"{LAN_IP}:{WEBDAV_INTERNAL_PORT}")
 
-        except ValueError as e:
-            return False
+    except ValueError as e:
+        return
 
-        finally:
-            if db is not None:
-                db.close()
-        return True
+    finally:
+        if db is not None:
+            db.close()
+        
 
     # put existing nfobatches to consumed for this kodi instances:
     for batchid, batchdict in kodiDBRegistry.get_all_batches_pointer().items():
-        if puid not in kodiDBRegistry.get_all_instances_pointer().get(puid, {}).get("consumedBatches", []):
-            kodiDBRegistry.get_all_instances_pointer().get(puid, {}).setdefault("consumedBatches", []).append(batchid)
+        if batchdict.get("done", False) == True:
+            if puid not in kodiDBRegistry.get_all_instances_pointer().get(puid, {}).get("consumedBatches", []):
+                kodiDBRegistry.get_all_instances_pointer().get(puid, {}).setdefault("consumedBatches", []).append(batchid)
+                kodiDBRegistry._save()
+
+    return
 
 def reset_kodi_instances_refresh(service="toScan"):
     # warning, called by sync and async funcitons, dont' put blocking code here
@@ -446,7 +451,7 @@ def new_send_nfo_to_kodi(kid, kdb):
 
 
         for batchid in batchesToDo:
-            if nfo_entries := kodiDBRegistry.get_all_batches_pointer().get(batchid, []):
+            if nfo_entries := kodiDBRegistry.get_all_batches_pointer().get(batchid, {}).get("items", []):
                 
 
                 payload[batchid] = {

@@ -139,7 +139,9 @@ async def gimmeNfos(request):
     result = await asyncio.get_running_loop().run_in_executor(None, new_send_nfo_to_kodi, kid, kdb)
 
     if result == {}:
-        return JSONResponse(None, status_code=204)
+        return JSONResponse({
+            "status": 404
+        }, status_code=404)
     
     #else
     return JSONResponse({
@@ -153,13 +155,11 @@ async def setConsumed(request):
     kid = request.query_params.get("uid")
     batchid = request.query_params.get("batchid")
 
-    if not get_kodiid_entry(kid):
+    if not append_batch_to_kodi_instance(kid, batchid):
         return JSONResponse({
             "status": 404
         }, status_code=404)
-    
-    append_batch_to_kodi_instance(kid, batchid)
-
+    # else
     return JSONResponse({
         "status": 201
     }, status_code=201)
@@ -209,7 +209,7 @@ async def should_refresh(request):
             if name == "toScan":
                 kodi_marks_will_update(request.query_params.get("uid"))
 
-            dbentry[name].clear()
+            dbentry[name].clear() # mark it done even before it's called by client, easier this way and no real issue unless kodi client stops scanning
 
             # it breaks so the other event is not checked, perfectly fine
             return JSONResponse({
@@ -312,7 +312,7 @@ async def kodiScanWrapper(ctx, stop):
 
 
 def trigger_rd_progress(ctx, stop):
-    if 1 == 0 and jg_services.rd_progress() == "PLEASE_SCAN": #TODO remove
+    if jg_services.rd_progress() == "PLEASE_SCAN": #TODO remove 1==1
         wf_id = JobManager.get_new_wfid()
         JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id, "later": False}) # the first job of the WF marks the wf_id
 
@@ -341,7 +341,7 @@ def lib_refresh_allWrapper(ctx, stop):
 def nfo_generatorWrapper(ctx, stop):
 
     willNfoRefresh = False
-    if nfo_generator.nfo_loop_service(stop) or ctx.get("wf-id", "") == "wf-1" or 1==1: #TODO temp # always refresh on wf-1 (cascade trigger)
+    if nfo_generator.nfo_loop_service(stop) or ctx.get("wf-id", "") == "wf-1":
         willNfoRefresh = True
 
 
