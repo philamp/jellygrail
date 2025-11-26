@@ -164,6 +164,12 @@ async def setConsumed(request):
         "status": 201
     }, status_code=201)
 
+async def ask_kodi_refresh(request):
+    JobManager.trigger("kodiScan", "manual_refresh_from_api")
+    return JSONResponse({
+        "status": 201
+    }, status_code=201)
+
 async def should_refresh(request):
     # long polling call
     db = request.query_params.get("db")
@@ -268,7 +274,8 @@ app.mount("/api", api_routes) # tokenized paths
 #public paths:
 app.mount("/app", Router(
     routes=[
-        Route("/health", homepage)
+        Route("/health", homepage),
+        Route("/ask_kodi_refresh", ask_kodi_refresh)
     ]
 ))
 
@@ -336,6 +343,7 @@ def multiScanWrapper(ctx, stop):
 
 def lib_refresh_allWrapper(ctx, stop):
     jfapi.lib_refresh_all(stop)
+    #logger.info("JOBMANAGER| Before triggering NFO generation , supposedlly after library refresh")
     JobManager.trigger("nfoGenJob", ctx["wf_id"])
 
 def nfo_generatorWrapper(ctx, stop):
@@ -380,6 +388,7 @@ if __name__ == "__main__":
     JobManager.register_job("jfScan", lib_refresh_allWrapper, is_sync=True, cond=JF_WANTED_ACTUALLY)
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
+    # WARNING, must be register AFTER jfScan
     JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=20)
 
 

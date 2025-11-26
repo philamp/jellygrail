@@ -37,6 +37,8 @@ class JobManager:
         
         if not cond:
             return
+        
+        # special case for jobs sharing same lock
 
         JobManager.jobs[name] = {
             "name": name,
@@ -44,7 +46,7 @@ class JobManager:
             "is_sync": is_sync,
             "interval": interval,
             "event": asyncio.Queue(maxsize=1),     # remplace asyncio.Event pour transporter wf_id
-            "lock": asyncio.Lock(),       # self-lock uniquement
+            "lock": JobManager.jobs["jfScan"]["lock"] if name == "nfoGenJob" else asyncio.Lock(),       # self-lock uniquement
         }
         JobManager.job_order.append(name)
 

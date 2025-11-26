@@ -106,7 +106,7 @@ def wait_for_jfscan_to_finish(stopEvent):
         logger.error(f"    JF-API| ... Jellyfin Library refreshing but completion status unknown")
         return False
 
-    logger.info("         3| ...Jellyfin Library refresh complete")
+    #logger.info("         3| ...Jellyfin Library refresh complete")
     return True
 
 def lib_refresh_all(stopEvent):

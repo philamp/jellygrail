@@ -285,6 +285,10 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
     tstmp = int(time.time())
     s = io.StringIO()
     # --- ouverture
+
+    s.write('<?xml version="1.0" ?>\n')
+
+
     if item.Type == "Movie":
         s.write("<movie>\n")
     elif item.Type == "Episode":
