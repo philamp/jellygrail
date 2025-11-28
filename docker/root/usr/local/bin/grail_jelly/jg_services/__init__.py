@@ -18,7 +18,7 @@ fiveothree = 0
 ptl = "0"
 
 # rd remote location:
-REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
+#REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 
 # now hardcoded:
 DEFAULT_INCR = 0
