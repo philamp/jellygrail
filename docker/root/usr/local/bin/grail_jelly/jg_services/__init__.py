@@ -263,7 +263,7 @@ def restoreitem(filename, token):
 
 # ----------------------------------
         
-def remoteScan():
+def remoteScan(stopEvent):
     global rs_working
     global fiveothree
     # take data from remote RD account
@@ -282,7 +282,12 @@ def remoteScan():
 
         cur_key = read_data_from_file(REMOTE_PILE_KEY_FILE)
 
-        remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{cur_incr}"
+        remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/app/getrdincrement/{cur_incr}"
+
+        if stopEvent.is_set():
+            rs_working = False
+            return
+
 
         try:
             response = requests.get(remote_loc, timeout=10)
@@ -291,12 +296,11 @@ def remoteScan():
         except Exception as e:
             logger.warning(f" REMOTE-JG| Remote JellyGrail Instance is simply not running or other error: {e}")
             rs_working = False
-            return None
+            return
 
         if server_data.get('pilekey') != cur_key or cur_incr > server_data.get('lastid'):
             logger.warning(f" REMOTE-JG| New Remote pile (identifier changed) or impossible increment (higher thant remote), reset with increment found in settings.env")
             cur_incr = int(DEFAULT_INCR)
-            remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{cur_incr}"
             try:
                 response = requests.get(remote_loc, timeout=10)
                 response.raise_for_status()
@@ -304,7 +308,7 @@ def remoteScan():
             except Exception as e:
                 logger.warning(f" REMOTE-JG| Remote JellyGrail Instance is simply not running or other error:  {e}")
                 rs_working = False
-                return None
+                return
             save_data_to_file(REMOTE_PILE_KEY_FILE, server_data.get('pilekey'))
 
         if server_data:
@@ -313,11 +317,11 @@ def remoteScan():
             else:
                 logger.info(f" REMOTE-JG| No new RD hashes, incr is still: {cur_incr}")
                 rs_working = False
-                return None     
+                return     
         else:
             logger.critical(f" REMOTE-JG| Data was fetched but not usable. Theorically already handled by generic exception catcher")
             rs_working = False
-            return None
+            return
         
         if(local_data := rdump_backup(including_backup = False, returning_data = True)):
             local_data_hashes = [iteml.get('hash') for iteml in local_data]
@@ -325,6 +329,9 @@ def remoteScan():
             # base for incr is remote
             
             for remote_hash in server_data['hashes']:
+                if stopEvent.is_set():
+                    rs_working = False
+                    return
                 if remote_hash not in local_data_hashes:
                     try:
                         push_and_select(remote_hash)
@@ -480,7 +487,9 @@ def getrdincrement(incr):
     if (os.path.exists(PILE_FILE)):
         # gets full array 
         pile_key, cur_pile = file_to_array(PILE_FILE)
-        return json.dumps({'hashes': cur_pile[incr:], 'lastid': len(cur_pile), 'pilekey': int(pile_key)}).encode()
+        #return json.dumps({'hashes': cur_pile[incr:], 'lastid': len(cur_pile), 'pilekey': int(pile_key)}).encode()
+        # return dict object, not dumped json
+        return {'hashes': cur_pile[incr:], 'lastid': len(cur_pile), 'pilekey': int(pile_key)}
     else:
         rd_progress()
         # it forces this sever to call rd_progress at least once
@@ -490,7 +499,7 @@ def getrdincrement(incr):
             # logger.info("periodic trigger is working")
             # we are forced to consume output from this funciton to avoid disjoined calls to output queue
             # logger.warning(f"> force rd_progress (should happen once) [getrdincrement]")
-        return ""
+        return {}
 
 # now only overwrite current dump if done more than 4 hours ago or backup is requested
 def rdump_backup(including_backup = True, returning_data = False):

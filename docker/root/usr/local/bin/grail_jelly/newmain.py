@@ -15,6 +15,7 @@ import asyncio
 #from concurrent.futures import ThreadPoolExecutor
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
+from starlette.responses import HTMLResponse
 from starlette.routing import Route, Router
 import time
 import threading
@@ -29,7 +30,8 @@ from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
 from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, get_kodiid_entry, append_batch_to_kodi_instance
-from jg_services import premium_timeleft
+#from jg_services import premium_timeleft, test
+import jg_services
 
 
 
@@ -170,6 +172,17 @@ async def ask_kodi_refresh(request):
         "status": 201
     }, status_code=201)
 
+async def rd_test_api(request):
+    result = await asyncio.get_running_loop().run_in_executor(None, jg_services.test)
+    return HTMLResponse(result)
+
+async def rdIncrRoute(request):
+    arg = request.path_params["arg"]
+    if not (result := await asyncio.get_running_loop().run_in_executor(None, jg_services.getrdincrement, arg)):
+        return JSONResponse({"status": 503}, status_code=503)
+    #else
+    return JSONResponse(result, status_code=200)
+
 async def should_refresh(request):
     # long polling call
     db = request.query_params.get("db")
@@ -275,7 +288,9 @@ app.mount("/api", api_routes) # tokenized paths
 app.mount("/app", Router(
     routes=[
         Route("/health", homepage),
-        Route("/ask_kodi_refresh", ask_kodi_refresh)
+        Route("/ask_kodi_refresh", ask_kodi_refresh),
+        Route("/test", rd_test_api),
+        Route("/getrdincrement/{arg:int}", rdIncrRoute)
     ]
 ))
 
@@ -292,7 +307,7 @@ async def startup_event():
     play_config_check()
     kodi_mysql_verify(logit = True)
     if RD_API_SET:
-        logger.warning(f"REALDEBRID/ Premium days remaining: {str(premium_timeleft()/86400)[:4]}")
+        logger.warning(f"REALDEBRID/ Premium days remaining: {str(jg_services.premium_timeleft()/86400)[:4]}")
 
     if JF_WANTED:
         jfconfig()
@@ -303,6 +318,7 @@ async def startup_event():
     JobManager.trigger("ssdpBroadcast", "🔁 5s, in thread, silent") #5s is handled in the job itself not in the jobmanager
     JobManager.trigger("rdProgressLoop", "periodic_rdProgressLoop") #ticker handled by jobmanager periodic also set the job not to print the start message each time
     JobManager.trigger("nfoGenJob", "periodic_nfoGenJob")
+    JobManager.trigger("remoteScan", "periodic_remoteScan")
 
 
 # === Stopping hook ===
@@ -318,8 +334,12 @@ async def kodiScanWrapper(ctx, stop):
     reset_kodi_instances_refresh("toScan")
 
 
+def remoteScanWrapper(ctx, stop):
+    # run jgservices.remoteScan
+    jg_services.remoteScan(stop)
+
 def trigger_rd_progress(ctx, stop):
-    if jg_services.rd_progress() == "PLEASE_SCAN": #TODO remove 1==1
+    if jg_services.rd_progress() == "PLEASE_SCAN": # or ctx["wf_id"] == "wf-1"  #TODO remove 1==1
         wf_id = JobManager.get_new_wfid()
         JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id, "later": False}) # the first job of the WF marks the wf_id
 
@@ -343,7 +363,6 @@ def multiScanWrapper(ctx, stop):
 
 def lib_refresh_allWrapper(ctx, stop):
     jfapi.lib_refresh_all(stop)
-    #logger.info("JOBMANAGER| Before triggering NFO generation , supposedlly after library refresh")
     JobManager.trigger("nfoGenJob", ctx["wf_id"])
 
 def nfo_generatorWrapper(ctx, stop):
@@ -388,8 +407,11 @@ if __name__ == "__main__":
     JobManager.register_job("jfScan", lib_refresh_allWrapper, is_sync=True, cond=JF_WANTED_ACTUALLY)
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
-    # WARNING, must be register AFTER jfScan
+    # WARNING, nfoGenJob must be register AFTER jfScan
     JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=20)
+    JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
+
+    
 
 
 

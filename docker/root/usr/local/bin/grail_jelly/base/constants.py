@@ -36,6 +36,7 @@ RESET = "\033[0m"
 KODI_INSTANCES_JSON = "/jellygrail/data/kodi_instances.json"
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
+USE_REMOTE_RDUMP_ACTUALLY = True if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234" else False
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
 LAN_IP = guess_lan_ip() or "127.0.0.1" 

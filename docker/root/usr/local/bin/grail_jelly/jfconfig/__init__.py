@@ -320,7 +320,7 @@ def install_librairies():
                 logger.info("  JELLYFIN/ TVShows Library installed")
                 at_least_one_installed = True
         if at_least_one_installed:
-            
+            logger.info("  JELLYFIN/ 500 errors below are ok, don't worry")
             jfapi.jellyfin(f'ScheduledTasks/Running/7738148ffcd07979c7ceb148e06b3aed', method='delete') # should not stat right away, should stop for virtual folder to be completed first
             logger.info("  JELLYFIN/ First autoscan halted. Will be managed by JellyGrail later")
 
