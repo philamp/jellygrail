@@ -70,7 +70,7 @@ async def handle_ffprobe(reader: asyncio.StreamReader, writer: asyncio.StreamWri
 
 
 async def handle_nfopath(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-    logger.info(f"     SOCKET/ ...BindFS connected")
+    logger.info(f"    SOCKET/ ...BindFS connected")
     while True:
         data = await reader.read(1024)
         if not data:

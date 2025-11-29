@@ -676,6 +676,139 @@ def rename_to_done(filepath):
     except Exception as e:
         logger.debug(f"!! An error occured on renaming .nfo.jf to .nfo.jf.done : {e}")
 
+
+def new_merge_tvshow_seasons(dbo):
+
+    atleastone = False
+    # separated_seasons() to get all (tvshowids) for one unqueid
+    for (idshowsR, _) in dbo.separated_seasons():
+        atleastone = True
+        #treat one show
+        idshows = [int(num) for num in idshowsR.split(",")]
+        showtokeep = idshows[0]
+        dbo.link_all_shows_to_keptone(idshowsR, showtokeep)
+        # set showtokeep on every idshowfound
+
+        for idshow in idshows:
+            if idshow != showtokeep:
+                dbo.delete_other_showid(idshow)
+
+    if atleastone:
+        return True
+
+    return False
+
+def new_merge_kodi_versions(kdb, kver):
+    returning = False
+    try:
+        dbo = sqlKodiDB(kdb)
+        
+        # here take the same logix as inside merge_kodi_versions but for a given kdb only using new classes and functions
+        global last_max_lastplayed
+        global last_max_fileid
+
+        # fix tvshows merging
+        if new_merge_tvshow_seasons(dbo):
+            returning = True
+ 
+        if kver < 21:
+            logger.debug("         6| Custom Kodi MySQL dB Operations bypassed (Kodi version < 21)")
+            return returning
+
+        returned_max_played = dbo.return_last_played_max()
+        returned_max_fileid = dbo.return_last_file_id_max()
+        # TODO later below condition to be re-activated
+        if 1==0 and not (( returned_max_played and returned_max_played != last_max_lastplayed) or ( returned_max_fileid and returned_max_fileid != last_max_fileid)):
+            # do nothing if nothing changed
+            logger.debug("         6| Custom Kodi MySQL dB Operations bypassed")
+            return returning
+        
+
+
+
+        logger.info("         6| Custom Kodi MySQL dB Operations...")
+
+        #bypass kodi alive.
+        for (_, idmediasR, strpathsR, strfilenamesR, idfilesR, isdefaultsR, bmk_stuff) in dbo.video_versions():
+            #find the incr smallest version
+            i=0
+            currlowest=200
+            idfiles = [int(num) for num in idfilesR.split(",")]
+            strpaths = strpathsR.split(" ")
+            strfilenames = strfilenamesR.split(" ")
+            isdefaults = [int(num) for num in isdefaultsR.split(" ")]
+            idmedias = [int(num) for num in idmediasR.split(" ")]
+            #bmk_stuff / new manage resumtimes
+            bmk_str_last = bmk_stuff.split(",")[0]
+            # no need to propagate if nothing is found ? : drawback : if file having lp data is deleted before next propagation, its data wont ever be propagated
+            if returned_max_played and returned_max_played != last_max_lastplayed: # dont do if unnecessary
+                if bmk_str_last != "0#0#0":
+                    bmk_arr_last = bmk_str_last.split("#")
+                    if len(bmk_arr_last) > 2: # some fail-proof check
+                        highest_lp = bmk_arr_last[0]
+                        highest_rt = float(bmk_arr_last[1])
+                        highest_tt = float(bmk_arr_last[2])
+                        dbo.new_set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR, idfiles, highest_tt)
+            #bmk_stuffend
+            if returned_max_fileid and returned_max_fileid != last_max_fileid: # dont do if unnecessary
+                videoversiontuple = []
+                idtokeep = None
+                strpathtokeep = None
+                imediatokeep = None
+                if idfiles and strpaths and idmedias:
+                    # just looping through sthing of all arrays
+                    for strfilename in strfilenames:
+                        decoded_filename = urllib.parse.unquote(strfilename)
+                        match = re.search(r'-\s*(.*?)\s*JGx', decoded_filename)
+                        if match:
+                            extracted_text = match.group(1)
+                            videoversiontuple.append((idfiles[i], extracted_text))
+                            matchb = re.search(r'(\d+)Mbps', extracted_text)
+                            if matchb:
+                                mbps_value = int(matchb.group(1))
+                                if mbps_value < currlowest:
+                                    currlowest = mbps_value
+                                    idtokeep = idfiles[i]
+                                    strpathtokeep = strpaths[i]
+                        else:
+                            videoversiontuple.append((idfiles[i], "Iso Edition"))
+                        if imediatokeep == None and isdefaults[i] == 1:
+                            imediatokeep = idmedias[i]
+                        i += 1
+                    # if did not find any way to find the lowest value, we keep the first ones, will be set to the kept media
+                    if idtokeep == None:
+                        idtokeep = idfiles[0]
+                        strpathtokeep = strpaths[0]
+                    if imediatokeep != None:
+                        # proceed to link videoverion to the kept mediaid
+                        for idfile, versionlabel in videoversiontuple:
+                            # check if extracted text exists in db
+                            if new_id := dbo.check_if_vvtype_exists(versionlabel):
+                                pass
+                            else:
+                                new_id = dbo.insert_new_vvtype(versionlabel)
+                            if new_id != None:
+                                dbo.link_vv_to_kept_mediaid(idfile, imediatokeep, new_id)
+                            else:
+                                logger.error("new_id is none, thos should not happen")
+                        # proceed to set idfile and strpath to the mediaid we keep
+                        dbo.define_kept_mediaid(idtokeep, strpathtokeep, imediatokeep)
+                        # proceed to delete other mediaids
+                        for idmedia in idmedias:
+                            if idmedia != imediatokeep:
+                                dbo.delete_other_mediaid(idmedia)
+        last_max_lastplayed = returned_max_played
+        last_max_fileid = returned_max_fileid
+        return True
+
+    #except ValueError as e:
+        #logger.info("         6| Value error...")
+        #return False
+    
+    finally:
+        if dbo is not None:
+            dbo.close()
+
 def merge_kodi_versions():
     global last_max_lastplayed
     global last_max_fileid

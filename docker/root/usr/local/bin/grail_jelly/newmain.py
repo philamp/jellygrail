@@ -17,6 +17,7 @@ from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.responses import HTMLResponse
 from starlette.routing import Route, Router
+from starlette.middleware.base import BaseHTTPMiddleware
 import time
 import threading
 
@@ -29,7 +30,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, get_kodiid_entry, append_batch_to_kodi_instance
+from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, append_batch_to_kodi_instance, new_merge_kodi_versions
 #from jg_services import premium_timeleft, test
 import jg_services
 
@@ -98,7 +99,19 @@ async def worker(name, interval, func, stop_event: asyncio.Event):
 
 
 
+class QuietRouteMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app, ignored_paths):
+        super().__init__(app)
+        self.ignored_paths = set(ignored_paths)
 
+    async def dispatch(self, request, call_next):
+        response = await call_next(request)
+
+        if request.url.path not in self.ignored_paths:
+            # This is a normal logger, uses normal formatter, no special args shape
+            logger.info(f"HTTPSERVER| {MAGENTA}{request.method}| {request.url.path}?{request.url.query}| {response.status_code}{RESET}")
+
+        return response
 
 
 
@@ -244,6 +257,25 @@ async def should_refresh(request):
         "broken": True
     })
 
+async def doSqlStuffRoute(request):
+    # get kdb from query
+    kdb = request.query_params.get("db")
+    kver = int(request.query_params.get("kodi_version"))
+    if not (dbentry := get_kodidb_entry(kdb)):
+        return JSONResponse({
+            "status": 404
+        }, status_code=404)
+
+    # call sync func new_merge_kodi_versions in a thread
+    if await asyncio.get_running_loop().run_in_executor(None, new_merge_kodi_versions, kdb, kver):
+        return JSONResponse({
+            "status": 201
+        }, status_code=201)
+    else:
+        return JSONResponse({
+            "status": 200
+        }, status_code=200)
+
 # ------------ TOKEN HANDLING -----------------
 async def verify_token(request):
     token = request.query_params.get("token")
@@ -278,11 +310,16 @@ api_routes = tokenize(
     Route("/set_db_for_this_kodi", create_or_update_kodi_instance),
     Route("/what_should_do", should_refresh),
     Route("/gimme_nfos", gimmeNfos),
-    Route("/set_consumed", setConsumed)
+    Route("/set_consumed", setConsumed),
+    Route("/special_ops", doSqlStuffRoute)
 )
 
 # no / route here to let the user put a proxy in front of this and the webdav server
-app = Starlette()
+app = Starlette(
+    routes=[
+            Route("/getrdincrementBYPASSTODO/{arg:int}", rdIncrRoute)
+        ]
+)
 app.mount("/api", api_routes) # tokenized paths
 #public paths:
 app.mount("/app", Router(
@@ -293,6 +330,12 @@ app.mount("/app", Router(
         Route("/getrdincrement/{arg:int}", rdIncrRoute)
     ]
 ))
+
+
+app.add_middleware(
+    QuietRouteMiddleware,
+    ignored_paths=["/apdsfi/speciasdfl_ops"]
+)
 
 # === État global pour suivre les tâches et l’événement d’arrêt ===
 #app.state.tasks = []
@@ -315,10 +358,10 @@ async def startup_event():
     # START ALL ROOT TRIGGERED/PERIODIC JOBS
     asyncio.create_task(JobManager.run_all())
     await asyncio.sleep(0)
-    JobManager.trigger("ssdpBroadcast", "🔁 5s, in thread, silent") #5s is handled in the job itself not in the jobmanager
-    JobManager.trigger("rdProgressLoop", "periodic_rdProgressLoop") #ticker handled by jobmanager periodic also set the job not to print the start message each time
-    JobManager.trigger("nfoGenJob", "periodic_nfoGenJob")
-    JobManager.trigger("remoteScan", "periodic_remoteScan")
+    JobManager.trigger("ssdpBroadcast", "🔁 5s loop in thread, silent") #5s is handled in the job itself not in the jobmanager
+    JobManager.trigger("rdProgressLoop", "wf-0") #ticker handled by jobmanager periodic also set the job not to print the start message each time
+    JobManager.trigger("nfoGenJob", "wf-0")
+    JobManager.trigger("remoteScan", "wf-0")
 
 
 # === Stopping hook ===
@@ -339,7 +382,7 @@ def remoteScanWrapper(ctx, stop):
     jg_services.remoteScan(stop)
 
 def trigger_rd_progress(ctx, stop):
-    if jg_services.rd_progress() == "PLEASE_SCAN": # or ctx["wf_id"] == "wf-1"  #TODO remove 1==1
+    if jg_services.rd_progress() == "PLEASE_SCAN_TODO": # or ctx["wf_id"] == "wf-1"  #TODO remove 1==1
         wf_id = JobManager.get_new_wfid()
         JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id, "later": False}) # the first job of the WF marks the wf_id
 
@@ -408,7 +451,7 @@ if __name__ == "__main__":
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
     # WARNING, nfoGenJob must be register AFTER jfScan
-    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=20)
+    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=200)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
 
     
@@ -422,7 +465,7 @@ if __name__ == "__main__":
 
     # HTTP Server
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=WEBSERVICE_INTERNAL_PORT, loop="asyncio") #careful, loop.sock_sento is not implemented in uvloop
+    uvicorn.run(app, host="0.0.0.0", port=WEBSERVICE_INTERNAL_PORT, loop="asyncio", access_log=False) #careful, loop.sock_sento is not implemented in uvloop
     #asyncio.run(server.serve())
 
     staticDB.s.sqclose()

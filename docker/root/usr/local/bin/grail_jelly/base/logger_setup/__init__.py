@@ -11,8 +11,10 @@ class LevelLetterFilter(logging.Filter):
 
 class RecentDedupFilter(logging.Filter):
     """
-    - Suppresses duplicate messages if they appeared in the last 10 messages within 30 min.
-    - Replaces the first 10 chars with spaces if they match the prefix of the last message.
+    - Supprime les messages dupliqués s'ils sont apparus dans les `max_recent`
+      derniers messages, et dans la fenêtre `ttl` (en secondes).
+    - Fait du prefix blanking (remplace les `prefix_len` premiers caractères
+      par des espaces si le préfixe est identique au message précédent).
     """
 
     def __init__(self, ttl=1800, max_recent=10, prefix_len=10):
@@ -20,33 +22,40 @@ class RecentDedupFilter(logging.Filter):
         self.ttl = ttl
         self.max_recent = max_recent
         self.prefix_len = prefix_len
-        self.recent = deque(maxlen=max_recent)  # (timestamp, message)
+        # On stocke le message *brut* comme clé de dédup
+        self.recent = deque(maxlen=max_recent)  # (timestamp, raw_msg)
         self.last_prefix = None
 
-    def filter(self, record):
+    def filter(self, record: logging.LogRecord) -> bool:
         now = time.time()
-        msg = record.getMessage()
 
-        # purge old entries
+        # 1) Message brut (clé de dédup) : on appelle getMessage AVANT toute modif
+        raw_msg = record.getMessage()
+
+        # 2) Purge des entrées trop anciennes
         self.recent = deque(
             [(t, m) for t, m in self.recent if now - t < self.ttl],
             maxlen=self.max_recent,
         )
 
-        # suppress if seen recently
-        #if any(m == msg for _, m in self.recent):
-        #    return False
+        # 3) Silencing si déjà vu récemment (sur le *message brut*)
+        if any(m == raw_msg for _, m in self.recent):
+            return False
 
-        # prefix blanking (compare only to last message)
-        prefix = msg[:self.prefix_len]
+        # 4) Prefix blanking (uniquement pour l’affichage)
+        display_msg = raw_msg
+        prefix = raw_msg[:self.prefix_len]
+
         if prefix == self.last_prefix:
-            msg = " " * self.prefix_len + msg[self.prefix_len:]
-            record.msg = msg
-            record.args = ()  # prevent reformatting issues
+            display_msg = " " * self.prefix_len + raw_msg[self.prefix_len:]
+            record.msg = display_msg
+            record.args = ()  # pour éviter que logging essaie de reformater
 
-        # update state
+        # 5) Mise à jour de l’état
         self.last_prefix = prefix
-        self.recent.append((now, msg))
+        # On enregistre le *message brut* pour la dédup, pas la version blankée
+        self.recent.append((now, raw_msg))
+
         return True
         
 def log_setup():
@@ -63,7 +72,7 @@ def log_setup():
     # Create console handler with a higher log level
     ch = logging.StreamHandler()
     ch.setLevel(logging.INFO)  # Set the level for the stream handler; adjust as needed
-    ch.addFilter(RecentDedupFilter(ttl=1800, max_recent=10, prefix_len=10)) #30mn no-repeat on the last 10 items
+    ch.addFilter(RecentDedupFilter(ttl=900, max_recent=20, prefix_len=10)) #15mn no-repeat on the last 20 items
     #ch.addFilter(LevelLetterFilter()) 
 
     # Create formatter and add it to the handlers
