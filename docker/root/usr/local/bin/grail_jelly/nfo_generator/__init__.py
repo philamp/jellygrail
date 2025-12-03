@@ -205,14 +205,14 @@ def nfo_loop_service(stopEvent) -> bool:
     for item in whole_jf_json_dump:
         for item_id, is_updated in items_added_and_updated:
             if item.Id == item_id and item.Type in ("Movie", "Episode"):
-                jf_xml_create(item, is_updated, sdata=None, batchUid=batchId)
-                nbofmovieorepisode += 1
-                if item.Type == "Movie":
-                    nbofmovie += 1
-                else:
-                    nbofepisode += 1
-                if nbofmovieorepisode % 10 == 0:
-                    logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
+                if jf_xml_create(item, is_updated, sdata=None, batchUid=batchId):
+                    nbofmovieorepisode += 1
+                    if item.Type == "Movie":
+                        nbofmovie += 1
+                    else:
+                        nbofepisode += 1
+                    if nbofmovieorepisode % 10 == 0:
+                        logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
 
     if stopEvent.is_set():
         return False
@@ -221,10 +221,10 @@ def nfo_loop_service(stopEvent) -> bool:
     for item in whole_jf_json_dump_s:
         for item_id, is_updated in items_added_and_updated:
             if item.Id == item_id and item.Type == "Series":
-                jf_xml_create(item, is_updated, sdata=s_data, batchUid=batchId)
-                nboftvshow += 1
-                if nboftvshow % 10 == 0:
-                    logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
+                if jf_xml_create(item, is_updated, sdata=s_data, batchUid=batchId):
+                    nboftvshow += 1
+                    if nboftvshow % 10 == 0:
+                        logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
 
     logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}] ...completed")
 

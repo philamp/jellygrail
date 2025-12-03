@@ -226,7 +226,7 @@ def add_images_from_fs_people(s: io.StringIO, pname: str, tstmp: int):
     for fpath in glob.glob(os.path.join(folder, "*")):
         fname = os.path.basename(fpath).lower()
         #url = f"http://[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
-        url = f"[PROTO_HOST_PORT]/pics{urllib.parse.quote(fpath[JF_MD_SHIFT:], safe=SAFE)}?{tstmp}"
+        url = f"[PROTO_HOST_PORT]/pics{urllib.parse.quote(fpath[JF_MD_SHIFT:], safe=SAFE)}?[TIME]"
         if "folder" in fname:
             s.write(f"<thumb>{url}</thumb>\n")
 
@@ -243,7 +243,7 @@ def add_images_from_fs_season(s: io.StringIO, season: list, tstmp: int):
 
     for fpath in glob.glob(os.path.join(folder, "*")):
         fname = os.path.basename(fpath).lower()
-        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
+        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?[TIME]"
 
         if "poster" in fname:
             s.write(f"<thumb aspect=\"poster\" type=\"season\" season=\"{season['sidx']}\">{escape(url)}</thumb>\n")
@@ -261,7 +261,7 @@ def add_images_from_fs(s: io.StringIO, item: Item, tstmp: int):
 
     for fpath in glob.glob(os.path.join(folder, "*")):
         fname = os.path.basename(fpath).lower()
-        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
+        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?[TIME]"
 
 
         if "poster" in fname:
@@ -446,8 +446,9 @@ def new_write_to_disk(root, nfo_full_path, batchUid):
     if os.path.exists(nfo_full_path):
         with open(nfo_full_path, "r", encoding="utf-8") as existing:
             if existing.read() == root:
-                logger.debug(f"No write needed, content identical: {nfo_full_path}")
+                #logger.debug(f"No write needed, content identical: {nfo_full_path}")
                 return False  # no write needed
+    #logger.debug(f"Writing NFO: {nfo_full_path}")
 
     os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
     with open(nfo_full_path, "w", encoding="utf-8") as file:

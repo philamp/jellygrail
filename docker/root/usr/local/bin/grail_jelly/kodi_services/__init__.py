@@ -38,6 +38,11 @@ def set_kodi_instance(puid, pdbname, pkodi_ip, pkodi_version):
     if not kodiDBRegistry.update(puid, dbname=pdbname, kodi_ip=pkodi_ip, kodi_version = pkodi_version):
         kodiDBRegistry.add(puid, pdbname, pkodi_ip, pkodi_version)
 
+    set_previous_batches_as_consumed(puid)
+
+    # set corresponding db to refresh even (TODO even if bindfs empty ?)
+    kodiDBRegistry.get_all_dbs_pointer().get(pdbname, {}).get("toScan").set()
+
     return True
 
 
@@ -109,6 +114,19 @@ def set_nfo_done(puid, pid, ptable):
             db.close()
 '''
 
+def set_previous_batches_as_consumed(puid):
+    if not kodiDBRegistry.get(puid):
+        return
+
+    # put existing nfobatches to consumed for this kodi instances:
+    for batchid, batchdict in kodiDBRegistry.get_all_batches_pointer().items():
+        if batchdict.get("done", False) == True:
+            if puid not in kodiDBRegistry.get_all_instances_pointer().get(puid, {}).get("consumedBatches", []):
+                kodiDBRegistry.get_all_instances_pointer().get(puid, {}).setdefault("consumedBatches", []).append(batchid)
+                kodiDBRegistry._save()
+
+    return
+
 
 def kodi_marks_will_update(puid):
 
@@ -128,11 +146,7 @@ def kodi_marks_will_update(puid):
         
 
     # put existing nfobatches to consumed for this kodi instances:
-    for batchid, batchdict in kodiDBRegistry.get_all_batches_pointer().items():
-        if batchdict.get("done", False) == True:
-            if puid not in kodiDBRegistry.get_all_instances_pointer().get(puid, {}).get("consumedBatches", []):
-                kodiDBRegistry.get_all_instances_pointer().get(puid, {}).setdefault("consumedBatches", []).append(batchid)
-                kodiDBRegistry._save()
+    set_previous_batches_as_consumed(puid)
 
     return
 
@@ -799,8 +813,14 @@ def new_merge_kodi_versions(kdb, kver):
                                 dbo.delete_other_mediaid(idmedia)
         last_max_lastplayed = returned_max_played
         last_max_fileid = returned_max_fileid
-        return True
+        
 
+        # sets collection images
+        for (idset, strset, _) in dbo.get_undefined_collection_arts():
+            dbo.insert_collection_art(idset, "http://"+WEBDAV_HOST_PORT+"/pics/collections/"+urllib.parse.quote(strset, safe=SAFE)+".jpg")
+
+        return True
+    
     #except ValueError as e:
         #logger.info("         6| Value error...")
         #return False
