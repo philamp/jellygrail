@@ -255,7 +255,7 @@ for code in codes:
         USED_LANGS.add(SUB_LANG_EQUIVALENTS[code])
 USED_LANGS.add("und")
 
-PROXY_URL = os.getenv('PROXY_URL') or "0"
+PROXY_URL = os.getenv('PROXY_URL') if (os.getenv('PROXY_URL') != "https://hostname-or-ip:1234" and os.getenv('PROXY_URL') != "") else "0"
 
 USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
 USE_KODI_ACTUALLY = USE_KODI

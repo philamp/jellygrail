@@ -166,7 +166,7 @@ async def gimmeNfos(request):
 
 async def setConsumed(request):
 
-    kdb = request.query_params.get("db") # TODO later use to get all kodi instances for this db
+    #kdb = request.query_params.get("db") # TODO later use to get all kodi instances for this db
     kid = request.query_params.get("uid")
     batchid = request.query_params.get("batchid")
 
@@ -205,7 +205,7 @@ async def should_refresh(request):
             "nforefresh": False,
             "scan": False,
             "broken": True
-        })
+        }, status_code=404)
 
     tasks = {
         "toNfoRefresh": asyncio.create_task(dbentry["toNfoRefresh"].wait()),
@@ -228,7 +228,7 @@ async def should_refresh(request):
             "nforefresh": False,
             "scan": False,
             "broken": False
-        })
+        }, status_code=200)
 
     # Clean other waiting tasks
     for t in pending:
@@ -248,14 +248,14 @@ async def should_refresh(request):
                 "nforefresh": name == "toNfoRefresh",
                 "scan": name == "toScan",
                 "broken": False
-            })
+            }, status_code=201)
 
     # (should never happen)
     return JSONResponse({
         "nforefresh": False,
         "scan": False,
         "broken": True
-    })
+    }, status_code=503)
 
 async def doSqlStuffRoute(request):
     # get kdb from query
@@ -360,7 +360,7 @@ async def startup_event():
     await asyncio.sleep(0)
     JobManager.trigger("ssdpBroadcast", "🔁 5s loop in thread, silent") #5s is handled in the job itself not in the jobmanager
     JobManager.trigger("rdProgressLoop", "wf-0") #ticker handled by jobmanager periodic also set the job not to print the start message each time
-    JobManager.trigger("nfoGenJob", "wf-0")
+    JobManager.trigger("nfoGenJob", "wf-0", ctx={"wf_id": "wf-0"})
     JobManager.trigger("remoteScan", "wf-0")
 
 
@@ -409,10 +409,11 @@ def lib_refresh_allWrapper(ctx, stop):
     JobManager.trigger("nfoGenJob", ctx["wf_id"])
 
 def nfo_generatorWrapper(ctx, stop):
-
+    logger.info(f"wf id is: {ctx.get('wf-id')}")
     willNfoRefresh = False
-    if nfo_generator.nfo_loop_service(stop) or ctx.get("wf-id", "") == "wf-1":
+    if nfo_generator.nfo_loop_service(stop) or ctx.get("wf-id", "") == "wf-1" or ctx.get("wf-id", "") == "wf-0":
         willNfoRefresh = True
+        
 
 
     #only called if ctx has later (launched from a scan job) ctx is always a dict here
@@ -451,7 +452,7 @@ if __name__ == "__main__":
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
     # WARNING, nfoGenJob must be register AFTER jfScan
-    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=200)
+    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=10)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
 
     

@@ -431,13 +431,13 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
 
             xml = svariant.getvalue()
 
-            new_write_to_disk(xml, nfo_full_path, batchUid)
+            return new_write_to_disk(xml, nfo_full_path, batchUid)
 
     else:
         if item.Path:
             xml = s.getvalue()
             nfo_full_path = JFSQ_STORED_NFO + item.Path[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf"
-            new_write_to_disk(xml, nfo_full_path, batchUid)
+            return new_write_to_disk(xml, nfo_full_path, batchUid)
 
 
 def new_write_to_disk(root, nfo_full_path, batchUid):
@@ -458,7 +458,7 @@ def new_write_to_disk(root, nfo_full_path, batchUid):
     kodiDBRegistry.addToNfoBatch(batchUid, nfo_full_path)
     return True
 
-
+'''
 def write_to_disk_OLD(root, nfo_full_path, is_updated):
 
     files_to_delete = []
@@ -514,7 +514,7 @@ def write_to_disk(root, nfo_full_path, is_updated):
         try:
             with open(nfo_full_path_towrite, "r", encoding="utf-8") as existing:
                 if existing.read() == root:
-                    logger.debug(f"No write needed, content identical: {nfo_full_path_towrite}")
+                    logger.info(f"No write needed, content identical: {nfo_full_path_towrite}")
                     write_needed = False
         except Exception as e:
             logger.debug(f"Could not read existing file (will overwrite): {e}")
@@ -539,3 +539,4 @@ def write_to_disk(root, nfo_full_path, is_updated):
             logger.debug(f"An error occurred while deleting {file_to_del}: {e}")
 
     return write_needed
+'''

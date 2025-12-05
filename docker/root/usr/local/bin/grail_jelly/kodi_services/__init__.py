@@ -19,8 +19,6 @@ kodi_password = "kodi"
 
 last_clean = 0
 
-last_max_lastplayed = ""
-last_max_fileid = 0
 
 headers = {
     'Content-Type': 'application/json',
@@ -37,11 +35,8 @@ def set_kodi_instance(puid, pdbname, pkodi_ip, pkodi_version):
 
     if not kodiDBRegistry.update(puid, dbname=pdbname, kodi_ip=pkodi_ip, kodi_version = pkodi_version):
         kodiDBRegistry.add(puid, pdbname, pkodi_ip, pkodi_version)
-
-    set_previous_batches_as_consumed(puid)
-
-    # set corresponding db to refresh even (TODO even if bindfs empty ?)
-    kodiDBRegistry.get_all_dbs_pointer().get(pdbname, {}).get("toScan").set()
+        kodiDBRegistry.get_all_dbs_pointer().get(pdbname, {}).get("toNfoRefresh").set()
+        kodiDBRegistry.get_all_dbs_pointer().get(pdbname, {}).get("toScan").set()
 
     return True
 
@@ -114,6 +109,13 @@ def set_nfo_done(puid, pid, ptable):
             db.close()
 '''
 
+def clean_all_consumed_nfo_batches():
+
+    for bid in list(kodiDBRegistry.get_all_batches_pointer().keys()):
+        if all(bid in instance.get("consumedBatches", []) for instance in kodiDBRegistry.get_all_instances_pointer().values()):
+            kodiDBRegistry.remove_nfo_batch(bid)
+    kodiDBRegistry.SaveNfoBatches()
+
 def set_previous_batches_as_consumed(puid):
     if not kodiDBRegistry.get(puid):
         return
@@ -123,7 +125,9 @@ def set_previous_batches_as_consumed(puid):
         if batchdict.get("done", False) == True:
             if puid not in kodiDBRegistry.get_all_instances_pointer().get(puid, {}).get("consumedBatches", []):
                 kodiDBRegistry.get_all_instances_pointer().get(puid, {}).setdefault("consumedBatches", []).append(batchid)
-                kodiDBRegistry._save()
+    kodiDBRegistry._save()
+
+    clean_all_consumed_nfo_batches()
 
     return
 
@@ -137,6 +141,8 @@ def kodi_marks_will_update(puid):
         db = sqlKodiDB(thiskodi.get('dbname'))
         db.register_dav_if_empty(f"{LAN_IP}:{WEBDAV_INTERNAL_PORT}")
 
+        # check if uidtype = jellygrail still exists
+
     except ValueError as e:
         return
 
@@ -146,15 +152,31 @@ def kodi_marks_will_update(puid):
         
 
     # put existing nfobatches to consumed for this kodi instances:
-    set_previous_batches_as_consumed(puid)
+
+    # issue here is : 
+    # if order is : user unmonitored scan in kodi, then nfo jobs, then monitored scan : nfobatches will be set as consumed but they're not
+    # (explaination : kodi does not reload nfo after the first scan of a media)
+    # solution : set as consumed only if no more uidtype jellygrail exists TODO
+
+    #set_previous_batches_as_consumed(puid)
 
     return
 
 def reset_kodi_instances_refresh(service="toScan"):
+
+
+    # the issue is scan masks the need to push nfo
+    # so the solution would be to consume any DONE unconsumed batch before scan
+    # this would only go through db existing items
+    # unexisting db items can be set as consumed as they will be consumed by scan
+    if service=="toScan":
+        for _, dbdict in kodiDBRegistry.get_all_dbs_pointer().items():
+            dbdict["toNfoRefresh"].set()
+
     # warning, called by sync and async funcitons, dont' put blocking code here
     for _, dbdict in kodiDBRegistry.get_all_dbs_pointer().items():
         dbdict[service].set()
-    # we don't save, it's volatile only
+
 
 def get_kodidb_entry(pdbname):
 
@@ -166,13 +188,26 @@ def get_kodiid_entry(pid):
 
 def append_batch_to_kodi_instance(kid, batchid):
 
+    '''
     if instance := kodiDBRegistry.get_all_instances_pointer().get(kid, None):
         if batchid not in instance.get("consumedBatches", []):
             instance.setdefault("consumedBatches", []).append(batchid)
             kodiDBRegistry._save()
             return True
+    '''
 
-    return False
+    kdb = kodiDBRegistry.get_all_instances_pointer().get(kid, None).get("dbname")
+        
+    # get all kodi instances having same dbname and set there too
+    for uid, instance in kodiDBRegistry.get_all_instances_pointer().items():
+        if instance.get("dbname", "") == kdb:
+            if batchid not in instance.get("consumedBatches", []):
+                instance.setdefault("consumedBatches", []).append(batchid)
+                logger.info(f"set batch {batchid} as consumed in kodi {uid}")
+    kodiDBRegistry._save()
+    # if a batch is consumed by all known kodi instances, remove it from batches registry
+    clean_all_consumed_nfo_batches()
+    return True
 
 # ----------------------------------
 # rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
@@ -449,6 +484,21 @@ def refresh_kodi():
     return True
 
 
+def check_any_notjfsynchronised_kodi_media(dbo):
+
+    tablekeys = {
+        "movie_view": "idMovie",
+        "tvshow_view": "idShow",
+        "episode_view": "idEpisode",
+        "idMovie": "movie_view"
+    }
+
+
+    for table, idtof in tablekeys:
+        pass
+
+
+
 def new_send_nfo_to_kodi(kid, kdb):
 
     if not (batchesToDo := [key for key,_ in kodiDBRegistry.get_all_batches_pointer().items() if key not in kodiDBRegistry.get_all_instances_pointer().get(kid, {}).get("consumedBatches", [])]):
@@ -715,26 +765,24 @@ def new_merge_tvshow_seasons(dbo):
 def new_merge_kodi_versions(kdb, kver):
     returning = False
     try:
+        dbro = kodiDBRegistry.get_all_dbs_pointer().get(kdb, {})
+
         dbo = sqlKodiDB(kdb)
         
-        # here take the same logix as inside merge_kodi_versions but for a given kdb only using new classes and functions
-        global last_max_lastplayed
-        global last_max_fileid
-
         # fix tvshows merging
         if new_merge_tvshow_seasons(dbo):
             returning = True
  
         if kver < 21:
-            logger.debug("         6| Custom Kodi MySQL dB Operations bypassed (Kodi version < 21)")
+            logger.info("         6| Custom Kodi MySQL dB Operations bypassed (Kodi version < 21)")
             return returning
 
         returned_max_played = dbo.return_last_played_max()
         returned_max_fileid = dbo.return_last_file_id_max()
         # TODO later below condition to be re-activated
-        if 1==0 and not (( returned_max_played and returned_max_played != last_max_lastplayed) or ( returned_max_fileid and returned_max_fileid != last_max_fileid)):
+        if not (( returned_max_played and returned_max_played != dbro["last_max_lastplayed"]) or ( returned_max_fileid and returned_max_fileid != dbro["last_max_fileid"])):
             # do nothing if nothing changed
-            logger.debug("         6| Custom Kodi MySQL dB Operations bypassed")
+            logger.info("         6| Custom Kodi MySQL dB Operations bypassed")
             return returning
         
 
@@ -755,7 +803,7 @@ def new_merge_kodi_versions(kdb, kver):
             #bmk_stuff / new manage resumtimes
             bmk_str_last = bmk_stuff.split(",")[0]
             # no need to propagate if nothing is found ? : drawback : if file having lp data is deleted before next propagation, its data wont ever be propagated
-            if returned_max_played and returned_max_played != last_max_lastplayed: # dont do if unnecessary
+            if returned_max_played and returned_max_played != dbro["last_max_lastplayed"]: # dont do if unnecessary
                 if bmk_str_last != "0#0#0":
                     bmk_arr_last = bmk_str_last.split("#")
                     if len(bmk_arr_last) > 2: # some fail-proof check
@@ -764,7 +812,7 @@ def new_merge_kodi_versions(kdb, kver):
                         highest_tt = float(bmk_arr_last[2])
                         dbo.new_set_resume_times_and_lastplayed(highest_rt, highest_lp, idfilesR, idfiles, highest_tt)
             #bmk_stuffend
-            if returned_max_fileid and returned_max_fileid != last_max_fileid: # dont do if unnecessary
+            if returned_max_fileid and returned_max_fileid != dbro["last_max_fileid"]: # dont do if unnecessary
                 videoversiontuple = []
                 idtokeep = None
                 strpathtokeep = None
@@ -811,14 +859,16 @@ def new_merge_kodi_versions(kdb, kver):
                         for idmedia in idmedias:
                             if idmedia != imediatokeep:
                                 dbo.delete_other_mediaid(idmedia)
-        last_max_lastplayed = returned_max_played
-        last_max_fileid = returned_max_fileid
+        dbro["last_max_lastplayed"] = returned_max_played
+        dbro["last_max_fileid"] = returned_max_fileid
         
 
         # sets collection images
         for (idset, strset, _) in dbo.get_undefined_collection_arts():
             dbo.insert_collection_art(idset, "http://"+WEBDAV_HOST_PORT+"/pics/collections/"+urllib.parse.quote(strset, safe=SAFE)+".jpg")
 
+
+        # else of kodi version < 21 or last_* check
         return True
     
     #except ValueError as e:

@@ -231,8 +231,16 @@ def nfo_loop_service(stopEvent) -> bool:
     whole_jf_json_dump = None
     whole_jf_json_dump_s = None
     
-    kodiDBRegistry.saveNfoBatches(batchId)
-    save_jfsqdate_to_file(nowdate)
+    if nbofepisode + nbofmovie + nboftvshow == 0:
+        kodiDBRegistry.remove_nfo_batch(batchId)
+        return False
+        
+
+    # else
+    save_jfsqdate_to_file(nowdate) # write only if changes to avoid multiple writes
+    kodiDBRegistry.commitNfoBatchAndSave(batchId) #save only if new nfos were generated
+    logger.info(f"   NFO-GEN| Batch #{batchId} COMPLETED")
+    
     return True
 
 def read_jfsqdate_from_file():

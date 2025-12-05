@@ -55,13 +55,26 @@ class kodiDBRegistry:
         return True
     
     @classmethod
-    def saveNfoBatches(cls, batch_uid):
-
+    def remove_nfo_batch(cls, batch_uid):
         cls._loadNfoBatches()
+        if batch_uid in cls._nfoBatchesData:
+            del cls._nfoBatchesData[batch_uid]
+            return True
+        return False
+
+    @classmethod
+    def commitNfoBatchAndSave(cls, batch_uid):
+
+        cls._loadNfoBatches() #redondant
         if batch_uid not in cls._nfoBatchesData:
             return False
 
         cls._nfoBatchesData[batch_uid]["done"] = True
+        cls.SaveNfoBatches()
+
+    @classmethod
+    def SaveNfoBatches(cls):
+        cls._loadNfoBatches() #redondant
         cls._nfoBatchesPath.parent.mkdir(parents=True, exist_ok=True)
         cls._nfoBatchesPath.write_text(json.dumps(cls._nfoBatchesData, indent=2, ensure_ascii=False))
 
@@ -82,6 +95,8 @@ class kodiDBRegistry:
                 cls._dbs[dct.get("dbname")] = {
                     "toScan": asyncio.Event(),
                     "toNfoRefresh": asyncio.Event(),
+                    "last_max_lastplayed": "",
+                    "last_max_fileid": 0
                 }
 
         else:
@@ -169,6 +184,8 @@ class kodiDBRegistry:
         cls._dbs[dbname] = {
             "toScan": asyncio.Event(),
             "toNfoRefresh": asyncio.Event(),
+            "last_max_lastplayed": "",
+            "last_max_fileid": 0
         }
 
         cls._save()
