@@ -359,9 +359,9 @@ async def startup_event():
     asyncio.create_task(JobManager.run_all())
     await asyncio.sleep(0)
     JobManager.trigger("ssdpBroadcast", "🔁 5s loop in thread, silent") #5s is handled in the job itself not in the jobmanager
-    JobManager.trigger("rdProgressLoop", "wf-0") #ticker handled by jobmanager periodic also set the job not to print the start message each time
-    JobManager.trigger("nfoGenJob", "wf-0", ctx={"wf_id": "wf-0"})
-    JobManager.trigger("remoteScan", "wf-0")
+    JobManager.trigger("rdProgressLoop", "wf0") #ticker handled by jobmanager periodic also set the job not to print the start message each time
+    JobManager.trigger("nfoGenJob", "wf0", ctx={"wfid": "wf0"})
+    JobManager.trigger("remoteScan", "wf0")
 
 
 # === Stopping hook ===
@@ -382,43 +382,42 @@ def remoteScanWrapper(ctx, stop):
     jg_services.remoteScan(stop)
 
 def trigger_rd_progress(ctx, stop):
-    if jg_services.rd_progress() == "PLEASE_SCAN_TODO": # or ctx["wf_id"] == "wf-1"  #TODO remove 1==1
-        wf_id = JobManager.get_new_wfid()
-        JobManager.trigger("jgScanJob", wf_id, ctx={"wf_id": wf_id, "later": False}) # the first job of the WF marks the wf_id
+    if jg_services.rd_progress() == "PLEASE_SCAN_TODO": # or ctx["wfid"] == "wf1"  #TODO remove 1==1
+        wfid = JobManager.get_new_wfid()
+        JobManager.trigger("jgScanJob", wfid, ctx={"wfid": wfid, "later": False}) # the first job of the WF marks the wfid
 
     #else: #TODO temp toremove
-    #    JobManager.trigger("kodiScan", ctx["wf_id"])
+    #    JobManager.trigger("kodiScan", ctx["wfid"])
 
 
 def multiScanWrapper(ctx, stop):
     # run the job and take total
     nbitems = multiScan(stop)
-    if nbitems == 0 and ctx["wf_id"] != "wf-1":
+    if nbitems == 0 and ctx["wfid"] != "wf1":
         logger.info("JOBMANAGER| No items to scan.")
         return
         
     ctx["later"] = True if nbitems > INCR_KODI_REFR_MAX else False
         
-    JobManager.trigger("jfScan", ctx["wf_id"])
-    #JobManager.trigger("plexScan", ctx["wf_id"]) 
+    JobManager.trigger("jfScan", ctx["wfid"])
+    #JobManager.trigger("plexScan", ctx["wfid"]) 
     if not ctx["later"]:
-        JobManager.trigger("kodiScan", ctx["wf_id"])
+        JobManager.trigger("kodiScan", ctx["wfid"])
 
 def lib_refresh_allWrapper(ctx, stop):
     jfapi.lib_refresh_all(stop)
-    JobManager.trigger("nfoGenJob", ctx["wf_id"])
+    JobManager.trigger("nfoGenJob", ctx["wfid"])
 
 def nfo_generatorWrapper(ctx, stop):
-    logger.info(f"wf id is: {ctx.get('wf-id')}")
     willNfoRefresh = False
-    if nfo_generator.nfo_loop_service(stop) or ctx.get("wf-id", "") == "wf-1" or ctx.get("wf-id", "") == "wf-0":
+    if nfo_generator.nfo_loop_service(stop) or ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "wf0":
         willNfoRefresh = True
         
 
 
     #only called if ctx has later (launched from a scan job) ctx is always a dict here
     if ctx.get("later", False):
-        JobManager.trigger("kodiScan", ctx["wf_id"])
+        JobManager.trigger("kodiScan", ctx["wfid"])
 
     time.sleep(0.5)
     if willNfoRefresh:

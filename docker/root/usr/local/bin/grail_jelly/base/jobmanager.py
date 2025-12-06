@@ -16,13 +16,13 @@ class JobManager:
     stop_flag = threading.Event()
     wfidincr = 0
 
-    # Nouveau : contexte partagé par wf_id
+    # Nouveau : contexte partagé par wfid
     contexts: dict[str, dict] = {}
 
     @staticmethod
     def get_new_wfid():
         JobManager.wfidincr += 1
-        return f"wf-{JobManager.wfidincr}"
+        return f"wf{JobManager.wfidincr}"
 
     # === Enregistrement ===
     @staticmethod
@@ -45,29 +45,29 @@ class JobManager:
             "coro": coro,
             "is_sync": is_sync,
             "interval": interval,
-            "event": asyncio.Queue(maxsize=1),     # remplace asyncio.Event pour transporter wf_id
+            "event": asyncio.Queue(maxsize=1),     # remplace asyncio.Event pour transporter wfid
             "lock": JobManager.jobs["jfScan"]["lock"] if name == "nfoGenJob" else asyncio.Lock(),       # self-lock uniquement
         }
         JobManager.job_order.append(name)
 
     # === Déclenchement ===
     @staticmethod
-    def trigger(name: str, wf_id: str, ctx: Optional[dict] = None):
-        """Déclenche un job pour un workflow donné (wf_id)."""
+    def trigger(name: str, wfid: str, ctx: Optional[dict] = None):
+        """Déclenche un job pour un workflow donné (wfid)."""
         if name not in JobManager.jobs:
             logger.info(f"JOBMANAGER| Job {name} disabled due to configuration")
             return
         # créer ou récupérer le contexte partagé
-        if wf_id not in JobManager.contexts:
-            JobManager.contexts[wf_id] = ctx or {"wf_id": wf_id}
+        if wfid not in JobManager.contexts:
+            JobManager.contexts[wfid] = ctx or {"wfid": wfid}
         loop = JobManager.main_loop
         if loop is None:
             raise RuntimeError("JobManager main_loop not initialized")
         loop.call_soon_threadsafe(
             lambda job=JobManager.jobs[name]: (
-                job["event"].put_nowait(wf_id)
+                job["event"].put_nowait(wfid)
                 if not job["event"].full()
-                else logger.info(f"JOBMANAGER | event [{name}/{wf_id}] redondant, ignored")
+                else logger.info(f"JOBMANAGER | event [{name}/{wfid}] redondant, ignored")
             )
         )
 
@@ -84,15 +84,15 @@ class JobManager:
 
         while JobManager.running:
             try:
-                # attente d’un wf_id ou d’un tick périodique
+                # attente d’un wfid ou d’un tick périodique
                 if interval:
                     try:
-                        wf_id = await asyncio.wait_for(queue.get(), timeout=interval)
+                        wfid = await asyncio.wait_for(queue.get(), timeout=interval)
                     except asyncio.TimeoutError:
                         pass
-                        #wf_id = None
+                        #wfid = None
                 else:
-                    wf_id = await queue.get()
+                    wfid = await queue.get()
             except asyncio.CancelledError:
                 break
 
@@ -101,10 +101,10 @@ class JobManager:
                 return
 
             async with lock:
-                ctx = JobManager.contexts.get(wf_id, {}) if wf_id else {}
-                # periodic must be in the wf_id string for jobs using integrated ticker, third party (like SSDP) can put anything
+                ctx = JobManager.contexts.get(wfid, {}) if wfid else {}
+                # periodic must be in the wfid string for jobs using integrated ticker, third party (like SSDP) can put anything
 
-                log_info = f"{wf_id}|"
+                log_info = f"{wfid}|"
 
                 if is_sync:
                     log_info += " thread|"
