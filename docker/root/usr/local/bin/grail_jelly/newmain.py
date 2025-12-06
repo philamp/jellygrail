@@ -30,7 +30,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, append_batch_to_kodi_instance, new_merge_kodi_versions
+from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, new_send_full_nfo_to_kodi, full_nfo_refresh_call, append_batch_to_kodi_instance, new_merge_kodi_versions
 #from jg_services import premium_timeleft, test
 import jg_services
 
@@ -143,15 +143,17 @@ async def create_or_update_kodi_instance(request):
 async def gimmeNfos(request):
     kdb = request.query_params.get("db")
     kid = request.query_params.get("uid")
+    full = True if request.query_params.get("full") == "y" else False
 
     if not get_kodidb_entry(kdb):
         return JSONResponse({
             "status": 404
         }, status_code=404)
     
+    func = new_send_full_nfo_to_kodi if full else new_send_nfo_to_kodi
 
     # call new_send_nfo_batch in a thread
-    result = await asyncio.get_running_loop().run_in_executor(None, new_send_nfo_to_kodi, kid, kdb)
+    result = await asyncio.get_running_loop().run_in_executor(None, func, kid, kdb)
 
     if result == {}:
         return JSONResponse({
@@ -185,6 +187,16 @@ async def ask_kodi_refresh(request):
         "status": 201
     }, status_code=201)
 
+async def askFullNfoRefresh(request):
+    kid = request.query_params.get("uid")
+
+    full_nfo_refresh_call(kid)
+
+    return JSONResponse({
+        "status": 201
+    }, status_code=201)
+    
+
 async def rd_test_api(request):
     result = await asyncio.get_running_loop().run_in_executor(None, jg_services.test)
     return HTMLResponse(result)
@@ -204,12 +216,14 @@ async def should_refresh(request):
         return JSONResponse({
             "nforefresh": False,
             "scan": False,
+            "fullNfoRefresh": False,
             "broken": True
         }, status_code=404)
 
     tasks = {
         "toNfoRefresh": asyncio.create_task(dbentry["toNfoRefresh"].wait()),
-        "toScan": asyncio.create_task(dbentry["toScan"].wait())
+        "toScan": asyncio.create_task(dbentry["toScan"].wait()),
+        "toFullNfoRefresh": asyncio.create_task(dbentry["toFullNfoRefresh"].wait())
     }
 
     # first completed task waiter
@@ -227,6 +241,7 @@ async def should_refresh(request):
         return JSONResponse({
             "nforefresh": False,
             "scan": False,
+            "fullNfoRefresh": False,
             "broken": False
         }, status_code=200)
 
@@ -247,6 +262,7 @@ async def should_refresh(request):
             return JSONResponse({
                 "nforefresh": name == "toNfoRefresh",
                 "scan": name == "toScan",
+                "fullNfoRefresh": name == "toFullNfoRefresh",
                 "broken": False
             }, status_code=201)
 
@@ -254,6 +270,7 @@ async def should_refresh(request):
     return JSONResponse({
         "nforefresh": False,
         "scan": False,
+        "fullNfoRefresh": False,
         "broken": True
     }, status_code=503)
 
@@ -310,6 +327,7 @@ api_routes = tokenize(
     Route("/set_db_for_this_kodi", create_or_update_kodi_instance),
     Route("/what_should_do", should_refresh),
     Route("/gimme_nfos", gimmeNfos),
+    Route("/trigger_full_nfo_refresh", askFullNfoRefresh),
     Route("/set_consumed", setConsumed),
     Route("/special_ops", doSqlStuffRoute)
 )
@@ -356,13 +374,16 @@ async def startup_event():
         jfconfig()
             
     # START ALL ROOT TRIGGERED/PERIODIC JOBS
+    await asyncio.sleep(0)
     asyncio.create_task(JobManager.run_all())
     await asyncio.sleep(0)
-    JobManager.trigger("ssdpBroadcast", "🔁 5s loop in thread, silent") #5s is handled in the job itself not in the jobmanager
-    JobManager.trigger("rdProgressLoop", "wf0") #ticker handled by jobmanager periodic also set the job not to print the start message each time
-    JobManager.trigger("nfoGenJob", "wf0", ctx={"wfid": "wf0"})
-    JobManager.trigger("remoteScan", "wf0")
-
+    JobManager.trigger("ssdpBroadcast", "🔁 5s loop in thread") #5s is handled in the job itself not in the jobmanager
+    
+    #----BELOW DEPRECATED
+    #JobManager.trigger("rdProgressLoop", "null") #ticker handled by jobmanager periodic also set the job not to print the start message each time
+    #JobManager.trigger("nfoGenJob", "null", ctx={"wfid": "null"})
+    #JobManager.trigger("remoteScan", "null")
+    #-----
 
 # === Stopping hook ===
 @app.on_event("shutdown")
@@ -396,7 +417,10 @@ def multiScanWrapper(ctx, stop):
     if nbitems == 0 and ctx["wfid"] != "wf1":
         logger.info("JOBMANAGER| No items to scan.")
         return
-        
+    
+    if ctx["wfid"] == "wf1":
+        logger.info("JOBMANAGER| First workflow triggers the scan")
+
     ctx["later"] = True if nbitems > INCR_KODI_REFR_MAX else False
         
     JobManager.trigger("jfScan", ctx["wfid"])
@@ -410,9 +434,10 @@ def lib_refresh_allWrapper(ctx, stop):
 
 def nfo_generatorWrapper(ctx, stop):
     willNfoRefresh = False
-    if nfo_generator.nfo_loop_service(stop) or ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "wf0":
+    if nfo_generator.nfo_loop_service(stop) or ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "twf-nfoGenJob-1":
         willNfoRefresh = True
-        
+
+        logger.info("JOBMANAGER| First workflow or scheduled wf triggers the nfoGen")
 
 
     #only called if ctx has later (launched from a scan job) ctx is always a dict here
@@ -439,7 +464,7 @@ if __name__ == "__main__":
     # ---------------periodic jobs launched once in startup event
     # !!!!!!!!!!!!!!!!!! check that each one supports stop event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=20)
+    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=11)
     JobManager.register_job("ssdpBroadcast", SSDPTask, is_sync=False) #ASYNC !
 
 

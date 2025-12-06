@@ -95,6 +95,7 @@ class kodiDBRegistry:
                 cls._dbs[dct.get("dbname")] = {
                     "toScan": asyncio.Event(),
                     "toNfoRefresh": asyncio.Event(),
+                    "toFullNfoRefresh": asyncio.Event(),
                     "last_max_lastplayed": "",
                     "last_max_fileid": 0
                 }
@@ -184,6 +185,7 @@ class kodiDBRegistry:
         cls._dbs[dbname] = {
             "toScan": asyncio.Event(),
             "toNfoRefresh": asyncio.Event(),
+            "toFullNfoRefresh": asyncio.Event(),
             "last_max_lastplayed": "",
             "last_max_fileid": 0
         }

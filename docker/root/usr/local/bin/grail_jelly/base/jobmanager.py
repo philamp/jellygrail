@@ -43,6 +43,7 @@ class JobManager:
         JobManager.jobs[name] = {
             "name": name,
             "coro": coro,
+            "iter": 0,
             "is_sync": is_sync,
             "interval": interval,
             "event": asyncio.Queue(maxsize=1),     # remplace asyncio.Event pour transporter wfid
@@ -74,7 +75,7 @@ class JobManager:
     # carefull: when putting a wf-id in the trigger
     # === Boucle d’exécution des jobs ===
     @staticmethod
-    async def _run_job(job: dict):
+    async def _run_job(job: dict, wfid = None):
         name = job["name"]
         queue = job["event"]
         lock = job["lock"]
@@ -83,14 +84,20 @@ class JobManager:
         interval = job["interval"]
 
         while JobManager.running:
+            tctx = False
             try:
                 # attente d’un wfid ou d’un tick périodique
                 if interval:
+                    
                     try:
                         wfid = await asyncio.wait_for(queue.get(), timeout=interval)
                     except asyncio.TimeoutError:
+                        JobManager.jobs[name]['iter'] = JobManager.jobs[name]['iter']+1
+                        tctx = True
+                        
+                        #wfid = f"twf-{name}-{JobManager.jobs[name]['iter']}"
+                        #ctx = {"wfid": f"{wfid}"}
                         pass
-                        #wfid = None
                 else:
                     wfid = await queue.get()
             except asyncio.CancelledError:
@@ -101,10 +108,15 @@ class JobManager:
                 return
 
             async with lock:
-                ctx = JobManager.contexts.get(wfid, {}) if wfid else {}
-                # periodic must be in the wfid string for jobs using integrated ticker, third party (like SSDP) can put anything
+                
+                if not wfid or tctx:
+                    wfid = f"twf-{name}-{JobManager.jobs[name]['iter']}"
+                    log_info = f"twf{JobManager.jobs[name]['iter']}|"
+                else:
+                    log_info = f"{wfid}|"
 
-                log_info = f"{wfid}|"
+                ctx = JobManager.contexts.get(wfid, {"wfid": wfid})
+                # overwrite or crerate a onthefly context for ticking jobs 
 
                 if is_sync:
                     log_info += " thread|"
@@ -112,7 +124,9 @@ class JobManager:
                     log_info += " async|"
 
                 if interval:
-                    log_info += f" 🔁{interval}s| 30m silent"
+                    log_info += f" 🔁{interval}s"
+
+                
                 
                 logger.info(f"JOBMANAGER| ▶ {name}| {log_info}")
                 try:

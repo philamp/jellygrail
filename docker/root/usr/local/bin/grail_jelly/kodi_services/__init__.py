@@ -29,6 +29,12 @@ is_cleaning = False
 refresh_is_safe = False
 
 
+def full_nfo_refresh_call(kid):
+
+    kdb = kodiDBRegistry.get_all_instances_pointer().get(kid, None).get("dbname")
+
+    kodiDBRegistry.get_all_dbs_pointer().get(kdb, {}).get("toFullNfoRefresh").set()
+
 
 # update or insert
 def set_kodi_instance(puid, pdbname, pkodi_ip, pkodi_version):
@@ -168,7 +174,7 @@ def reset_kodi_instances_refresh(service="toScan"):
     # the issue is scan masks the need to push nfo
     # so the solution would be to consume any DONE unconsumed batch before scan
     # this would only go through db existing items
-    # unexisting db items can be set as consumed as they will be consumed by scan
+    # unexisting db items can be set as consumed as they will be consumed naturally by scan
     if service=="toScan":
         for _, dbdict in kodiDBRegistry.get_all_dbs_pointer().items():
             dbdict["toNfoRefresh"].set()
@@ -498,7 +504,83 @@ def check_any_notjfsynchronised_kodi_media(dbo):
         pass
 
 
+def new_send_full_nfo_to_kodi(kid, kdb):
 
+    already_sent_ids = []
+
+    payload = {}
+
+    batchid = "FULL"
+
+
+    try:
+        dbo = sqlKodiDB(kdb)
+
+
+        payload[batchid] = {
+            "Movie": [],
+            "TVShow": [],
+            "Episode": []
+        }
+
+
+        for root, _, files in os.walk(JFSQ_STORED_NFO):
+            for filename in files:
+                tofetch = os.path.basename(root)
+                if filename.lower().endswith(('.nfo.jf',)):
+                    # very small chance that a movie or episode contains those strings but theorically we should test substring with endswith()
+                    if "video_ts.nfo.jf" in filename.lower() or "index.nfo.jf" in filename.lower(): 
+                        tofetch = os.path.basename(os.path.dirname(root))
+                        tabletofetch = "movie_view"
+                        idtofetch = "idMovie"
+                        reftype = "Movie"
+                        #typeid = "movieid"
+                    elif "tvshow.nfo.jf" in filename.lower():
+                        tabletofetch = "tvshow_view"
+                        idtofetch = "idShow"
+                        reftype = "TVShow"
+                        #typeid = "tvshowid"
+                    elif "/shows" == root[JFSQ_STORED_NFO_SHIFT:JFSQ_STORED_NFO_SHIFT+6]:
+                        tabletofetch = "episode_view"
+                        idtofetch = "idEpisode"
+                        reftype = "Episode"
+                        #typeid = "episodeid"
+                        # put full path without like ?
+                    else:
+                        idtofetch = "idMovie"
+                        tabletofetch = "movie_view"
+                        reftype = "Movie"
+                        #typeid = "movieid"
+
+                    tofetch = urllib.parse.quote(tofetch, safe=SAFE)
+                    tofetch = tofetch.replace("%", r"\%")
+
+                    logger.info(f". Kodi mysqldb fetching : {root}/{filename} as {tofetch} IN TABLE {tabletofetch}")
+
+                    for (result, uidtype) in dbo.fetch_media_id(tofetch, tabletofetch, idtofetch):
+
+                        if result not in already_sent_ids:
+                            already_sent_ids.append(result)
+                            payload[batchid][reftype].append(result)
+
+        if already_sent_ids:
+            return payload
+        else:
+            return {}
+
+
+    except ValueError as e:
+        return {}
+
+    finally:
+        if dbo is not None:
+            dbo.close()
+        # todo done later
+        #kodiDBRegistry.get_all_instances_pointer()[kid]["consumedBatches"].append(batchid)
+        #kodiDBRegistry.save()
+
+
+# DONT CHANGE THIS ONE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 def new_send_nfo_to_kodi(kid, kdb):
 
     if not (batchesToDo := [key for key,_ in kodiDBRegistry.get_all_batches_pointer().items() if key not in kodiDBRegistry.get_all_instances_pointer().get(kid, {}).get("consumedBatches", [])]):

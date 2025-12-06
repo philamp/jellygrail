@@ -670,7 +670,7 @@ def scanThread(pnt, present_folders, stopEvent):
         for f in os.scandir(src1):
             if f.path not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
-                    logger.info(f"          |🌼 {f.name}")
+                    logger.info(f"          | *new* {f.name}")
                     browse = True
                     endpoint2browse = src1
                     rar_item = None
@@ -712,7 +712,7 @@ def scanThread(pnt, present_folders, stopEvent):
                 
                 elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
 
-                    logger.info(f"          |🌼 (folder-orphan) {f.name}")
+                    logger.info(f"          | *new* (folder-orphan) {f.name}")
 
                     dvprofile = None
                     mediatype = None
