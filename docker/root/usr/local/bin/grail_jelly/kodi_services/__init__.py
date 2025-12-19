@@ -28,6 +28,56 @@ is_scanning = False
 is_cleaning = False
 refresh_is_safe = False
 
+def getTableAndColumnFromMediatype(ptype):
+    tablekeys = {
+        "movie": ("movie_view", "idMovie"),
+        "tvshow": ("tvshow_view", "idShow"),
+        "episode": ("episode_view", "idEpisode"),
+        "season": ("season_view", "idShow")
+    }
+
+    return tablekeys.get(ptype, (None, None))
+
+def getKodiInfo(puid, pmediatype, pmediaid):
+
+    if not kodiDBRegistry.get_all_instances_pointer().get(puid, None):
+        return {}
+
+    kdb = kodiDBRegistry.get_all_instances_pointer().get(puid, None).get("dbname")
+
+
+    returned_data = []
+
+    try:
+        db = sqlKodiDB(kdb)
+
+        table, idcol = getTableAndColumnFromMediatype(pmediatype)
+
+        if pmediatype == "movie":
+            for (strMovieTitle, strFileName, strPath, uniqueid_value, uniqueid_type) in db.fetch_media_str_with_id(pmediaid, table, idcol):
+                returned_data.append({
+                    "mtype": pmediatype,
+                    "kdbId": pmediaid,
+                    "movieTitle": strMovieTitle,
+                    "strFileName": strFileName,
+                    "virtual_path": urllib.parse.unquote(strPath).split("/virtual", 1)[1] + urllib.parse.unquote(strFileName),
+                    "uniqueid_value": uniqueid_value,
+                    "uniqueid_type": uniqueid_type
+                })
+
+            
+        else:
+            return {}
+
+        return returned_data
+
+    except ValueError as e:
+        return {}
+
+    finally:
+        if db is not None:
+            db.close()
+
 
 def full_nfo_refresh_call(kid):
 
@@ -489,7 +539,7 @@ def refresh_kodi():
     ws.close()
     return True
 
-
+'''
 def check_any_notjfsynchronised_kodi_media(dbo):
 
     tablekeys = {
@@ -502,6 +552,7 @@ def check_any_notjfsynchronised_kodi_media(dbo):
 
     for table, idtof in tablekeys:
         pass
+'''
 
 
 def new_send_full_nfo_to_kodi(kid, kdb):

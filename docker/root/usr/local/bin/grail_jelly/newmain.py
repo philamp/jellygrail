@@ -1,4 +1,5 @@
 ### MAIN ONLY
+from ast import arg
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
 from base import logger_setup
@@ -26,11 +27,12 @@ import threading
 import jg_services
 import nfo_generator
 import jfapi
+from jgscan.jgsql import jellyDB
 from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, new_send_full_nfo_to_kodi, full_nfo_refresh_call, append_batch_to_kodi_instance, new_merge_kodi_versions
+from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, new_send_full_nfo_to_kodi, full_nfo_refresh_call, append_batch_to_kodi_instance, new_merge_kodi_versions, getKodiInfo
 #from jg_services import premium_timeleft, test
 import jg_services
 
@@ -208,6 +210,41 @@ async def rdIncrRoute(request):
     #else
     return JSONResponse(result, status_code=200)
 
+async def getContextMenu(request):
+    mediaid = int(request.path_params["mediaid"])
+    mediatype = request.path_params["mediatype"]
+    uid = request.query_params.get("uid")
+
+
+
+    if not (result := await asyncio.get_running_loop().run_in_executor(None, getKodiInfo, uid, mediaid, mediatype)):
+        return JSONResponse({"status": 404}, status_code=404)
+    #else
+    # RETURN a metadata menu used in kodi context menu with all actions provided:
+    # - keep locally with url /keep_local?token=XXX&uid=YYY&mediatype=ZZZ&mediaid=NNN
+    # - remove locally with url /remove_local?token=XXX&uid=YYY&mediatype=ZZZ&mediaid=NNN
+
+    # find the actual_path in sqlite result
+    jgDB = jellyDB()
+
+    for item in result:
+        vpath = item.get("virtual_path", "")
+        for (actual_path,) in jgDB.get_path_actual(vpath):
+            if "remote" not in 
+    
+    jgDB.sqclose()
+    return JSONResponse({"status": 404}, status_code=404)
+    # return a partial contextual menu for the item provided
+    # find data in all mediatype cases
+
+    # construct menu actions based on actual_path
+
+
+    # movie / tvshow / season / episode
+
+
+
+
 async def should_refresh(request):
     # long polling call
     db = request.query_params.get("db")
@@ -329,6 +366,7 @@ api_routes = tokenize(
     Route("/gimme_nfos", gimmeNfos),
     Route("/trigger_full_nfo_refresh", askFullNfoRefresh),
     Route("/set_consumed", setConsumed),
+    Route("/get_cmenu_for/{mediatype:str}/{mediaid:int}", getContextMenu),
     Route("/special_ops", doSqlStuffRoute)
 )
 

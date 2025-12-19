@@ -259,7 +259,7 @@ class sqlKodiDB:
     
     def fetch_media_str_with_id(self, idtofetch, tabletofetch, columntofetch):
         with self as cursor:
-            cursor.execute(f"SELECT ttf.strPath FROM {tabletofetch}_view ttf WHERE {columntofetch} = %d", (idtofetch,))
+            cursor.execute(f"SELECT ttf.c00, ttf.strFileName, ttf.strPath, ttf.uniqueid_value, ttf.uniqueid_type FROM {tabletofetch}_view ttf WHERE {columntofetch} = %d", (idtofetch,))
             return cursor.fetchall()
 
     def get_undefined_collection_arts(self):

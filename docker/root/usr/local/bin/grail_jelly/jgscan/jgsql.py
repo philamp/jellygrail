@@ -124,6 +124,11 @@ class jellyDB:
         cursor = self.conn.cursor()
         cursor.execute("SELECT ffprobe FROM main_mapping WHERE virtual_fullpath = depenc(?)", (path,))
         return cursor.fetchall()
+    
+    def get_path_actual(self, path):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT actual_fullpath FROM main_mapping WHERE virtual_fullpath = depenc(?)", (path,))
+        return cursor.fetchall()
 
     def get_path_props_woext(self, path):
         cursor = self.conn.cursor()
