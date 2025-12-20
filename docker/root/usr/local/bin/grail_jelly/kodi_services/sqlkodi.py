@@ -257,6 +257,30 @@ class sqlKodiDB:
             cursor.execute(f"SELECT ttf.{idtofetch}, MAX(IF(uid.type = 'jellygrail', 'jellygrail', 'imdb-tmdb')) as type FROM {tabletofetch} ttf LEFT JOIN uniqueid uid on uid.media_id = ttf.{idtofetch} WHERE strPath like %s GROUP BY ttf.{idtofetch}", (like_param,))
             return cursor.fetchall()
     
+
+    def fetch_same_uid_movies(self, idtofetch):
+        with self as cursor:
+            cursor.execute(f"""SELECT uid.value as tmdbid
+            , lf.oid
+            , lf.opath
+            , lf.ofilename
+            , lf.otitle
+            FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie
+            LEFT JOIN (
+            SELECT uid.value as tmdbid
+            , mvbo.idMovie as oid
+            , mvbo.strPath as opath
+            , mvbo.strFileName as ofilename
+            , mvbo.c00 as otitle
+            FROM movie_view mvbo left join uniqueid uid on uid.media_id = mvbo.idMovie
+            ) lf on lf.tmdbid = uid.value
+            where mvb.idMovie = %d
+            and uid.type = 'tmdb'"""
+            , (idtofetch,))
+
+            return cursor.fetchall()
+    
+    # maybe not used
     def fetch_media_str_with_id(self, idtofetch, tabletofetch, columntofetch):
         with self as cursor:
             cursor.execute(f"SELECT ttf.c00, ttf.strFileName, ttf.strPath, ttf.uniqueid_value, ttf.uniqueid_type FROM {tabletofetch}_view ttf WHERE {columntofetch} = %d", (idtofetch,))

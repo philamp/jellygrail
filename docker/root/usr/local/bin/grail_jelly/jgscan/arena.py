@@ -154,7 +154,7 @@ def parse_ffprobe(stdout, filepathnotice):
                     elif stream.get('codec_type') == "audio":
                         if alang := (stream.get('tags') or {}).get('language', '').lower():
                             if alang in USED_LANGS: #toimprove : pur here the prefered languages of the user +eng
-                                alang_arr.append(f"{alang[:3].capitalize()}")
+                                alang_arr.append(f"{normalize_to_iso639_2b(alang[:3]).capitalize()}")
                             #if first_audio == "":
                                 #first_audio = f" {{{alang[:3].capitalize()}}}"
 
@@ -176,7 +176,7 @@ def parse_ffprobe(stdout, filepathnotice):
                     elif stream.get('codec_type') == "subtitle":
                         if slang := (stream.get('tags') or {}).get('language', '').lower():
                             if slang in USED_LANGS: 
-                                slang_arr.append(f"{slang[:3].capitalize()}")
+                                slang_arr.append(f"{normalize_to_iso639_2b(slang[:3]).capitalize()}")
     
     
     

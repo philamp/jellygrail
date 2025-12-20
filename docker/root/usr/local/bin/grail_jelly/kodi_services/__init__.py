@@ -51,18 +51,17 @@ def getKodiInfo(puid, pmediatype, pmediaid):
     try:
         db = sqlKodiDB(kdb)
 
-        table, idcol = getTableAndColumnFromMediatype(pmediatype)
+        #table, idcol = getTableAndColumnFromMediatype(pmediatype)
 
         if pmediatype == "movie":
-            for (strMovieTitle, strFileName, strPath, uniqueid_value, uniqueid_type) in db.fetch_media_str_with_id(pmediaid, table, idcol):
+            for (tmdbid, oid, opath, ofilename, otitle) in db.fetch_same_uid_movies(pmediaid):
                 returned_data.append({
-                    "mtype": pmediatype,
-                    "kdbId": pmediaid,
-                    "movieTitle": strMovieTitle,
-                    "strFileName": strFileName,
-                    "virtual_path": urllib.parse.unquote(strPath).split("/virtual", 1)[1] + urllib.parse.unquote(strFileName),
-                    "uniqueid_value": uniqueid_value,
-                    "uniqueid_type": uniqueid_type
+                    "mediaType": pmediatype,
+                    "mediaId": oid,
+                    "movieTitle": otitle,
+                    "virtualFilename": ofilename,
+                    "virtualPath": urllib.parse.unquote(opath).split("/virtual", 1)[1] + urllib.parse.unquote(ofilename),
+                    "tmdbId": tmdbid,
                 })
 
             

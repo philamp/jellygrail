@@ -2,6 +2,33 @@ import os
 from base.token import SSDPToken
 import socket
 
+ISO_639_2T_TO_2B = {
+    "bod": "tib",  # Tibetan
+    "ces": "cze",  # Czech
+    "cym": "wel",  # Welsh
+    "deu": "ger",  # German
+    "ell": "gre",  # Greek (Modern)
+    "eus": "baq",  # Basque
+    "fas": "per",  # Persian
+    "fra": "fre",  # French
+    "hye": "arm",  # Armenian
+    "isl": "ice",  # Icelandic
+    "kat": "geo",  # Georgian
+    "mkd": "mac",  # Macedonian
+    "mri": "mao",  # Maori
+    "msa": "may",  # Malay
+    "mya": "bur",  # Burmese
+    "nld": "dut",  # Dutch
+    "ron": "rum",  # Romanian
+    "slk": "slo",  # Slovak
+    "sqi": "alb",  # Albanian
+    "zho": "chi",  # Chinese
+}
+
+def normalize_to_iso639_2b(code: str) -> str:
+    c = (code or "").strip().lower()
+    return ISO_639_2T_TO_2B.get(c, c)
+
 def guess_lan_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
@@ -197,6 +224,8 @@ SUB_LANG_EQUIVALENTS = {
     'cym': 'wel',
 }
 
+
+
 # remove iso and vob and check
 
 RDUMP_STORE_INTERVAL = 3600*4
@@ -247,13 +276,25 @@ INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
 
 WEBDAV_HOST_PORT = LAN_IP + ":" + str(WEBDAV_INTERNAL_PORT)
 
-codes = set(INTERESTED_LANGUAGES.split())
-USED_LANGS = set(codes) # the result
-USED_LANGS_JF = USED_LANGS.copy()
+# plain list from spaced string, the first one is the preferred one for context menu in kodi
+codes = list(dict.fromkeys(INTERESTED_LANGUAGES.split()))
+
+# list normalized to iso639-2b
+USED_LANGS_JF = [normalize_to_iso639_2b(tok) for tok in codes]
+
+# list widened with equivalents, but add them only once
+USED_LANGS = codes.copy()
 for code in codes:
     if code in SUB_LANG_EQUIVALENTS:
-        USED_LANGS.add(SUB_LANG_EQUIVALENTS[code])
-USED_LANGS.add("und")
+        eq = SUB_LANG_EQUIVALENTS[code]
+        if eq not in USED_LANGS:
+            USED_LANGS.append(eq)
+
+# always add und, but only once
+if "und" not in USED_LANGS:
+    USED_LANGS.append("und")
+
+
 
 PROXY_URL = os.getenv('PROXY_URL') if (os.getenv('PROXY_URL') != "https://hostname-or-ip:1234" and os.getenv('PROXY_URL') != "") else "0"
 

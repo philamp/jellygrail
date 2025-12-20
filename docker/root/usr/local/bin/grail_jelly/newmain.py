@@ -21,6 +21,7 @@ from starlette.routing import Route, Router
 from starlette.middleware.base import BaseHTTPMiddleware
 import time
 import threading
+import re
 
 
 # JG MODULES
@@ -215,7 +216,10 @@ async def getContextMenu(request):
     mediatype = request.path_params["mediatype"]
     uid = request.query_params.get("uid")
 
+    local_prefLangPresent = False
+    remote_prefLangPresent = False
 
+    ctMenu = {}
 
     if not (result := await asyncio.get_running_loop().run_in_executor(None, getKodiInfo, uid, mediaid, mediatype)):
         return JSONResponse({"status": 404}, status_code=404)
@@ -228,17 +232,38 @@ async def getContextMenu(request):
     jgDB = jellyDB()
 
     for item in result:
-        vpath = item.get("virtual_path", "")
+        vpath = item.get("virtualPath", "")
+        vfn = item.get("virtualFilename", "")
         for (actual_path,) in jgDB.get_path_actual(vpath):
-            if "remote" not in 
-    
+            if "remote" not in actual_path.split("/", 2)[2]:
+                # construct menu actions based on actual_path
+                
+                # if find INTERESTED_LANGUAGES is present str values in [] and {} in the filename:
+                # use regexp to extract them from filename
+
+                if USED_LANGS_JF[0] in re.findall(r'[A-Z][a-z]{2}', vfn):
+                    local_prefLangPresent = True
+
+                    # be sure to compare Fre == Fra etc..
+
+            else:
+                if USED_LANGS_JF[0] in re.findall(r'[A-Z][a-z]{2}', vfn):
+                    remote_prefLangPresent = True
+
     jgDB.sqclose()
-    return JSONResponse({"status": 404}, status_code=404)
+    
     # return a partial contextual menu for the item provided
     # find data in all mediatype cases
 
     # construct menu actions based on actual_path
 
+
+    # add other media entries for generic actions
+
+    ctMenu['Full NFO refresh'] = f'/trigger_full_nfo_refresh'
+
+
+    return JSONResponse({"status": 404}, status_code=404)
 
     # movie / tvshow / season / episode
 

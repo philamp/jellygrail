@@ -197,10 +197,10 @@ def get_tech_xml_details(pathwoext):
             if stream.get('codec_type') == "subtitle":
                 if (tags := stream.get('tags')):
                     if (sub_l := tags.get('language')):
-                        if sub_l in INTERESTED_LANGUAGES:
-                            first_subs.append(sub_l)
+                        if sub_l in USED_LANGS:
+                            first_subs.append(normalize_to_iso639_2b(sub_l).capitalize())
                         else:
-                            last_subs.append(sub_l)
+                            last_subs.append(normalize_to_iso639_2b(sub_l).capitalize())
 
         # éviter doublons
         first_subs = list(set(first_subs))
