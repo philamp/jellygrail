@@ -28,6 +28,12 @@ is_scanning = False
 is_cleaning = False
 refresh_is_safe = False
 
+def extract_triplets(s: str):
+    out = []
+    for inner in re.findall(r'[\[{]([A-Za-z]+)[\]}]', s):
+        out.extend(re.findall(r'[A-Za-z]{3}', inner))  # prend chaque bloc de 3
+    return out
+
 def getTableAndColumnFromMediatype(ptype):
     tablekeys = {
         "movie": ("movie_view", "idMovie"),
@@ -59,19 +65,19 @@ def getKodiInfo(puid, pmediatype, pmediaid):
                     "mediaType": pmediatype,
                     "mediaId": oid,
                     "movieTitle": otitle,
-                    "virtualFilename": ofilename,
+                    "virtualFilename": urllib.parse.unquote(ofilename),
                     "virtualPath": urllib.parse.unquote(opath).split("/virtual", 1)[1] + urllib.parse.unquote(ofilename),
                     "tmdbId": tmdbid,
                 })
 
             
         else:
-            return {}
+            return []
 
         return returned_data
 
     except ValueError as e:
-        return {}
+        return []
 
     finally:
         if db is not None:
@@ -949,6 +955,9 @@ def new_merge_kodi_versions(kdb, kver):
                 idtokeep = None
                 strpathtokeep = None
                 imediatokeep = None
+                fallback_id = None
+                fallback_path = None
+
                 if idfiles and strpaths and idmedias:
                     # just looping through sthing of all arrays
                     for strfilename in strfilenames:
@@ -956,21 +965,32 @@ def new_merge_kodi_versions(kdb, kver):
                         match = re.search(r'-\s*(.*?)\s*JGx', decoded_filename)
                         if match:
                             extracted_text = match.group(1)
+
+                            Lmatches = extract_triplets(extracted_text)
+                            nLmatches = [m.lower() for m in Lmatches]
+
                             videoversiontuple.append((idfiles[i], extracted_text))
                             matchb = re.search(r'(\d+)Mbps', extracted_text)
                             if matchb:
                                 mbps_value = int(matchb.group(1))
                                 if mbps_value < currlowest:
+                                    fallback_id = idfiles[i]
+                                    fallback_path = strpaths[i]
                                     currlowest = mbps_value
-                                    idtokeep = idfiles[i]
-                                    strpathtokeep = strpaths[i]
+
+                                    if USED_LANGS_JF[0].lower() in nLmatches:
+                                        idtokeep = idfiles[i]
+                                        strpathtokeep = strpaths[i]
                         else:
                             videoversiontuple.append((idfiles[i], "Iso Edition"))
                         if imediatokeep == None and isdefaults[i] == 1:
                             imediatokeep = idmedias[i]
                         i += 1
                     # if did not find any way to find the lowest value, we keep the first ones, will be set to the kept media
-                    if idtokeep == None:
+                    if idtokeep == None and fallback_id != None:
+                        idtokeep = fallback_id
+                        strpathtokeep = fallback_path
+                    elif idtokeep == None:
                         idtokeep = idfiles[0]
                         strpathtokeep = strpaths[0]
                     if imediatokeep != None:

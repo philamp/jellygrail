@@ -33,7 +33,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, new_send_full_nfo_to_kodi, full_nfo_refresh_call, append_batch_to_kodi_instance, new_merge_kodi_versions, getKodiInfo
+from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, new_send_full_nfo_to_kodi, full_nfo_refresh_call, append_batch_to_kodi_instance, new_merge_kodi_versions, getKodiInfo, extract_triplets
 #from jg_services import premium_timeleft, test
 import jg_services
 
@@ -97,8 +97,6 @@ async def worker(name, interval, func, stop_event: asyncio.Event):
         for t in pending:
             t.cancel()
 '''
-
-
 
 
 
@@ -216,12 +214,15 @@ async def getContextMenu(request):
     mediatype = request.path_params["mediatype"]
     uid = request.query_params.get("uid")
 
-    local_prefLangPresent = False
-    remote_prefLangPresent = False
+    local_prefLangPresentQLevel = 0
+
+    candidateVPathUHD_Tuples = []
+    candidateVPath_Tuples = []
+
 
     ctMenu = {}
 
-    if not (result := await asyncio.get_running_loop().run_in_executor(None, getKodiInfo, uid, mediaid, mediatype)):
+    if not (result := await asyncio.get_running_loop().run_in_executor(None, getKodiInfo, uid, mediatype, mediaid)):
         return JSONResponse({"status": 404}, status_code=404)
     #else
     # RETURN a metadata menu used in kodi context menu with all actions provided:
@@ -234,21 +235,48 @@ async def getContextMenu(request):
     for item in result:
         vpath = item.get("virtualPath", "")
         vfn = item.get("virtualFilename", "")
+        prefLangHere = 0
         for (actual_path,) in jgDB.get_path_actual(vpath):
+
+
+            Lmatches = extract_triplets(vfn)
+            nLmatches = [m.lower() for m in Lmatches]
+
+            matchb = re.search(r'(\d+)Mbps', vfn)
+            
+            # LOCAL
             if "remote" not in actual_path.split("/", 2)[2]:
                 # construct menu actions based on actual_path
                 
                 # if find INTERESTED_LANGUAGES is present str values in [] and {} in the filename:
                 # use regexp to extract them from filename
 
-                if USED_LANGS_JF[0] in re.findall(r'[A-Z][a-z]{2}', vfn):
-                    local_prefLangPresent = True
+                if USED_LANGS_JF[0].lower() in nLmatches:
+                    local_prefLangPresentQLevel = 1
+                    if 'UHD' in vfn:
+                        local_prefLangPresentQLevel = 2
 
-                    # be sure to compare Fre == Fra etc..
 
+
+            # REMOTE
             else:
-                if USED_LANGS_JF[0] in re.findall(r'[A-Z][a-z]{2}', vfn):
-                    remote_prefLangPresent = True
+                
+                if matchb:
+                    mbps_value = int(matchb.group(1))
+                else:
+                    mbps_value = 25 
+
+                if USED_LANGS_JF[0].lower() in nLmatches:
+                    prefLangHere = 1
+                if 'UHD' in vfn:
+                    candidateVPathUHD_Tuples.append((vfn, prefLangHere, mbps_value))
+                else:
+                    candidateVPath_Tuples.append((vfn, prefLangHere, mbps_value))
+                
+
+    candidateVPathUHD_Tuples.sort(key=lambda t: (-t[1], t[2]))
+    candidateVPath_Tuples.sort(key=lambda t: (-t[1], t[2]))
+
 
     jgDB.sqclose()
     
@@ -257,12 +285,21 @@ async def getContextMenu(request):
 
     # construct menu actions based on actual_path
 
+    logger.info(f"API| Context menu request for {mediatype} id {mediaid} from kodi uid {uid}")
+    logger.info(f"API| Local preferred language present quality level: {local_prefLangPresentQLevel}")
+    logger.info(f"API| Remote UHD candidates: {candidateVPathUHD_Tuples}")
+    logger.info(f"API| Remote non-UHD candidates: {candidateVPath_Tuples}")
+    # first add UHD if any
+    for (vfn, pl, mbps) in candidateVPathUHD_Tuples:
+        ctMenu[f'Keep remote UHD {vfn} ({mbps}Mbps)'] = f'/keep_remote?token={SSDP_TOKEN}&uid={uid}&mediatype={mediatype}&mediaid={mediaid}&vfn={vfn}'
+        break
+
 
     # add other media entries for generic actions
 
     ctMenu['Full NFO refresh'] = f'/trigger_full_nfo_refresh'
 
-
+    # todo remove
     return JSONResponse({"status": 404}, status_code=404)
 
     # movie / tvshow / season / episode
@@ -412,7 +449,7 @@ app.mount("/app", Router(
     ]
 ))
 
-
+# todo add ignored paths here ?
 app.add_middleware(
     QuietRouteMiddleware,
     ignored_paths=["/apdsfi/speciasdfl_ops"]

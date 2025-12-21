@@ -105,6 +105,35 @@ def get_bit_depth(pix_fmt):
     'yuv444p12le': '12',
     '''
 
+def has_atmos(stream: dict) -> bool:
+    codec = (stream.get("codec_name") or "").lower()
+    profile = (stream.get("profile") or "").lower()
+    title = ((stream.get("tags") or {}).get("title") or "").lower()
+
+    # side_data_list (si présent)
+    side = stream.get("side_data_list") or []
+    side_types = " ".join((d.get("side_data_type","") or "").lower() for d in side)
+
+    # Atmos porté par E-AC-3 (DD+) ou TrueHD
+    if codec in ("eac3", "truehd", "mlp"):
+        if "atmos" in title or "atmos" in profile or "atmos" in side_types:
+            return True
+
+    return False
+
+
+def has_dtsx(stream: dict) -> bool:
+    codec = (stream.get("codec_name") or "").lower()
+    profile = (stream.get("profile") or "").lower()
+    title = ((stream.get("tags") or {}).get("title") or "").lower()
+
+    if codec == "dts":
+        # DTS:X est souvent dans profile ou title
+        if "dts:x" in profile or "dts:x" in title or "dtsx" in profile or "dtsx" in title:
+            return True
+
+    return False
+
 def parse_ffprobe(stdout, filepathnotice):
 
     hdrtpl = ""
@@ -143,13 +172,25 @@ def parse_ffprobe(stdout, filepathnotice):
                             if(_dvprofile := sideinfo[0].get('dv_profile')):
                                 hdrtpl = f" DVp{_dvprofile}"
     
-                        if resx := stream.get('width'):
-                            if resy := stream.get('height'):
-                                if resx/resy >= 16/9:
-                                    resolutiontpl = f" {str(round(resx * 9/16))}p"
-                                else:
-                                    resolutiontpl = f" {str(resy)}p"
+                        if (resx := stream.get('width')) and (resy := stream.get('height')):
+                            if resx/resy >= 16/9:
+                                vertR = round(resx * 9/16)
+                                #resolutiontpl = f" {str(round(resx * 9/16))}p"
+                            else:
+                                vertR = resy
+                                #resolutiontpl = f" {str(resy)}p"
                         
+                            if vertR >= 2160:
+                                resolutiontpl = " UHD"
+                            elif vertR >= 1440:
+                                resolutiontpl = " QHD"
+                            elif vertR >= 1080:
+                                resolutiontpl = " FHD"
+                            elif vertR >= 720:
+                                resolutiontpl = " HD"
+                            else:
+                                resolutiontpl = f" SD"
+
                     ####
                     elif stream.get('codec_type') == "audio":
                         if alang := (stream.get('tags') or {}).get('language', '').lower():
@@ -158,7 +199,7 @@ def parse_ffprobe(stdout, filepathnotice):
                             #if first_audio == "":
                                 #first_audio = f" {{{alang[:3].capitalize()}}}"
 
-
+                        ''' Check for Atmos or DTSx in audio streams - DEPRECATED
                         if codec_name in ['eac3', 'mlp']:
                             channel_layout = stream.get('channel_layout', "")
                         # eac3 (Enhanced AC-3) is often used for Atmos
@@ -171,6 +212,11 @@ def parse_ffprobe(stdout, filepathnotice):
                         # Additional check in the 'title' metadata if available
                             if 'dts:x' in dtitle or 'dtsx' in dtitle:
                                 audiotplb = " DTSx"
+                        '''
+                        if has_atmos(stream):
+                            audiotpla = " Atmos"
+                        elif has_dtsx(stream):
+                            audiotplb = " DTSx"
 
                     ####
                     elif stream.get('codec_type') == "subtitle":
