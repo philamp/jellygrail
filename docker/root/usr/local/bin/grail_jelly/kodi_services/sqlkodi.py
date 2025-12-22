@@ -260,7 +260,7 @@ class sqlKodiDB:
 
     def fetch_same_uid_movies(self, idtofetch):
         with self as cursor:
-            cursor.execute("SELECT uid.value as tmdbid, lf.oid, lf.opath, lf.ofilename, lf.otitle FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie LEFT JOIN (SELECT uid.value as tmdbid, mvbo.idMovie as oid, mvbo.strPath as opath, mvbo.strFileName as ofilename, mvbo.c00 as otitle FROM movie_view mvbo left join uniqueid uid on uid.media_id = mvbo.idMovie) lf on lf.tmdbid = uid.value where mvb.idMovie = %s and uid.type = 'tmdb'", (idtofetch,))
+            cursor.execute("SELECT DISTINCT uid.value as tmdbid, lf.oid, lf.opath, lf.ofilename, lf.otitle FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie LEFT JOIN (SELECT uid.value as tmdbid, mvbo.idMovie as oid, mvbo.strPath as opath, mvbo.strFileName as ofilename, mvbo.c00 as otitle FROM movie_view mvbo left join uniqueid uid on uid.media_id = mvbo.idMovie) lf on lf.tmdbid = uid.value where mvb.idMovie = %s and uid.type = 'tmdb'", (idtofetch,))
 
             return cursor.fetchall()
     

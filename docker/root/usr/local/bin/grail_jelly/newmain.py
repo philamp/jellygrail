@@ -236,9 +236,10 @@ async def getContextMenu(request):
         vpath = item.get("virtualPath", "")
         vfn = item.get("virtualFilename", "")
         prefLangHere = 0
+        logger.info(f"API       | Processing {vpath}")
         for (actual_path,) in jgDB.get_path_actual(vpath):
 
-
+            logger.info(f"API       | Processing virtual filename {vfn} with actual path {actual_path}")
             Lmatches = extract_triplets(vfn)
             nLmatches = [m.lower() for m in Lmatches]
 
@@ -285,10 +286,10 @@ async def getContextMenu(request):
 
     # construct menu actions based on actual_path
 
-    logger.info(f"API| Context menu request for {mediatype} id {mediaid} from kodi uid {uid}")
-    logger.info(f"API| Local preferred language present quality level: {local_prefLangPresentQLevel}")
-    logger.info(f"API| Remote UHD candidates: {candidateVPathUHD_Tuples}")
-    logger.info(f"API| Remote non-UHD candidates: {candidateVPath_Tuples}")
+    logger.info(f"API       | Context menu request for {mediatype} id {mediaid} from kodi uid {uid}")
+    logger.info(f"API       | Local preferred language present quality level: {local_prefLangPresentQLevel}")
+    logger.info(f"API       | Remote UHD candidates: {candidateVPathUHD_Tuples}")
+    logger.info(f"API       | Remote non-UHD candidates: {candidateVPath_Tuples}")
     # first add UHD if any
     for (vfn, pl, mbps) in candidateVPathUHD_Tuples:
         ctMenu[f'Keep remote UHD {vfn} ({mbps}Mbps)'] = f'/keep_remote?token={SSDP_TOKEN}&uid={uid}&mediatype={mediatype}&mediaid={mediaid}&vfn={vfn}'
