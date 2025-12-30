@@ -93,15 +93,15 @@ class jellyDB:
                     logger.critical("  JELLY-DB/ Migration failure just happened")
 
 
-    def insert_data(self, virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype = None, ffprobe = None):
+    def insert_data(self, virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype = None, ffprobe = None, completion = None):
         cursor = self.conn.cursor()
         # when a virtual_path already exists, it updates all other fileds but virtual_path 
         # ... but to avoid downgrading a mediatype value from something to None, on conflict we don't insert if mediatype == none for the item we overwrite
         # (mediatype is then used in bindfs to do filtering based on virtual folders suffixes (virtual_dv, virtual_bdmv))
         if mediatype != None:
-            cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, last_updated, ffprobe) VALUES (depenc(?), ?, ?, depenc(?), ?, strftime('%s', 'now'), ?) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), mediatype=?, last_updated=strftime('%s', 'now'), ffprobe=?", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, ffprobe, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, ffprobe))
+            cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, last_updated, ffprobe, completion) VALUES (depenc(?), ?, ?, depenc(?), ?, strftime('%s', 'now'), ?, ?) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), mediatype=?, last_updated=strftime('%s', 'now'), ffprobe=?, completion= CASE WHEN main_mapping.completion != 2 THEN ? ELSE main_mapping.completion END", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, ffprobe, completion, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype, ffprobe, completion))
         else:
-            cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, last_updated, ffprobe) VALUES (depenc(?), ?, ?, depenc(?), strftime('%s', 'now'), ?) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), last_updated=strftime('%s', 'now'), ffprobe=?", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, ffprobe, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, ffprobe))
+            cursor.execute("INSERT INTO main_mapping (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, last_updated, ffprobe, completion) VALUES (depenc(?), ?, ?, depenc(?), strftime('%s', 'now'), ?, ?) ON CONFLICT(virtual_fullpath) DO UPDATE SET actual_fullpath=?, jginfo_rd_torrent_folder=?, jginfo_rclone_cache_item=depenc(?), last_updated=strftime('%s', 'now'), ffprobe=?, completion= CASE WHEN main_mapping.completion != 2 THEN ? ELSE main_mapping.completion END;", (virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, ffprobe, completion, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, ffprobe, completion))
 
 
     def fetch_present_virtual_folders(self):
@@ -113,10 +113,24 @@ class jellyDB:
         cursor = self.conn.cursor()
         cursor.execute('SELECT DISTINCT jginfo_rd_torrent_folder FROM main_mapping')
         return cursor.fetchall()
+    
+    def lc_update_progress(self, vpath, completion):
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath=depenc(?)", (completion, vpath))
+
+    def lc_update_actual_path(self, vpath, actual_path):
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE main_mapping SET actual_fullpath=? WHERE virtual_fullpath=depenc(?)", (actual_path, vpath))    
 
     def ls_virtual_folder(self, folder_path):
         cursor = self.conn.cursor()
         cursor.execute("SELECT depdec(virtual_fullpath) FROM main_mapping WHERE virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
+        # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
+        return cursor.fetchall()
+    
+    def lc_ls_virtual_folder(self, folder_path):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
         # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
         return cursor.fetchall()
 
@@ -125,6 +139,7 @@ class jellyDB:
         cursor.execute("SELECT ffprobe FROM main_mapping WHERE virtual_fullpath = depenc(?)", (path,))
         return cursor.fetchall()
     
+    # TODO maybe not used anymore
     def get_path_actual(self, path):
         cursor = self.conn.cursor()
         cursor.execute("SELECT actual_fullpath FROM main_mapping WHERE virtual_fullpath = depenc(?)", (path,))

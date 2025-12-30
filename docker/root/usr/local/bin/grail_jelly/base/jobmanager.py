@@ -3,7 +3,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from typing import Callable, Coroutine, Optional
 
-# JG MODULES
+# JG BASE LIBS
 from base import *
 
 class JobManager:

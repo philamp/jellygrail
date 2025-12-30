@@ -1,5 +1,5 @@
 ### MAIN ONLY
-from ast import arg
+#from ast import arg
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
 from base import logger_setup
@@ -28,6 +28,7 @@ import re
 import jg_services
 import nfo_generator
 import jfapi
+import localimport
 from jgscan.jgsql import jellyDB
 from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
@@ -209,7 +210,39 @@ async def rdIncrRoute(request):
     #else
     return JSONResponse(result, status_code=200)
 
+
+
 async def getContextMenu(request):
+    mediaid = int(request.path_params["mediaid"])
+    mediatype = request.path_params["mediatype"]
+    uid = request.query_params.get("uid")
+
+
+    result = {}
+    ctMenuStatic = {}
+    # prepare the static elements of the contextual menu
+    ctMenuStatic['}{ Generic Actions'] = '#OTHER'
+
+    if mediatype not in ['movie', 'tvshow']:
+        ctMenuStatic['This action is only supported for movies and TV seasons.'] = "#NULL"
+        
+
+    else:
+        result = await asyncio.get_running_loop().run_in_executor(None, localimport.getMenuItems, mediatype, mediaid, uid)
+        # return only static menu if no dynamic items
+        
+
+    result.update(ctMenuStatic)
+    return JSONResponse(result, status_code=200)
+
+
+
+
+
+
+
+# TODO remove old
+async def getContextMenuOld(request):
     mediaid = int(request.path_params["mediaid"])
     mediatype = request.path_params["mediatype"]
     uid = request.query_params.get("uid")
@@ -235,6 +268,7 @@ async def getContextMenu(request):
     for item in result:
         vpath = item.get("virtualPath", "")
         vfn = item.get("virtualFilename", "")
+
         prefLangHere = 0
         logger.info(f"API       | Processing {vpath}")
         for (actual_path,) in jgDB.get_path_actual(vpath):

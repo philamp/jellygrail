@@ -445,7 +445,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                         # S FOLDERS INSERT 
                         threadDB.insert_data("/shows/"+keyshow, None, None, None, episodeattribs['mediatype_s'])
-                        threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey, None, None, None, episodeattribs['mediatype_s'])
+                        threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey, None, None, None, episodeattribs['mediatype_s'], None, 0)
                         threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}", None, None, None, episodeattribs['mediatype_s'])
                         # S FILES INSERT
                         threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"+"/"+f"{keyshow} S{seasonkey}E{episodekey}{metas}{filename_ext}", rootfilename, release_folder_path, rd_cache_item, episodeattribs['mediatype_s'], ffprobed)
@@ -557,7 +557,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
         # Esingle folders
         if at_least_one_movie_present:
-            threadDB.insert_data("/movies/"+title_year, None, None, None, dive_e_['mediatype'])
+            threadDB.insert_data("/movies/"+title_year, None, None, None, dive_e_['mediatype'], None, 0)
             if atleastoneextra:
                 threadDB.insert_data("/movies/"+title_year+"/extras", None, None, None, dive_e_['mediatype'])
         # S folders are done in first filename loop and do not have extras
