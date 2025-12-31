@@ -217,14 +217,12 @@ async def getContextMenu(request):
     mediatype = request.path_params["mediatype"]
     uid = request.query_params.get("uid")
 
-
     result = {}
-    ctMenuStatic = {}
-    # prepare the static elements of the contextual menu
-    ctMenuStatic['}{ Generic Actions'] = '#OTHER'
 
-    if mediatype not in ['movie', 'tvshow']:
-        ctMenuStatic['This action is only supported for movies and TV seasons.'] = "#NULL"
+    if mediatype not in ['movie', 'season']:
+        result['menu'].update({
+            'Actions not supported on this item': "#NULL"
+        })
         
 
     else:
@@ -232,7 +230,16 @@ async def getContextMenu(request):
         # return only static menu if no dynamic items
         
 
-    result.update(ctMenuStatic)
+    result['menu'].update({
+        'Admin actions': '#SUBMENU'
+    })
+    result['submenu'] = {
+        'Trigger full scan': '#FULLSCAN',
+        'Trigger full NFO refresh': '#FULLNFOREFRESH',
+        'Reset Add-on': '#RESETADDON',
+        'Open Add-on settings': '#OPENSETTINGS'
+    }
+
     return JSONResponse(result, status_code=200)
 
 
@@ -463,6 +470,7 @@ api_routes = tokenize(
     Route("/gimme_nfos", gimmeNfos),
     Route("/trigger_full_nfo_refresh", askFullNfoRefresh),
     Route("/set_consumed", setConsumed),
+    Route("/ask_kodi_refresh", ask_kodi_refresh),
     Route("/get_cmenu_for/{mediatype:str}/{mediaid:int}", getContextMenu),
     Route("/special_ops", doSqlStuffRoute)
 )

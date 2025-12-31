@@ -138,7 +138,8 @@ def getMenuItems(mediatype, mediaid, uid):
     R_info_tpl += ", HD" if final_R_HD_lang_level > 0 else ""
     R_info_tpl += f" with {PREFLANG}" if final_R_HD_lang_level > 1 else ""
 
-    ctMenu['menu'][f"{Title}: {L_info_tpl} | {R_info_tpl}"] = "#NULL"
+    ctMenu['menu'][f'{Title}'] = "#NULL"
+    ctMenu['menu'][f"{L_info_tpl} | {R_info_tpl}"] = "#NULL"
 
     ctMenu['menu'][f'Keep this {mediatype}'] = "#KEEPLOCAL"
     ctMenu['menu'][f'Keep this {mediatype} + 4K'] = "#KEEPLOCALUHD"
