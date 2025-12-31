@@ -66,7 +66,7 @@ def getKodiInfo(puid, pmediatype, pmediaid):
                     "mediaId": oid,
                     "movieTitle": otitle,
                     "virtualFilename": urllib.parse.unquote(ofilename),
-                    "virtualPath": urllib.parse.unquote(opath).split("/virtual", 1)[1] + urllib.parse.unquote(ofilename),
+                    "virtualPath": urllib.parse.unquote(opath).split("/virtual", 1)[1],
                     "tmdbId": tmdbid,
                 })
 
