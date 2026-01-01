@@ -54,6 +54,44 @@ def levelExtractor(vfn, PREFLANG, uhdarray, hdarray):
         else:
             hdarray.append(1)
 
+def setPolicy(parentPaths, Qpolicy, Lpolicy):
+    jgDB = jellyDB()
+
+    for path in parentPaths:
+        logger.info(f"LOC_IMPORT| Setting policy for virtual path {path} to Qpolicy {Qpolicy} and Lpolicy {Lpolicy}")
+        jgDB.lc_set_policy_virtual_folder(path, Qpolicy, Lpolicy, 0)
+
+    jgDB.sqcommit()
+
+    jgDB.sqclose()
+
+def computePolicies():
+    jgDB = jellyDB()
+
+    PREFLANG = USED_LANGS_JF[0].lower()
+
+    for (parentPath, Qpolicy, Lpolicy, pcomp) in jgDB.lc_ls_parent_paths():
+        for (vfn, actual_path, dlcomp) in jgDB.lc_ls_virtual_folder(parentPath):
+
+
+            # LOCAL
+            if "remote" not in actual_path.split("/", 2)[2]:
+                levelExtractor(vfn, PREFLANG, L_UHD_lang_level, L_HD_lang_level)
+
+            # REMOTE
+            else:
+                levelExtractor(vfn, PREFLANG, R_UHD_lang_level, R_HD_lang_level)
+
+
+            
+        # set completion = 1 for this parentPath:
+
+        jgDB.lc_update_policy_completion(parentPath, 1)
+        jgDB.sqcommit()
+
+    jgDB.sqclose()
+
+
 # called in executor
 def getMenuItems(mediatype, mediaid, uid):
 

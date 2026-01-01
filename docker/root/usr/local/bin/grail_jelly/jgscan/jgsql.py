@@ -118,13 +118,27 @@ class jellyDB:
         cursor = self.conn.cursor()
         cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath=depenc(?)", (completion, vpath))
 
+    def lc_set_policy_virtual_folder(self, folder_path, Qpolicy, Lpolicy, comp):
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE main_mapping SET q_policy=?, l_policy=?, completion=? WHERE virtual_fullpath=depenc(?)", (Qpolicy, Lpolicy, comp, folder_path))
+
     def lc_update_actual_path(self, vpath, actual_path):
         cursor = self.conn.cursor()
-        cursor.execute("UPDATE main_mapping SET actual_fullpath=? WHERE virtual_fullpath=depenc(?)", (actual_path, vpath))    
+        cursor.execute("UPDATE main_mapping SET actual_fullpath=? WHERE virtual_fullpath=depenc(?)", (actual_path, vpath))
+
+    def lc_update_policy_completion(self, vpath, comp):
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath=depenc(?) AND virtual_fullpath is null", (comp, vpath)) 
 
     def ls_virtual_folder(self, folder_path):
         cursor = self.conn.cursor()
         cursor.execute("SELECT depdec(virtual_fullpath) FROM main_mapping WHERE virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
+        # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
+        return cursor.fetchall()
+    
+    def lc_ls_parent_paths(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT depdec(virtual_fullpath), q_policy, l_policy, completion FROM main_mapping WHERE completion=0 AND actual_fullpath is null")
         # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
         return cursor.fetchall()
     

@@ -434,6 +434,23 @@ async def doSqlStuffRoute(request):
             "status": 200
         }, status_code=200)
 
+async def setPolicyRoute(request):
+    data = await request.json()
+    Qpolicy = data.get("Qpolicy", 1)
+    Lpolicy = data.get("Lpolicy", 1)
+
+    if parentPaths := data.get("parentPaths", []):
+        if await asyncio.get_running_loop().run_in_executor(None, localimport.setPolicy, parentPaths, Qpolicy, Lpolicy):
+            return JSONResponse({
+                "status": 201
+            }, status_code=201)
+
+
+
+    return JSONResponse({
+        "status": 200
+    }, status_code=200)
+
 # ------------ TOKEN HANDLING -----------------
 async def verify_token(request):
     token = request.query_params.get("token")
@@ -460,8 +477,6 @@ def tokenize(*routes):
     return Router(routes=wrapped_routes)
 
 
-
-
 api_routes = tokenize(
     Route("/health", homepage),
     Route("/get_compatible_kodiDBs", get_compatible_kodiDBs),
@@ -472,7 +487,8 @@ api_routes = tokenize(
     Route("/set_consumed", setConsumed),
     Route("/ask_kodi_refresh", ask_kodi_refresh),
     Route("/get_cmenu_for/{mediatype:str}/{mediaid:int}", getContextMenu),
-    Route("/special_ops", doSqlStuffRoute)
+    Route("/special_ops", doSqlStuffRoute),
+    Route("/set_policy", setPolicyRoute, methods=["POST"])
 )
 
 # no / route here to let the user put a proxy in front of this and the webdav server
