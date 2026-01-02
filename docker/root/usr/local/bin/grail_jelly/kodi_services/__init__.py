@@ -28,10 +28,19 @@ is_scanning = False
 is_cleaning = False
 refresh_is_safe = False
 
+def lowersArray(array):
+    return [m.lower() for m in array]
+
 def extract_triplets(s: str):
     out = []
     for inner in re.findall(r'[\[{]([A-Za-z]+)[\]}]', s):
         out.extend(re.findall(r'[A-Za-z]{3}', inner))  # prend chaque bloc de 3
+    return out
+
+def extract_triplets_audio(s: str):
+    out = []
+    for inner in re.findall(r'\{([A-Za-z]+)\}', s):
+        out.extend(re.findall(r'[A-Za-z]{3}', inner))
     return out
 
 def getTableAndColumnFromMediatype(ptype):

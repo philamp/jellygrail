@@ -279,8 +279,9 @@ WEBDAV_HOST_PORT = LAN_IP + ":" + str(WEBDAV_INTERNAL_PORT)
 # plain list from spaced string, the first one is the preferred one for context menu in kodi
 codes = list(dict.fromkeys(INTERESTED_LANGUAGES.split()))
 
-# list normalized to iso639-2b
-USED_LANGS_JF = [normalize_to_iso639_2b(tok) for tok in codes]
+# list normalized to iso639-2b and deduplicated
+USED_LANGS_JF = list(dict.fromkeys([normalize_to_iso639_2b(tok) for tok in codes]))
+
 
 # list widened with equivalents, but add them only once
 USED_LANGS = codes.copy()
@@ -294,6 +295,12 @@ for code in codes:
 if "und" not in USED_LANGS:
     USED_LANGS.append("und")
 
+PREFLANG = USED_LANGS_JF[0].lower()
+
+if USED_LANGS_JF[1]:
+    PREFLANG2 = USED_LANGS_JF[1].lower()
+else: 
+    PREFLANG2 = 'eng' # lets face it, its the dominant language in the world today
 
 
 PROXY_URL = os.getenv('PROXY_URL') if (os.getenv('PROXY_URL') != "https://hostname-or-ip:1234" and os.getenv('PROXY_URL') != "") else "0"

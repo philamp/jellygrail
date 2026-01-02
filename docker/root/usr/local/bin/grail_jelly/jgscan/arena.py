@@ -180,13 +180,13 @@ def parse_ffprobe(stdout, filepathnotice):
                                 vertR = resy
                                 #resolutiontpl = f" {str(resy)}p"
                         
-                            if vertR >= 2160:
+                            if vertR >= 2155:
                                 resolutiontpl = " UHD"
-                            elif vertR >= 1440:
+                            elif vertR >= 1435:
                                 resolutiontpl = " QHD"
-                            elif vertR >= 1080:
+                            elif vertR >= 1075:
                                 resolutiontpl = " FHD"
-                            elif vertR >= 720:
+                            elif vertR >= 710:
                                 resolutiontpl = " HD"
                             else:
                                 resolutiontpl = f" SD"
