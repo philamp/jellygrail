@@ -122,17 +122,30 @@ class jellyDB:
         cursor = self.conn.cursor()
         cursor.execute("UPDATE main_mapping SET q_policy=?, l_policy=?, completion=? WHERE virtual_fullpath=depenc(?)", (Qpolicy, Lpolicy, comp, folder_path))
 
+
+    def lc_set_dl_completion(self, likepath, comp):
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath LIKE '%' || ? || '%'", (comp, likepath))
+
     def lc_update_actual_path(self, vpath, actual_path):
         cursor = self.conn.cursor()
         cursor.execute("UPDATE main_mapping SET actual_fullpath=? WHERE virtual_fullpath=depenc(?)", (actual_path, vpath))
 
     def lc_update_policy_completion(self, vpath, comp):
         cursor = self.conn.cursor()
-        cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath=depenc(?) AND virtual_fullpath is null", (comp, vpath)) 
+        cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath=depenc(?) AND actual_fullpath is null", (comp, vpath)) 
 
     def ls_virtual_folder(self, folder_path):
         cursor = self.conn.cursor()
         cursor.execute("SELECT depdec(virtual_fullpath) FROM main_mapping WHERE virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
+        # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
+        return cursor.fetchall()
+    
+
+    # here maybe we have to get the other fields (jginfo_rd_torrent_folder, jginfo_rclone_cache_item)
+    def lc_get_dl_playlist(self):
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE completion < 2 AND actual_fullpath is not null")
         # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
         return cursor.fetchall()
     

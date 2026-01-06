@@ -1,5 +1,6 @@
 # JG base libs
 from base import *
+from base.littles import *
 
 # JG constants
 from base.constants import *
@@ -8,6 +9,8 @@ from base.constants import *
 from jgscan.jgsql import jellyDB
 from kodi_services import getKodiInfo, extract_triplets, lowersArray, extract_triplets_audio
 
+# libs
+import asyncio
 
 # function to 
 
@@ -97,6 +100,28 @@ def setPolicy(parentPaths, Qpolicy, Lpolicy):
 
     jgDB.sqclose()
 
+
+def getDlPlaylist():
+    jgDB = jellyDB()
+    result = jgDB.lc_get_dl_playlist()
+    jgDB.sqclose()
+
+    return result
+
+
+async def importUncompleted():
+
+    # get dl playlist
+
+    if result := await asyncio.get_running_loop().run_in_executor(None, getDlPlaylist):
+
+        for (_, apath, comp) in result:
+        # set completion to 1
+
+        # start DL in async
+            pass
+
+
 def computePolicies():
     jgDB = jellyDB()
 
@@ -132,10 +157,15 @@ def computePolicies():
             #si qpol = 2
             finalCandidatesTuples.append(candidateVPath_Tuples.sort(key=lambda t: (-t[2], -t[3]))[0])
 
-
             # si lpol = 2 ET qu'il y'a un lpol = 2 
             finalCandidatesTuples.append(candidateVPath_Tuples.sort(key=lambda t: (-t[3], t[2]))[0])
 
+
+            list(set(finalCandidatesTuples))
+
+            for cand in finalCandidatesTuples:
+                if cand[0] == 0:
+                    jgDB.lc_set_dl_completion(get_wo_ext(cand[1]), 0)
 
 
 

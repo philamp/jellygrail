@@ -33,6 +33,7 @@ from jgscan.jgsql import jellyDB
 from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
+from localimport import computePolicies
 from kodi_services.sqlkodi import kodi_mysql_verify
 from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, new_send_full_nfo_to_kodi, full_nfo_refresh_call, append_batch_to_kodi_instance, new_merge_kodi_versions, getKodiInfo, extract_triplets
 #from jg_services import premium_timeleft, test
@@ -561,6 +562,12 @@ def remoteScanWrapper(ctx, stop):
     # run jgservices.remoteScan
     jg_services.remoteScan(stop)
 
+def computePoliciesWrapper(ctx, stop):
+    # run jgservices.remoteScan
+    computePolicies()
+
+
+
 def trigger_rd_progress(ctx, stop):
     if jg_services.rd_progress() == "PLEASE_SCAN_TODO": # or ctx["wfid"] == "wf1"  #TODO remove 1==1
         wfid = JobManager.get_new_wfid()
@@ -577,8 +584,12 @@ def multiScanWrapper(ctx, stop):
         logger.info("JOBMANAGER| No items to scan.")
         return
     
+    #else----
+    
     if ctx["wfid"] == "wf1":
         logger.info("JOBMANAGER| First workflow triggers the scan")
+
+    JobManager.trigger("computePolicies", ctx["wfid"])
 
     ctx["later"] = True if nbitems > INCR_KODI_REFR_MAX else False
         
@@ -637,6 +648,7 @@ if __name__ == "__main__":
     # WARNING, nfoGenJob must be register AFTER jfScan
     JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=10)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
+    JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True)
 
     
 
