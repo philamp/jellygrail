@@ -11,6 +11,7 @@ from kodi_services import getKodiInfo, extract_triplets, lowersArray, extract_tr
 
 # libs
 import asyncio
+from pathlib import Path
 
 # function to 
 
@@ -100,6 +101,10 @@ def setPolicy(parentPaths, Qpolicy, Lpolicy):
 
     jgDB.sqclose()
 
+def setCompletion(path, comp):
+    jgDB = jellyDB()
+    jgDB.lc_set_dl_completion_specific(path, comp)
+    jgDB.sqclose()
 
 def getDlPlaylist():
     jgDB = jellyDB()
@@ -115,11 +120,36 @@ async def importUncompleted():
 
     if result := await asyncio.get_running_loop().run_in_executor(None, getDlPlaylist):
 
-        for (_, apath, comp) in result:
-        # set completion to 1
+        for (vpath, apath, comp) in result:
+            # set completion to 1
+            await asyncio.get_running_loop().run_in_executor(None, setCompletion, vpath, 1)
 
-        # start DL in async
-            pass
+
+            # create parent folders
+            # convention is : 2 first parts is mountpoint
+            src = Path(apath)
+            src_mountpoint = src.parts[:3]   # ('/', 'mnt', 'data')
+            relative = src.relative_to(src_mountpoint)
+            # TODO this could be guessed from the first mount found having "import in str" or shting like that
+            dst_mountpoint = Path("/mount/local_import")
+            dst_path = dst_mountpoint / relative
+            dst_path.parent.mkdir(parents=True, exist_ok=True)
+            rsync_dest_part = dst_path.with_name(dst_path.name + ".part")
+
+
+            
+            # start DL in async
+            # ARGSko
+            args = [
+                "rsync",
+                "--partial",
+                "--info=progress2",
+                "--no-inc-recursive",  # helps make progress2 updates more consistent for some cases
+                src,
+                str(rsync_dest_part),
+            ]
+            
+            # 
 
 
 def computePolicies():
@@ -133,6 +163,8 @@ def computePolicies():
 
     for (parentPath, Qpolicy, Lpolicy, pcomp) in jgDB.lc_ls_parent_paths():
         for (vfn, actual_path, dlcomp) in jgDB.lc_ls_virtual_folder(parentPath):
+
+            # TODO avoid jgxmultiple and jgxbluray !
 
 
             # LOCAL

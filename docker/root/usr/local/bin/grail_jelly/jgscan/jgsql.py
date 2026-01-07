@@ -113,14 +113,15 @@ class jellyDB:
         cursor = self.conn.cursor()
         cursor.execute('SELECT DISTINCT jginfo_rd_torrent_folder FROM main_mapping')
         return cursor.fetchall()
-    
-    def lc_update_progress(self, vpath, completion):
-        cursor = self.conn.cursor()
-        cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath=depenc(?)", (completion, vpath))
 
     def lc_set_policy_virtual_folder(self, folder_path, Qpolicy, Lpolicy, comp):
         cursor = self.conn.cursor()
         cursor.execute("UPDATE main_mapping SET q_policy=?, l_policy=?, completion=? WHERE virtual_fullpath=depenc(?)", (Qpolicy, Lpolicy, comp, folder_path))
+
+
+    def lc_set_dl_completion_specific(self, path, comp):
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath=depenc(?)", (comp, path))
 
 
     def lc_set_dl_completion(self, likepath, comp):
@@ -155,9 +156,10 @@ class jellyDB:
         # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
         return cursor.fetchall()
     
+    # list only media files here with "ffprobe is not null"
     def lc_ls_virtual_folder(self, folder_path):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
+        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE ffprobe is not null AND virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
         # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
         return cursor.fetchall()
 
