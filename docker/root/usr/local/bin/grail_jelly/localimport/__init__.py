@@ -101,9 +101,11 @@ def setPolicy(parentPaths, Qpolicy, Lpolicy):
 
     jgDB.sqclose()
 
+'''
 def setCompletion(path, comp):
     jgDB = jellyDB()
     jgDB.lc_set_dl_completion_specific(path, comp)
+    jgDB.sqcommit()
     jgDB.sqclose()
 
 def getDlPlaylist():
@@ -112,17 +114,19 @@ def getDlPlaylist():
     jgDB.sqclose()
 
     return result
+'''
 
 
-async def importUncompleted():
+def importUncompleted():
 
     # get dl playlist
+    jgDB = jellyDB()
 
-    if result := await asyncio.get_running_loop().run_in_executor(None, getDlPlaylist):
+    if result := jgDB.lc_get_dl_playlist():
 
         for (vpath, apath, comp) in result:
             # set completion to 1
-            await asyncio.get_running_loop().run_in_executor(None, setCompletion, vpath, 1)
+            jgDB.lc_set_dl_completion_specific(vpath, 1)
 
 
             # create parent folders
@@ -148,8 +152,12 @@ async def importUncompleted():
                 src,
                 str(rsync_dest_part),
             ]
-            
-            # 
+
+
+
+
+        jgDB.sqcommit()
+    jgDB.sqclose()
 
 
 def computePolicies():
