@@ -8,10 +8,16 @@ from base.constants import *
 # JG modules
 from jgscan.jgsql import jellyDB
 from kodi_services import getKodiInfo, extract_triplets, lowersArray, extract_triplets_audio
+from jg_services import premium_timeleft
 
 # libs
 import asyncio
 from pathlib import Path
+from typing import Optional, Sequence
+import signal
+import select
+
+_PROGRESS_RE = re.compile(rb"(?P<bytes>\d+)\s+(?P<pct>\d+)%", re.IGNORECASE)
 
 # function to 
 
@@ -116,32 +122,198 @@ def getDlPlaylist():
     return result
 '''
 
+def rsync_partial_download_sync_strict_progress(
+    source: str,
+    dest_final: Path,
+    *,
+    stop_event: threading.Event,
+    rsync_path: str = "rsync",
+    idle_timeout_s: float = 30.0,
+    temp_suffix: str = ".part",
+) -> int:
+    """
+    Return codes:
+      -1 : error / timeout / rsync failed
+       1 : stopped by external stop_event
+       2 : completed successfully
+    """
+    dest_part = dest_final.with_name(dest_final.name + temp_suffix)
+    dest_part.parent.mkdir(parents=True, exist_ok=True)
+
+    args = [
+        rsync_path,
+        "--partial",
+        "--info=progress2",
+        "--no-inc-recursive",
+        str(source),
+        str(dest_part),
+    ]
+
+    proc = subprocess.Popen(
+        args,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+        bufsize=0,
+        preexec_fn=os.setsid,  # POSIX: separate process group
+    )
+    assert proc.stderr is not None
+
+    last_progress_ts = time.monotonic()  # reset ONLY when bytes increase
+    last_bytes: Optional[int] = None
+    buf = b""
+
+    def terminate_process():
+        if proc.poll() is not None:
+            return
+        try:
+            os.killpg(proc.pid, signal.SIGTERM)
+        except Exception:
+            pass
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            try:
+                os.killpg(proc.pid, signal.SIGKILL)
+            except Exception:
+                pass
+            proc.wait()
+
+    try:
+        while True:
+            # 1) external stop
+            if stop_event.is_set():
+                terminate_process()
+                return 1
+
+            # 2) completion check FIRST (prevents race vs timeout)
+            if proc.poll() is not None:
+                # drain remaining stderr (non-blocking best-effort)
+                while True:
+                    r, _, _ = select.select([proc.stderr], [], [], 0)
+                    if not r:
+                        break
+                    chunk = os.read(proc.stderr.fileno(), 65536)
+                    if not chunk:
+                        break
+                    buf += chunk
+                break
+
+            # 3) strict idle timeout (only bytes progress resets the timer)
+            if (time.monotonic() - last_progress_ts) > idle_timeout_s:
+                terminate_process()
+                return -1
+
+            # 4) wait a bit for stderr readability (keeps loop responsive)
+            r, _, _ = select.select([proc.stderr], [], [], 0.25)
+            if not r:
+                continue
+
+            chunk = os.read(proc.stderr.fileno(), 65536)
+            if not chunk:
+                # stderr closed
+                break
+
+            buf += chunk
+
+            # rsync progress often uses '\r' updates; treat '\r' as line breaks too
+            buf = buf.replace(b"\r", b"\n")
+            while True:
+                nl = buf.find(b"\n")
+                if nl < 0:
+                    break
+                line = buf[:nl].strip()
+                buf = buf[nl + 1 :]
+
+                if not line:
+                    continue
+
+                m = _PROGRESS_RE.search(line)
+                if not m:
+                    continue
+
+                b = int(m.group("bytes"))
+                if last_bytes is None or b > last_bytes:
+                    last_bytes = b
+                    last_progress_ts = time.monotonic()
+
+        rc = proc.wait()
+        if rc != 0:
+            return -1
+
+        # If you want the atomic finalize here:
+        os.replace(dest_part, dest_final)
+
+        return 2
+
+    finally:
+        terminate_process()
+        try:
+            if proc.stderr:
+                proc.stderr.close()
+        except Exception:
+            pass
 
 def importUncompleted():
+
+    #check first if internet is reachable
+    if not has_internet():
+        logger.error('LOCALIMPORT| Cloudlfare not working, importer halted.')
+        return
+    
+    logger.info('LOCALIMPORT| Cloudflare working, starting importer...')
 
     # get dl playlist
     jgDB = jellyDB()
 
+    
+
     if result := jgDB.lc_get_dl_playlist():
 
+        # blacklist live array
+        bl_noext_items = []
+
         for (vpath, apath, comp) in result:
-            # set completion to 1
-            jgDB.lc_set_dl_completion_specific(vpath, 1)
+            
+            # check bl live array, not checking a file coming from same release as a blacklisted file
+            if get_wo_ext(vpath) not in bl_noext_items:
 
-
-            # create parent folders
-            # convention is : 2 first parts is mountpoint
-            src = Path(apath)
-            src_mountpoint = src.parts[:3]   # ('/', 'mnt', 'data')
-            relative = src.relative_to(src_mountpoint)
-            # TODO this could be guessed from the first mount found having "import in str" or shting like that
-            dst_mountpoint = Path("/mount/local_import")
-            dst_path = dst_mountpoint / relative
-            dst_path.parent.mkdir(parents=True, exist_ok=True)
-            rsync_dest_part = dst_path.with_name(dst_path.name + ".part")
-
+                jgDB.lc_set_dl_completion_specific(vpath, 1)
 
             
+                # create parent folders
+                # convention is : 2 first parts is mountpoint
+                src = Path(apath)
+                src_mountpoint = src.parts[:3]   # ('/', 'mnt', 'data')
+                relative = src.relative_to(src_mountpoint)
+                # TODO this could be guessed from the first mount found having "import in str" or shting like that
+                dst_mountpoint = Path("/mount/local_import")
+                dst_path = dst_mountpoint / relative
+
+
+                #dst_path.parent.mkdir(parents=True, exist_ok=True)
+                #rsync_dest_part = dst_path.with_name(dst_path.name + ".part")
+                resdl = rsync_partial_download_sync_strict_progress(
+                    src,
+                    dst_path,
+                    stop_event=genericClass.getEvent(),
+                    idle_timeout_s=30,
+                )
+                if resdl == -1:
+                    if premium_timeleft() != 0:
+                        bl_noext_items.append(get_wo_ext(vpath))
+                        jgDB.lc_update_blacklist(vpath)
+
+                        
+                elif resdl == 2:
+                    jgDB.lc_set_dl_completion_specific(vpath, 2)
+                
+
+                #else
+
+                
+
+
+            '''
             # start DL in async
             # ARGSko
             args = [
@@ -152,6 +324,7 @@ def importUncompleted():
                 src,
                 str(rsync_dest_part),
             ]
+            '''
 
 
 

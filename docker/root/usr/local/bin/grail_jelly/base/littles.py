@@ -1,3 +1,5 @@
+import socket
+
 def ticks_to_minutes(ticks):
     """
     Convert runtime ticks to minutes.
@@ -24,3 +26,10 @@ def get_tuple(filename):
     if last_dot_index == -1:
         return (filename, "")
     return (filename[:last_dot_index], filename[last_dot_index:])
+
+def has_internet(timeout=3):
+    try:
+        socket.create_connection(("1.1.1.1", 443), timeout=timeout)
+        return True
+    except OSError:
+        return False

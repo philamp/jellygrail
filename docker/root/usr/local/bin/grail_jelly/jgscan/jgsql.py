@@ -132,6 +132,11 @@ class jellyDB:
         cursor = self.conn.cursor()
         cursor.execute("UPDATE main_mapping SET actual_fullpath=? WHERE virtual_fullpath=depenc(?)", (actual_path, vpath))
 
+    def lc_update_blacklist(self, vpath):
+        cursor = self.conn.cursor()
+        cursor.execute("UPDATE main_mapping SET blacklist=blacklist+1 WHERE virtual_fullpath LIKE '%' || ? || '%'", (vpath,))
+
+
     def lc_update_policy_completion(self, vpath, comp):
         cursor = self.conn.cursor()
         cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath=depenc(?) AND actual_fullpath is null", (comp, vpath)) 
@@ -146,7 +151,7 @@ class jellyDB:
     # here maybe we have to get the other fields (jginfo_rd_torrent_folder, jginfo_rclone_cache_item)
     def lc_get_dl_playlist(self):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE completion < 2 AND actual_fullpath is not null")
+        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE completion < 2 AND actual_fullpath is not null AND blacklist < 4 ORDER by blacklist ASC")
         # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
         return cursor.fetchall()
     

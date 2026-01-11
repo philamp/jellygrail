@@ -2,6 +2,24 @@ import os
 from base.token import SSDPToken
 import socket
 
+import threading
+
+
+class genericClass:
+
+    _event = threading.Event()
+
+    @classmethod
+    def stopImport(cls):
+        cls._event.set()
+
+    @classmethod
+    def getEvent(cls):
+        return cls._event
+
+    
+
+
 ISO_639_2T_TO_2B = {
     "bod": "tib",  # Tibetan
     "ces": "cze",  # Czech
