@@ -256,11 +256,17 @@ class sqlKodiDB:
         with self as cursor:
             cursor.execute(f"SELECT ttf.{idtofetch}, MAX(IF(uid.type = 'jellygrail', 'jellygrail', 'imdb-tmdb')) as type FROM {tabletofetch} ttf LEFT JOIN uniqueid uid on uid.media_id = ttf.{idtofetch} WHERE strPath like %s GROUP BY ttf.{idtofetch}", (like_param,))
             return cursor.fetchall()
-    
+
+    # draft TODO
+    def fetch_same_uid_seasons(self, idtofetch):
+        with self as cursor:
+            cursor.execute("SELECT DISTINCT bv.uniqueid_value, bv.showTitle, sv.season, bv.strPath, sv.idSeason FROM tvshow_view tsv JOIN season_view sv on tsv.idShow = sv.idShow LEFT JOIN (SELECT sv.showTitle, tsv.uniqueid_value, sv.season, sv.strPath FROM tvshow_view tsv JOIN season_view sv on tsv.idShow = sv.idShow) bv on bv.uniqueid_value = tsv.uniqueid_value WHERE sv.idSeason = %s", (idtofetch,))
+
+            return cursor.fetchall()
 
     def fetch_same_uid_movies(self, idtofetch):
         with self as cursor:
-            cursor.execute("SELECT DISTINCT uid.value as tmdbid, lf.oid, lf.opath, lf.ofilename, lf.otitle FROM movie_view mvb left join uniqueid uid on uid.media_id = mvb.idMovie LEFT JOIN (SELECT uid.value as tmdbid, mvbo.idMovie as oid, mvbo.strPath as opath, mvbo.strFileName as ofilename, mvbo.c00 as otitle FROM movie_view mvbo left join uniqueid uid on uid.media_id = mvbo.idMovie) lf on lf.tmdbid = uid.value where mvb.idMovie = %s and uid.type = 'tmdb'", (idtofetch,))
+            cursor.execute("SELECT DISTINCT mvb.uniqueid_value as tmdbid, mvb.idMovie, mvb.strPath, mvb.strFilename, mvb.c00 FROM movie_view mv LEFT JOIN movie_view mvb on mvb.uniqueid_value = mv.uniqueid_value where mv.idMovie = %s", (idtofetch,))
 
             return cursor.fetchall()
     

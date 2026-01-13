@@ -286,7 +286,7 @@ def importUncompleted():
                 src_mountpoint = src.parts[:3]   # ('/', 'mnt', 'data')
                 relative = src.relative_to(src_mountpoint)
                 # TODO this could be guessed from the first mount found having "import in str" or shting like that
-                dst_mountpoint = Path("/mount/local_import")
+                dst_mountpoint = Path("/mounts/local_import")
                 dst_path = dst_mountpoint / relative
 
 
@@ -306,6 +306,7 @@ def importUncompleted():
                         
                 elif resdl == 2:
                     jgDB.lc_set_dl_completion_specific(vpath, 2)
+                    jgDB.lc_update_actual_path(vpath, dst_path)
                 
 
                 #else

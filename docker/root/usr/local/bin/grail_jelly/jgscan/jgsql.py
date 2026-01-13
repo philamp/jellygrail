@@ -126,7 +126,7 @@ class jellyDB:
 
     def lc_set_dl_completion(self, likepath, comp):
         cursor = self.conn.cursor()
-        cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath LIKE '%' || ? || '%'", (comp, likepath))
+        cursor.execute("UPDATE main_mapping SET completion=? WHERE virtual_fullpath LIKE '%' || ? || '%' AND actual_fullpath is not null", (comp, likepath))
 
     def lc_update_actual_path(self, vpath, actual_path):
         cursor = self.conn.cursor()
@@ -134,7 +134,7 @@ class jellyDB:
 
     def lc_update_blacklist(self, vpath):
         cursor = self.conn.cursor()
-        cursor.execute("UPDATE main_mapping SET blacklist=blacklist+1 WHERE virtual_fullpath LIKE '%' || ? || '%'", (vpath,))
+        cursor.execute("UPDATE main_mapping SET blacklist=blacklist+1 WHERE virtual_fullpath LIKE '%' || ? || '%' AND actual_fullpath is not null", (vpath,))
 
 
     def lc_update_policy_completion(self, vpath, comp):
