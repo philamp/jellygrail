@@ -33,7 +33,6 @@ from jgscan.jgsql import jellyDB
 from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
-from localimport import computePolicies
 from kodi_services.sqlkodi import kodi_mysql_verify
 from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, new_send_full_nfo_to_kodi, full_nfo_refresh_call, append_batch_to_kodi_instance, new_merge_kodi_versions, getKodiInfo, extract_triplets
 #from jg_services import premium_timeleft, test
@@ -218,11 +217,14 @@ async def getContextMenu(request):
     mediatype = request.path_params["mediatype"]
     uid = request.query_params.get("uid")
 
-    result = {}
+    result = {
+        "menu": {}
+    }
 
     if mediatype not in ['movie', 'season']:
         result['menu'].update({
-            'Actions not supported on this item': "#NULL"
+            'Error: Please select a movie or a tvshow season': "#NULL",
+            '----------': "#NULL"
         })
         
 
@@ -240,6 +242,9 @@ async def getContextMenu(request):
         'Reset Add-on': '#RESETADDON',
         'Open Add-on settings': '#OPENSETTINGS'
     }
+
+
+    logger.info(f"menu data sent to kodi is : {result}")
 
     return JSONResponse(result, status_code=200)
 
@@ -549,6 +554,7 @@ async def startup_event():
 @app.on_event("shutdown")
 async def shutdown_event():
     
+    genericClass.stopImport()
     JobManager.stop()
     staticDB.s.sqclose()
 
@@ -564,7 +570,7 @@ def remoteScanWrapper(ctx, stop):
 
 def computePoliciesWrapper(ctx, stop):
     # run jgservices.remoteScan
-    computePolicies()
+    localimport.computePolicies()
 
 
 
@@ -601,6 +607,11 @@ def multiScanWrapper(ctx, stop):
 def lib_refresh_allWrapper(ctx, stop):
     jfapi.lib_refresh_all(stop)
     JobManager.trigger("nfoGenJob", ctx["wfid"])
+
+def importUncompletedWrapper(ctx, stop):
+    localimport.importUncompleted()
+
+
 
 def nfo_generatorWrapper(ctx, stop):
     willNfoRefresh = False
@@ -648,7 +659,8 @@ if __name__ == "__main__":
     # WARNING, nfoGenJob must be register AFTER jfScan
     JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=10)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
-    JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True)
+    JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True, interval=10) # TODO remove interval here
+    JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=10)
 
     
 

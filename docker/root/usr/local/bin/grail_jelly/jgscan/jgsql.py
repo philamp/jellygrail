@@ -151,7 +151,7 @@ class jellyDB:
     # here maybe we have to get the other fields (jginfo_rd_torrent_folder, jginfo_rclone_cache_item)
     def lc_get_dl_playlist(self):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE completion < 2 AND actual_fullpath is not null AND blacklist < 4 ORDER by blacklist ASC")
+        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE completion < 2 AND actual_fullpath is not null AND (blacklist < 4 or blacklist is null) ORDER by completion DESC, blacklist ASC")
         # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
         return cursor.fetchall()
     
@@ -164,7 +164,7 @@ class jellyDB:
     # list only media files here with "ffprobe is not null"
     def lc_ls_virtual_folder(self, folder_path):
         cursor = self.conn.cursor()
-        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE ffprobe is not null AND virtual_fullpath BETWEEN depenc( ? || '//') AND depenc( ? || '/\\')", (folder_path, folder_path))
+        cursor.execute("SELECT depdec(virtual_fullpath), actual_fullpath, completion FROM main_mapping WHERE ffprobe is not null AND virtual_fullpath collate scdepth BETWEEN depenc( ? ) AND depenc( ? || '/\\')", (folder_path, folder_path))
         # scdepth : between "" and "/\" ; sclist (default, like above) : between "//" and "/\", uses a custom sqlite collation function in bindfs_jelly and loaded from here : "/usr/local/share/bindfs-jelly/libsupercollate.so"
         return cursor.fetchall()
 

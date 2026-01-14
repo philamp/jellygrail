@@ -158,6 +158,8 @@ def rsync_partial_download_sync_strict_progress(
     )
     assert proc.stderr is not None
 
+    logger.info(f"LOCALIMPORT| Copying from {str(source)} TO {str(dest_part)}")
+
     last_progress_ts = time.monotonic()  # reset ONLY when bytes increase
     last_bytes: Optional[int] = None
     buf = b""
@@ -182,6 +184,7 @@ def rsync_partial_download_sync_strict_progress(
         while True:
             # 1) external stop
             if stop_event.is_set():
+                logger.info(f"LOCALIMPORT| Download stopped!")
                 terminate_process()
                 return 1
 
@@ -196,10 +199,12 @@ def rsync_partial_download_sync_strict_progress(
                     if not chunk:
                         break
                     buf += chunk
+                logger.info(f"LOCALIMPORT| Download completed!")
                 break
 
             # 3) strict idle timeout (only bytes progress resets the timer)
             if (time.monotonic() - last_progress_ts) > idle_timeout_s:
+                logger.info(f"LOCALIMPORT| Download fails, file blacklist increased!")
                 terminate_process()
                 return -1
 
@@ -242,6 +247,7 @@ def rsync_partial_download_sync_strict_progress(
 
         # If you want the atomic finalize here:
         os.replace(dest_part, dest_final)
+        logger.info(f"LOCALIMPORT| Done, final renaming to {str(dest_final)} and db changes")
 
         return 2
 
@@ -273,9 +279,10 @@ def importUncompleted():
         bl_noext_items = []
 
         for (vpath, apath, comp) in result:
-            
+            logger.info("in sqlite playlist loop")
             # check bl live array, not checking a file coming from same release as a blacklisted file
-            if get_wo_ext(vpath) not in bl_noext_items:
+            if get_wo_ext(vpath) not in bl_noext_items and "remote" in apath.split("/", 2)[2]:
+                logger.info("if remote etc entered")
 
                 jgDB.lc_set_dl_completion_specific(vpath, 1)
 
@@ -283,7 +290,7 @@ def importUncompleted():
                 # create parent folders
                 # convention is : 2 first parts is mountpoint
                 src = Path(apath)
-                src_mountpoint = src.parts[:3]   # ('/', 'mnt', 'data')
+                src_mountpoint = Path(*src.parts[:3])   # ('/', 'mnt', 'data')
                 relative = src.relative_to(src_mountpoint)
                 # TODO this could be guessed from the first mount found having "import in str" or shting like that
                 dst_mountpoint = Path("/mounts/local_import")
@@ -306,7 +313,7 @@ def importUncompleted():
                         
                 elif resdl == 2:
                     jgDB.lc_set_dl_completion_specific(vpath, 2)
-                    jgDB.lc_update_actual_path(vpath, dst_path)
+                    jgDB.lc_update_actual_path(vpath, str(dst_path))
                 
 
                 #else
@@ -334,59 +341,79 @@ def importUncompleted():
     jgDB.sqclose()
 
 
+_SXXEYY_RE = re.compile(r"(S\d{1,2}E\d{1,2})", re.IGNORECASE)
+
+def sxxeyy_key(vfn: str) -> str:
+    """
+    Retourne une clé normalisée 's01e02' depuis vfn.
+    Si pas trouvé, fallback: vfn entier (ça évite de tout mélanger).
+    """
+    m = _SXXEYY_RE.search(vfn or "")
+    return m.group(1).lower() if m else (vfn or "").lower()
+
+
 def computePolicies():
     jgDB = jellyDB()
 
-    candidateVPath_Tuples = []
-
-    candidateVPath_Tuples = []
-
-    finalCandidatesTuples = []
-
     for (parentPath, Qpolicy, Lpolicy, pcomp) in jgDB.lc_ls_parent_paths():
+
+        # groups: key 's01e02' -> list[(storage, vfn, Qpol, Lpol, L2pol, ...)]
+        groups = {}
+
+        # 1) collect + group by SxxEyy
         for (vfn, actual_path, dlcomp) in jgDB.lc_ls_virtual_folder(parentPath):
 
             # TODO avoid jgxmultiple and jgxbluray !
 
-
-            # LOCAL
+            # LOCAL / REMOTE (ta logique)
             if "remote" not in actual_path.split("/", 2)[2]:
-                candidateVPath_Tuples.append((1, *criteriaQualification(vfn)))
-            # REMOTE
+                storage = 1
             else:
-                candidateVPath_Tuples.append((0, *criteriaQualification(vfn)))
+                storage = 0
 
-            # tuple pattern : storage, vfn, Qpol, LPol, L2Pol
+            cand = (storage, *criteriaQualification(vfn))
+            key = sxxeyy_key(vfn)
+            groups.setdefault(key, []).append(cand)
 
-            # up to 2 final candidates depending on Qpol
+        # si aucun épisode/candidat
+        if not groups:
+            jgDB.lc_update_policy_completion(parentPath, 1)
+            jgDB.sqcommit()
+            continue
 
-            # A/ Qpol = 1 : order by Qpol ASC Lpol DESC -> TOTAL 1 candidate
-            # B/ Qpol = 2 : do the CASE A/ + order by  Qpol DESC Lpol DESC -> potential TOTAL 2 candidates
+        finalCandidatesTuples = []
 
-            # C/ + potential one more candidate if Lpol = 2 -> order by Lpol DESC Qpol ANY (DESC)
+        # 2) apply A/B/C per episode-group
+        for key, candidateVPath_Tuples in groups.items():
+            if not candidateVPath_Tuples:
+                continue
 
-            # A/
-            finalCandidatesTuples.append(candidateVPath_Tuples.sort(key=lambda t: (t[2], -t[3]))[0])
+            # A/ Qpol ASC, Lpol DESC
+            finalCandidatesTuples.append(
+                min(candidateVPath_Tuples, key=lambda t: (t[2], -t[3]))
+            )
 
-            #si qpol = 2
-            finalCandidatesTuples.append(candidateVPath_Tuples.sort(key=lambda t: (-t[2], -t[3]))[0])
+            # B/ Qpol DESC, Lpol DESC (si Qpolicy == 2 et qu'il existe un Qpol==2 dans CE groupe)
+            if Qpolicy == 2 and any(t[2] == 2 for t in candidateVPath_Tuples):
+                finalCandidatesTuples.append(
+                    min(candidateVPath_Tuples, key=lambda t: (-t[2], -t[3]))
+                )
 
-            # si lpol = 2 ET qu'il y'a un lpol = 2 
-            finalCandidatesTuples.append(candidateVPath_Tuples.sort(key=lambda t: (-t[3], t[2]))[0])
+            # C/ Lpol DESC, Qpol ANY (tu as tie-break Qpol ASC)
+            if Lpolicy == 2 and any(t[3] == 2 for t in candidateVPath_Tuples):
+                finalCandidatesTuples.append(
+                    min(candidateVPath_Tuples, key=lambda t: (-t[3], t[2]))
+                )
 
+        # 3) dédup global (tu acceptes perte d'ordre)
+        finalCandidatesTuples = list(set(finalCandidatesTuples))
 
-            list(set(finalCandidatesTuples))
+        # 4) remote => dl_completion = 0
+        for cand in finalCandidatesTuples:
+            if cand[0] == 0:
+                jgDB.lc_set_dl_completion(get_wo_ext(cand[1]), 0)
 
-            for cand in finalCandidatesTuples:
-                if cand[0] == 0:
-                    jgDB.lc_set_dl_completion(get_wo_ext(cand[1]), 0)
-
-
-
-
-            
-        # set completion = 1 for this parentPath:
-
+        # 5) mark completion
         jgDB.lc_update_policy_completion(parentPath, 1)
         jgDB.sqcommit()
 
@@ -419,8 +446,9 @@ def getMenuItems(mediatype, mediaid, uid):
     #else
 
     # embed uinique ids in payload to be used back by module
+
     for item in result:
-        
+            
         vp = item['virtualPath']
         vp = vp[:-1] if vp.endswith("/") else vp
 
@@ -428,63 +456,81 @@ def getMenuItems(mediatype, mediaid, uid):
 
         Title = item.get("movieTitle", "")
 
+        parentList = list(set(parentList))
 
-    #unique
-    parentList = list(set(parentList))
+        
 
-    ctMenu['payload'] = parentList
+    if mediatype == "season":
+        seasonnb = result[0].get("season")
+        seasonstr = f"{seasonnb:02d}"
 
-    logger.info(f"menubuilder       | Found parent paths: {parentList}")
+        seasonParentList = [path+f"/Season {seasonstr}" for path in parentList]
 
-    ## LS each parentpath to get all actualpaths and completion status
+        ctMenu['payload'] = seasonParentList
 
-    jgDB = jellyDB()
+        ctMenu['menu'][f'{Title} Season {seasonstr}'] = "#NULL"
 
-    for path in parentList:
-        for (vfn,actual_path,_) in jgDB.lc_ls_virtual_folder(path):
-
-            if actual_path:
-                logger.info(f"menubuilder       | Found virtual filename {vfn} in virtual folder {path} mapped to actual path {actual_path}")
-
-                logger.info(f"menubuilder       | actual_path split: {actual_path.split('/',2)}")
-                # LOCAL
-                if "remote" not in actual_path.split("/", 2)[2]:
-                    globalLevelExtractor(vfn, L_UHD_lang_level, L_HD_lang_level)
-
-                # REMOTE
-                else:
-                    globalLevelExtractor(vfn, R_UHD_lang_level, R_HD_lang_level)
-
-    jgDB.sqclose()
-
-    # build information string based on findings
-    final_L_UHD_lang_level = max(L_UHD_lang_level) if L_UHD_lang_level else 0
-    final_L_HD_lang_level = max(L_HD_lang_level) if L_HD_lang_level else 0
-    final_R_UHD_lang_level = max(R_UHD_lang_level) if R_UHD_lang_level else 0
-    final_R_HD_lang_level = max(R_HD_lang_level) if R_HD_lang_level else 0
+    elif mediatype == "movie":
+        
 
 
-    L_info_tpl = "L:"
-    L_info_tpl += " UHD" if final_L_UHD_lang_level > 0 else ""
-    L_info_tpl += f" with {PREFLANG}" if final_L_UHD_lang_level > 1 else ""
+        #unique
+        
 
-    L_info_tpl += ", HD" if final_L_HD_lang_level > 0 else ""
-    L_info_tpl += f" with {PREFLANG}" if final_L_HD_lang_level > 1 else ""
+        ctMenu['payload'] = parentList
 
-    R_info_tpl = "R:"
-    R_info_tpl += " UHD" if final_R_UHD_lang_level > 0 else ""
-    R_info_tpl += f" with {PREFLANG}" if final_R_UHD_lang_level > 1 else ""
-    R_info_tpl += ", HD" if final_R_HD_lang_level > 0 else ""
-    R_info_tpl += f" with {PREFLANG}" if final_R_HD_lang_level > 1 else ""
+        logger.info(f"menubuilder       | Found parent paths: {parentList}")
 
-    ctMenu['menu'][f'{Title}'] = "#NULL"
-    ctMenu['menu'][f"{L_info_tpl} | {R_info_tpl}"] = "#NULL"
+        ## LS each parentpath to get all actualpaths and completion status
 
-    ctMenu['menu'][f'Keep this {mediatype}'] = "#KEEPLOCAL"
-    ctMenu['menu'][f'Keep this {mediatype} + 4K'] = "#KEEPLOCALUHD"
+        jgDB = jellyDB()
+
+        for path in parentList:
+            for (vfn,actual_path,_) in jgDB.lc_ls_virtual_folder(path):
+
+                if actual_path:
+                    logger.info(f"menubuilder       | Found virtual filename {vfn} in virtual folder {path} mapped to actual path {actual_path}")
+
+                    logger.info(f"menubuilder       | actual_path split: {actual_path.split('/',2)}")
+                    # LOCAL
+                    if "remote" not in actual_path.split("/", 2)[2]:
+                        globalLevelExtractor(vfn, L_UHD_lang_level, L_HD_lang_level)
+
+                    # REMOTE
+                    else:
+                        globalLevelExtractor(vfn, R_UHD_lang_level, R_HD_lang_level)
+
+        jgDB.sqclose()
+
+        # build information string based on findings
+        final_L_UHD_lang_level = max(L_UHD_lang_level) if L_UHD_lang_level else 0
+        final_L_HD_lang_level = max(L_HD_lang_level) if L_HD_lang_level else 0
+        final_R_UHD_lang_level = max(R_UHD_lang_level) if R_UHD_lang_level else 0
+        final_R_HD_lang_level = max(R_HD_lang_level) if R_HD_lang_level else 0
 
 
+        L_info_tpl = "Local:"
+        L_info_tpl += " UHD" if final_L_UHD_lang_level > 0 else ""
+        L_info_tpl += f" with {PREFLANG}" if final_L_UHD_lang_level > 1 else ""
 
+        L_info_tpl += ", HD" if final_L_HD_lang_level > 0 else ""
+        L_info_tpl += f" with {PREFLANG}" if final_L_HD_lang_level > 1 else ""
+
+        R_info_tpl = "Remote:"
+        R_info_tpl += " UHD" if final_R_UHD_lang_level > 0 else ""
+        R_info_tpl += f" with {PREFLANG}" if final_R_UHD_lang_level > 1 else ""
+        R_info_tpl += ", HD" if final_R_HD_lang_level > 0 else ""
+        R_info_tpl += f" with {PREFLANG}" if final_R_HD_lang_level > 1 else ""
+
+        ctMenu['menu'][f'{Title}'] = "#NULL"
+        ctMenu['menu'][f"{L_info_tpl}"] = "#NULL"
+        ctMenu['menu'][f"{R_info_tpl}"] = "#NULL"
+        
+
+
+    ctMenu['menu']['----------'] = "#NULL"
+    ctMenu['menu'][f'KEEP this {mediatype}'] = "#KEEPLOCAL"
+    ctMenu['menu'][f'KEEP this {mediatype} + 4K'] = "#KEEPLOCALUHD"
 
     return ctMenu
 
