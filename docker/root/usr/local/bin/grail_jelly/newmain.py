@@ -609,7 +609,7 @@ def lib_refresh_allWrapper(ctx, stop):
     JobManager.trigger("nfoGenJob", ctx["wfid"])
 
 def importUncompletedWrapper(ctx, stop):
-    localimport.importUncompleted()
+    localimport.importUncompleted(stop)
 
 
 
@@ -660,7 +660,7 @@ if __name__ == "__main__":
     JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=10)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
     JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True, interval=10) # TODO remove interval here
-    JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=10)
+    JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=1600)
 
     
 

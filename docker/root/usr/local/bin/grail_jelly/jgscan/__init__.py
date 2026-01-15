@@ -571,7 +571,7 @@ def init_mountpoints():
     logger.info("   STORAGE/ Rclone startup (10s)...") #toimprove with s6 ?
     time.sleep(1)
     for f in os.scandir(MOUNTS_ROOT): 
-        if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
+        if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name and not f.name.startswith("local_import"):
             typem = "local" if f.name.startswith("local_") else "remote"
             logger.info(f"   STORAGE/ {f.name}")
             pointNamesAndType.append((f.name,typem))

@@ -130,6 +130,7 @@ def rsync_partial_download_sync_strict_progress(
     rsync_path: str = "rsync",
     idle_timeout_s: float = 30.0,
     temp_suffix: str = ".part",
+    stat_interval_s: float = 0.5,
 ) -> int:
     """
     Return codes:
@@ -143,8 +144,8 @@ def rsync_partial_download_sync_strict_progress(
     args = [
         rsync_path,
         "--partial",
-        "--info=progress2",
         "--no-inc-recursive",
+        "--inplace",
         str(source),
         str(dest_part),
     ]
@@ -152,17 +153,23 @@ def rsync_partial_download_sync_strict_progress(
     proc = subprocess.Popen(
         args,
         stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
         bufsize=0,
-        preexec_fn=os.setsid,  # POSIX: separate process group
+        preexec_fn=os.setsid,
     )
-    assert proc.stderr is not None
 
-    logger.info(f"LOCALIMPORT| Copying from {str(source)} TO {str(dest_part)}")
+    logger.info(f"  DOWNLOAD| from {str(source)} TO {str(dest_part)}")
 
-    last_progress_ts = time.monotonic()  # reset ONLY when bytes increase
-    last_bytes: Optional[int] = None
-    buf = b""
+    last_progress_ts = time.monotonic()
+    last_size: Optional[int] = None
+
+    def safe_get_size() -> int:
+        try:
+            return dest_part.stat().st_size
+        except FileNotFoundError:
+            return 0
+        except Exception:
+            return -1
 
     def terminate_process():
         if proc.poll() is not None:
@@ -180,93 +187,60 @@ def rsync_partial_download_sync_strict_progress(
                 pass
             proc.wait()
 
+    def delete_part_file():
+        try:
+            dest_part.unlink(missing_ok=True)
+            logger.info(f"  DOWNLOAD| Deleted partial file {dest_part}")
+        except Exception as e:
+            logger.warning(f"  DOWNLOAD| Failed to delete partial file {dest_part}: {e}")
+
     try:
         while True:
-            # 1) external stop
             if stop_event.is_set():
-                logger.info(f"LOCALIMPORT| Download stopped!")
+                logger.info("  DOWNLOAD| stopped!")
                 terminate_process()
                 return 1
 
-            # 2) completion check FIRST (prevents race vs timeout)
             if proc.poll() is not None:
-                # drain remaining stderr (non-blocking best-effort)
-                while True:
-                    r, _, _ = select.select([proc.stderr], [], [], 0)
-                    if not r:
-                        break
-                    chunk = os.read(proc.stderr.fileno(), 65536)
-                    if not chunk:
-                        break
-                    buf += chunk
-                logger.info(f"LOCALIMPORT| Download completed!")
+                logger.info("  DOWNLOAD| completed!")
                 break
 
-            # 3) strict idle timeout (only bytes progress resets the timer)
+            sz = safe_get_size()
+            if sz >= 0:
+                if last_size is None:
+                    last_size = sz
+                    last_progress_ts = time.monotonic()
+                elif sz > last_size:
+                    last_size = sz
+                    last_progress_ts = time.monotonic()
+
             if (time.monotonic() - last_progress_ts) > idle_timeout_s:
-                logger.info(f"LOCALIMPORT| Download fails, file blacklist increased!")
+                logger.info("  DOWNLOAD| fails (idle timeout), cleaning up part file")
                 terminate_process()
+                delete_part_file()
                 return -1
 
-            # 4) wait a bit for stderr readability (keeps loop responsive)
-            r, _, _ = select.select([proc.stderr], [], [], 0.25)
-            if not r:
-                continue
-
-            chunk = os.read(proc.stderr.fileno(), 65536)
-            if not chunk:
-                # stderr closed
-                break
-
-            buf += chunk
-
-            # rsync progress often uses '\r' updates; treat '\r' as line breaks too
-            buf = buf.replace(b"\r", b"\n")
-            while True:
-                nl = buf.find(b"\n")
-                if nl < 0:
-                    break
-                line = buf[:nl].strip()
-                buf = buf[nl + 1 :]
-
-                if not line:
-                    continue
-
-                m = _PROGRESS_RE.search(line)
-                if not m:
-                    continue
-
-                b = int(m.group("bytes"))
-                if last_bytes is None or b > last_bytes:
-                    last_bytes = b
-                    last_progress_ts = time.monotonic()
+            time.sleep(stat_interval_s)
 
         rc = proc.wait()
         if rc != 0:
             return -1
 
-        # If you want the atomic finalize here:
         os.replace(dest_part, dest_final)
-        logger.info(f"LOCALIMPORT| Done, final renaming to {str(dest_final)} and db changes")
-
+        logger.info(f"  DOWNLOAD| Done, final renaming to {str(dest_final)} and db changes")
         return 2
 
     finally:
         terminate_process()
-        try:
-            if proc.stderr:
-                proc.stderr.close()
-        except Exception:
-            pass
 
-def importUncompleted():
+def importUncompleted(stopctxevent):
 
     #check first if internet is reachable
     if not has_internet():
-        logger.error('LOCALIMPORT| Cloudlfare not working, importer halted.')
+        logger.error('  DOWNLOAD| Cloudlfare not working, importer halted.')
         return
     
-    logger.info('LOCALIMPORT| Cloudflare working, starting importer...')
+    logger.info('  DOWNLOAD| Cloudflare working, starting importer...')
 
     # get dl playlist
     jgDB = jellyDB()
@@ -279,10 +253,10 @@ def importUncompleted():
         bl_noext_items = []
 
         for (vpath, apath, comp) in result:
-            logger.info("in sqlite playlist loop")
+            if stopctxevent.is_set():
+                break
             # check bl live array, not checking a file coming from same release as a blacklisted file
             if get_wo_ext(vpath) not in bl_noext_items and "remote" in apath.split("/", 2)[2]:
-                logger.info("if remote etc entered")
 
                 jgDB.lc_set_dl_completion_specific(vpath, 1)
 
@@ -479,7 +453,7 @@ def getMenuItems(mediatype, mediaid, uid):
 
         ctMenu['payload'] = parentList
 
-        logger.info(f"menubuilder       | Found parent paths: {parentList}")
+        #logger.info(f"menubuilder       | Found parent paths: {parentList}")
 
         ## LS each parentpath to get all actualpaths and completion status
 
@@ -489,9 +463,9 @@ def getMenuItems(mediatype, mediaid, uid):
             for (vfn,actual_path,_) in jgDB.lc_ls_virtual_folder(path):
 
                 if actual_path:
-                    logger.info(f"menubuilder       | Found virtual filename {vfn} in virtual folder {path} mapped to actual path {actual_path}")
+                    #logger.info(f"menubuilder       | Found virtual filename {vfn} in virtual folder {path} mapped to actual path {actual_path}")
 
-                    logger.info(f"menubuilder       | actual_path split: {actual_path.split('/',2)}")
+                    #logger.info(f"menubuilder       | actual_path split: {actual_path.split('/',2)}")
                     # LOCAL
                     if "remote" not in actual_path.split("/", 2)[2]:
                         globalLevelExtractor(vfn, L_UHD_lang_level, L_HD_lang_level)

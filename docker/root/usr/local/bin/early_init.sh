@@ -27,6 +27,7 @@ mkdir -p /Cache_Check_Video_Library
 mkdir -p /Kodi_Video_Library
 mkdir -p /mounts/kodi/software
 mkdir -p /mounts/kodi/backups
+mkdir -p /specificmounts
 chown -R www-data:root /jellygrail/jellyfin
 
 # every folder that can't be created on build time (they would be overwritten by empty runtime mounted folders.
