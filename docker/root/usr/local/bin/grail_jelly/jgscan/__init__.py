@@ -220,10 +220,6 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     if season_present: 
                         if show != "": 
                             # ensuring structure
-                            # todo : first_audio must be at the show level of dive_s
-                            
-                            
-
 
                             # ensuring end
                             # dive_s_[show]['finalname'] = show + first_audio old way, and it's already set
@@ -570,8 +566,14 @@ def init_mountpoints():
     global pointNamesAndType
     logger.info("   STORAGE/ Rclone startup (10s)...") #toimprove with s6 ?
     time.sleep(1)
-    for f in os.scandir(MOUNTS_ROOT): 
-        if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name and not f.name.startswith("local_import"):
+    for f in os.scandir(MOUNTS_ROOT):
+        if f.name == "remote_webdav":
+            for g in os.scandir(MOUNTS_ROOT+"/remote_webdav"):
+                if g.is_dir() and g.name.startswith("local_") and not '@eaDir' in g.name and not g.name.startswith("local_import"):
+                    typem = "remote"
+                    logger.info(f"   STORAGE/ remote_webdav/{g.name}")
+                    pointNamesAndType.append(("remote_webdav/"+g.name,typem))
+        elif f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name and not f.name.startswith("local_import"):
             typem = "local" if f.name.startswith("local_") else "remote"
             logger.info(f"   STORAGE/ {f.name}")
             pointNamesAndType.append((f.name,typem))

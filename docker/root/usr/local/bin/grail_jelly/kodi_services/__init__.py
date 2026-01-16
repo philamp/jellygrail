@@ -10,6 +10,8 @@ from datetime import datetime
 from jg_services import get_premium_time_left
 from kodi_services.kodiInstances import kodiDBRegistry
 
+
+
 KODI_MAIN_URL = "172.22.2.28" # TODO remove, to be deprecated
 
 kodi_url = f"http://{KODI_MAIN_URL}:8080/jsonrpc"
@@ -231,16 +233,6 @@ def kodi_marks_will_update(puid):
     finally:
         if db is not None:
             db.close()
-        
-
-    # put existing nfobatches to consumed for this kodi instances:
-
-    # issue here is : 
-    # if order is : user unmonitored scan in kodi, then nfo jobs, then monitored scan : nfobatches will be set as consumed but they're not
-    # (explaination : kodi does not reload nfo after the first scan of a media)
-    # solution : set as consumed only if no more uidtype jellygrail exists TODO
-
-    #set_previous_batches_as_consumed(puid)
 
     return
 
@@ -565,20 +557,6 @@ def refresh_kodi():
     ws.close()
     return True
 
-'''
-def check_any_notjfsynchronised_kodi_media(dbo):
-
-    tablekeys = {
-        "movie_view": "idMovie",
-        "tvshow_view": "idShow",
-        "episode_view": "idEpisode",
-        "idMovie": "movie_view"
-    }
-
-
-    for table, idtof in tablekeys:
-        pass
-'''
 
 
 def new_send_full_nfo_to_kodi(kid, kdb):
@@ -652,9 +630,6 @@ def new_send_full_nfo_to_kodi(kid, kdb):
     finally:
         if dbo is not None:
             dbo.close()
-        # todo done later
-        #kodiDBRegistry.get_all_instances_pointer()[kid]["consumedBatches"].append(batchid)
-        #kodiDBRegistry.save()
 
 
 # DONT CHANGE THIS ONE !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -733,14 +708,9 @@ def new_send_nfo_to_kodi(kid, kdb):
     finally:
         if dbo is not None:
             dbo.close()
-        # todo done later
-        #kodiDBRegistry.get_all_instances_pointer()[kid]["consumedBatches"].append(batchid)
-        #kodiDBRegistry.save()
 
 
-
-
-
+'''
 def send_nfo_to_kodi():
 
     if not is_kodi_alive() or not kodi_mysql_init_and_verify():
@@ -820,7 +790,7 @@ def send_nfo_to_kodi():
                     #toimprove, redundant unpacking here
                     for (result, uidtype) in results:
                         #logger.info(f"DEBU found mediaid: {result}")
-                        # todo : have the possibility to refresh every single NFO discarding criterias below 
+
                         if result not in already_sent_ids and (uidtype == 'jellygrail' or updated == True):
                             
                             #logger.info(f"{xiem} / {potential_nfo_to_send} metadatas sent")
@@ -883,7 +853,9 @@ def send_nfo_to_kodi():
 
     mariadb_close()
     return True
+'''
 
+'''
 def rename_to_done(filepath):
     # as we are on linux, we can then rename the file even if it's being accessed by another process
     # rename to .done will ensure that this file won't be sent to kodi again
@@ -898,6 +870,7 @@ def rename_to_done(filepath):
             logger.critical(f"!!! file (to rename to .done) does not exist (theorically impossible) [send_nfo_to_kodi]")
     except Exception as e:
         logger.debug(f"!! An error occured on renaming .nfo.jf to .nfo.jf.done : {e}")
+'''
 
 
 def new_merge_tvshow_seasons(dbo):
@@ -938,7 +911,7 @@ def new_merge_kodi_versions(kdb, kver):
 
         returned_max_played = dbo.return_last_played_max()
         returned_max_fileid = dbo.return_last_file_id_max()
-        # TODO later below condition to be re-activated
+
         if not (( returned_max_played and returned_max_played != dbro["last_max_lastplayed"]) or ( returned_max_fileid and returned_max_fileid != dbro["last_max_fileid"])):
             # do nothing if nothing changed
             logger.info("         6| Custom Kodi MySQL dB Operations bypassed")
@@ -1052,6 +1025,7 @@ def new_merge_kodi_versions(kdb, kver):
         if dbo is not None:
             dbo.close()
 
+'''
 def merge_kodi_versions():
     global last_max_lastplayed
     global last_max_fileid
@@ -1191,7 +1165,9 @@ def merge_kodi_versions():
         
     mariadb_close()
     return True
+'''
 
+'''
 def merge_tvshow_seasons():
 
     atleastone = False
@@ -1212,6 +1188,7 @@ def merge_tvshow_seasons():
         kodi_ui_refresh()
 
     return
+'''
 
 
 def fix_bad_merges():

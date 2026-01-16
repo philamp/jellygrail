@@ -27,7 +27,7 @@ mkdir -p /Cache_Check_Video_Library
 mkdir -p /Kodi_Video_Library
 mkdir -p /mounts/kodi/software
 mkdir -p /mounts/kodi/backups
-mkdir -p /specificmounts
+mkdir -p /localremounts
 chown -R www-data:root /jellygrail/jellyfin
 
 # every folder that can't be created on build time (they would be overwritten by empty runtime mounted folders.
@@ -105,6 +105,14 @@ if [ "$JF_WANTED" = "n" ]; then
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
 fi
 
+if [ "$REMOTE_WEB_DAV_LOCATION" != "http://hostname-or-ip:8089" ] && [ "$REMOTE_WEB_DAV_LOCATION" != "" ] ;
+  # Copy the example configuration file to the new configuration file
+  mkdir -p "/mounts/remote_webdav"
+  cp -f "/bash_templates/mounts/remote_webdav/rclone.conf.example" "/mounts/remote_webdav/rclone.conf"
+  # Replace the placeholder with the ip+port
+  sed -i "s/<url>/$REMOTE_WEB_DAV_LOCATION/" "/mounts/remote_webdav/rclone.conf"
+fi
+
 if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ] && [ "$RD_APITOKEN" != "" ] ; then
   # Copy the example configuration file to the new configuration file
   mkdir -p "/mounts/remote_realdebrid"
@@ -119,8 +127,13 @@ if [ "$WEBDAV_INTERNAL_PORT" = "" ] ; then
   WEBDAV_INTERNAL_PORT="8085"
 fi
 
+if [ "$WEBDAV_REMOTE_INTERNAL_PORT" = "" ] ; then
+  WEBDAV_REMOTE_INTERNAL_PORT="8089"
+fi
+
 cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
 sed -i "s/#WDP#/$WEBDAV_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
+sed -i "s/#REMOTEWDP#/$WEBDAV_REMOTE_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
 
 # - JellyGrail services install
 for dir_path in /mounts/*; do
@@ -187,7 +200,7 @@ if [ -d "/root/devmode" ]; then
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/kodi_addons
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
   # disrupt normal python execution
-  cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/main.py
+  cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/newmain.py
   mkdir -p /root/dev
   # end dev-context services
   git config --global user.email "xxxxxxxx@gmail.com"

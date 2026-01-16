@@ -80,8 +80,12 @@ RESET = "\033[0m"
 
 KODI_INSTANCES_JSON = "/jellygrail/data/kodi_instances.json"
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
+
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
 USE_REMOTE_RDUMP_ACTUALLY = True if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234" else False
+
+REMOTE_WED_DAV_LOCATION = os.getenv('REMOTE_WED_DAV_LOCATION')
+USE_REMOTE_WED_DAV_ACTUALLY = True if REMOTE_WED_DAV_LOCATION.startswith('http') and REMOTE_WED_DAV_LOCATION != "http://hostname-or-ip:8089" else False
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
 LAN_IP = guess_lan_ip() or "127.0.0.1" 
@@ -326,7 +330,7 @@ PROXY_URL = os.getenv('PROXY_URL') if (os.getenv('PROXY_URL') != "https://hostna
 USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
 USE_KODI_ACTUALLY = USE_KODI
 JF_WANTED = (os.getenv('JF_WANTED') or "y") != "n"
-JF_WANTED_ACTUALLY = JF_WANTED # ...AND config is true but we don't do config here TODO low-priority
+JF_WANTED_ACTUALLY = JF_WANTED
 PLEX_URLS_ARRAY = os.getenv('PLEX_URLS', '').split('|')
 
 USE_PLEX = (os.getenv('USE_PLEX') or "y") != "n"

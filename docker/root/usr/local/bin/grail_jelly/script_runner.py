@@ -14,17 +14,13 @@ from kodi_services import refresh_kodi
 # plug to same logging instance as main
 logger = logging.getLogger('jellygrail')
 
-# declare all global instances here
-
-
-
-
 # REFRESHER instance return codes:
 # 0 = at least one kodi missing
 # 1 = no kodi missing or queued execution so we don't know
 
 #### DEPRECATED #######
 
+'''
 class refreshByStep:
     _num_items = 0
     _steps = [
@@ -149,7 +145,6 @@ class refreshByStep:
 
         steps_to_run = list(set(steps_to_run)) if steps_to_run is not None else None
 
-        # CUSTOM TODO: have "started_step"
             
         
         total = len(cls._steps)
@@ -204,29 +199,28 @@ class refreshByStep:
             cls._queued_execution = True
             logger.info(" REFRESHER| ↘ Queued.") 
             return 1
+'''   
 
 
-
-
-        '''
-        if self.running:
-            self.queued_execution = True
-            logger.info("⏳ Refresh already running, queuing this request")
-        else:
-            self.running = True
+'''
+if self.running:
+    self.queued_execution = True
+    logger.info("⏳ Refresh already running, queuing this request")
+else:
+    self.running = True
+    self.queued_execution = False
+    logger.info(f"🚀 Starting refresh from step {start_at if start_at is not None else 0}")
+    try:
+        self.runEachStep()
+    except Exception as e:
+        logger.critical(f" Error occurred during refresh: {e}", exc_info=True)
+    finally:
+        self.running = False
+        if self.queued_execution:
             self.queued_execution = False
-            logger.info(f"🚀 Starting refresh from step {start_at if start_at is not None else 0}")
-            try:
-                self.runEachStep()
-            except Exception as e:
-                logger.critical(f" Error occurred during refresh: {e}", exc_info=True)
-            finally:
-                self.running = False
-                if self.queued_execution:
-                    self.queued_execution = False
-                    logger.info("🔁 Queued refresh request detected, starting it now")
-                    self.run(start_at=start_at, steps_to_run=steps_to_run)
-        '''
+            logger.info("🔁 Queued refresh request detected, starting it now")
+            self.run(start_at=start_at, steps_to_run=steps_to_run)
+'''
 
 
 

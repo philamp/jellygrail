@@ -57,9 +57,11 @@ def play_splash():
         print(f"|  - MySQL Port:                     {KODI_MYSQL_CONFIG.get('port', 0)}")
     if USE_KODI_ACTUALLY:
         print(f"|  - Kodi NFO Sync:                  {'Enabled' if JF_WANTED else 'Disabled, do not use Kodi NFO scrapper'}")                       
-    if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234":
-        print(f"|  - Friend JellyGrail URL:          {REMOTE_RDUMP_BASE_LOCATION}")
-    if RD_API_SET:  
+    if USE_REMOTE_RDUMP_ACTUALLY:
+        print(f"|  - Remote JG WS URL:               {REMOTE_RDUMP_BASE_LOCATION}")
+    if USE_REMOTE_WED_DAV_ACTUALLY:
+        print(f"|  - Remote JG WebDAV URL:           {REMOTE_WED_DAV_LOCATION}")
+    if RD_API_SET:
         print(f"|  - Real-Debrid API:                Enabled (token set)")
     if USE_PLEX_ACTUALLY:
         print(f"|  - Plex refresh URL(s): {', '.join(PLEX_URLS_ARRAY)}")

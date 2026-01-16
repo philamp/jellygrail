@@ -73,7 +73,8 @@ def show_find_most_similar(show, present_virtual_folders_shows):
 
     return (show, will_idx_check)
 
-#todo, not used, maybe to remove
+
+'''
 def find_lang_code(bibliographic_code):
     # Loop through all languages in pycountry
     for language in pycountry.languages:
@@ -82,7 +83,7 @@ def find_lang_code(bibliographic_code):
             # Return the terminological (T) code, which is 'alpha_3'
             return language.alpha_3
     return bibliographic_code  # Return None if no match is found
-
+'''
 
 def get_bit_depth(pix_fmt):
 
@@ -309,7 +310,7 @@ def subtitle_extension(file_name):
                     if lang_code:
                         _attribs.append(lang_code.lower())
 
-    # if there is really nothing return the only last split found #todo : if len < 8
+    # if there is really nothing return the only last split found  : if len < 8
     #if(len(_attribs) < 1):
     #    _attribs.append(parts[-1])
 

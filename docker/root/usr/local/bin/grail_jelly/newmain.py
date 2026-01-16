@@ -54,7 +54,7 @@ def trigger_nfo_refresh():
 
     
 
-# TODO maybe deprecated to removve
+# maybe deprecated to removve
 async def periodic_trigger_launcher(func, interval: int, stop_event: threading.Event):
     loop = asyncio.get_running_loop()
     while not stop_event.is_set():
@@ -170,7 +170,7 @@ async def gimmeNfos(request):
 
 async def setConsumed(request):
 
-    #kdb = request.query_params.get("db") # TODO later use to get all kodi instances for this db
+    #kdb = request.query_params.get("db") # 
     kid = request.query_params.get("uid")
     batchid = request.query_params.get("batchid")
 
@@ -253,8 +253,8 @@ async def getContextMenu(request):
 
 
 
-
-# TODO remove old
+'''
+#  remove old
 async def getContextMenuOld(request):
     mediaid = int(request.path_params["mediaid"])
     mediatype = request.path_params["mediatype"]
@@ -347,11 +347,10 @@ async def getContextMenuOld(request):
 
     ctMenu['Full NFO refresh'] = f'/trigger_full_nfo_refresh'
 
-    # todo remove
     return JSONResponse({"status": 404}, status_code=404)
 
     # movie / tvshow / season / episode
-
+'''
 
 
 
@@ -497,10 +496,10 @@ api_routes = tokenize(
     Route("/set_policy", setPolicyRoute, methods=["POST"])
 )
 
-# no / route here to let the user put a proxy in front of this and the webdav server
+# no / route here to let the user put a proxy in front of this and the webdav server # TODO remove bypass below to enable
 app = Starlette(
     routes=[
-            Route("/getrdincrementBYPASSTODO/{arg:int}", rdIncrRoute)
+            Route("/getrdincrementBYPASS/{arg:int}", rdIncrRoute)
         ]
 )
 app.mount("/api", api_routes) # tokenized paths
@@ -514,7 +513,7 @@ app.mount("/app", Router(
     ]
 ))
 
-# todo add ignored paths here ?
+# toimprove
 app.add_middleware(
     QuietRouteMiddleware,
     ignored_paths=["/apdsfi/speciasdfl_ops"]
@@ -573,14 +572,10 @@ def computePoliciesWrapper(ctx, stop):
     localimport.computePolicies()
 
 
-
 def trigger_rd_progress(ctx, stop):
-    if jg_services.rd_progress() == "PLEASE_SCAN_TODO": # or ctx["wfid"] == "wf1"  #TODO remove 1==1
-        wfid = JobManager.get_new_wfid()
+    wfid = JobManager.get_new_wfid()
+    if jg_services.rd_progress() == "PLEASE_SCAN" or wfid == "wf1":
         JobManager.trigger("jgScanJob", wfid, ctx={"wfid": wfid, "later": False}) # the first job of the WF marks the wfid
-
-    #else: #TODO temp toremove
-    #    JobManager.trigger("kodiScan", ctx["wfid"])
 
 
 def multiScanWrapper(ctx, stop):
@@ -615,11 +610,14 @@ def importUncompletedWrapper(ctx, stop):
 
 def nfo_generatorWrapper(ctx, stop):
     willNfoRefresh = False
-    if nfo_generator.nfo_loop_service(stop) or ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "twf-nfoGenJob-1":
-        willNfoRefresh = True
+    firsttime = False
 
+    if ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "twf-nfoGenJob-1":
         logger.info("JOBMANAGER| First workflow or scheduled wf triggers the nfoGen")
-
+        firsttime = True
+        
+    if nfo_generator.nfo_loop_service(stop) or firsttime:
+        willNfoRefresh = True
 
     #only called if ctx has later (launched from a scan job) ctx is always a dict here
     if ctx.get("later", False):
@@ -631,42 +629,31 @@ def nfo_generatorWrapper(ctx, stop):
         reset_kodi_instances_refresh("toNfoRefresh")
         time.sleep(0.1)
 
-    # send nfos TODO
-    # nfo gen knows wether there is work to do or not, but let the event consumption do it
-
-    
-
 
 
 if __name__ == "__main__":
 
     bdd_install()
     staticDB.sinit()
-    # ---------------periodic jobs launched once in startup event
-    # !!!!!!!!!!!!!!!!!! check that each one supports stop event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
+    # ---------------periodic jobs launched once in startup event
     JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=11)
     JobManager.register_job("ssdpBroadcast", SSDPTask, is_sync=False) #ASYNC !
 
 
     # ----------------triggered jobs launched on cascade on event
-    # !!!!!!!!!!!!!!!!!! check that each one supports stop event !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     JobManager.register_job("jgScanJob", multiScanWrapper, is_sync=True)
     JobManager.register_job("jfScan", lib_refresh_allWrapper, is_sync=True, cond=JF_WANTED_ACTUALLY)
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
-    # WARNING, nfoGenJob must be register AFTER jfScan
+    # WARNING, nfoGenJob must be registered AFTER jfScan
     JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=10)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
-    JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True, interval=10) # TODO remove interval here
+    JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True)
     JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=1600)
 
     
 
-
-
-    
     # UNIX sockets thread using uvloop
     t = threading.Thread(target=start_uvloop_thread, name="uvloop-thread", daemon=True)
     t.start()

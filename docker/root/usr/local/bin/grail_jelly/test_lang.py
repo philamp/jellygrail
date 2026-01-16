@@ -1,7 +1,7 @@
 import pycountry
 import re
 
-INTERESTED_LANGUAGES = "fre eng fra" #todo: put that in PREPARE.SH and SETTINGS EXAMPLE
+INTERESTED_LANGUAGES = "fre eng fra"
 
 # Preprocess: Create a set of all language names for quick lookup
 

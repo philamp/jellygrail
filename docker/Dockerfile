@@ -266,5 +266,5 @@ EXPOSE 6503
 # overwrite run jellyfin main original process as s6 service instead of entrypoint
 # and run python grail_jelly as default cmd
 ENTRYPOINT ["/init"]
-CMD ["python3", "/usr/local/bin/grail_jelly/main.py"]
+CMD ["python3", "/usr/local/bin/grail_jelly/newmain.py"]
 

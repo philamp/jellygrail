@@ -115,8 +115,8 @@ class kodiDBRegistry:
     # Public API
     # ───────────────────────────────
 
-
-    # TODO POC
+    '''
+    # POC
     @classmethod
     def all_poc(cls):
         # return a POC version of all entries
@@ -138,7 +138,7 @@ class kodiDBRegistry:
                 "alive": False,
             }
         }
-
+    '''
 
     @classmethod
     def get_all_instances_pointer(cls):
@@ -159,7 +159,7 @@ class kodiDBRegistry:
         return cls._nfoBatchesData
     
 
-    # TODO deprecated ?
+    # toimprove deprecated ?
     @classmethod
     def get(cls, uid):
         """Retrieve an entry by UID."""

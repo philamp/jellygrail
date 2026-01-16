@@ -11,13 +11,9 @@ from kodi_services import getKodiInfo, extract_triplets, lowersArray, extract_tr
 from jg_services import premium_timeleft
 
 # libs
-import asyncio
 from pathlib import Path
-from typing import Optional, Sequence
+from typing import Optional
 import signal
-import select
-
-_PROGRESS_RE = re.compile(rb"(?P<bytes>\d+)\s+(?P<pct>\d+)%", re.IGNORECASE)
 
 # function to 
 
@@ -39,11 +35,12 @@ def importMediaItems():
 '''
 
 # get actual path in jgDB using a provided db connector
-# MAYBE not used TODO verify
+'''
 def getActualPath(vpath, jgDB):
     for (actual_path,) in jgDB.get_path_actual(vpath):
         return actual_path
     return None
+'''
 
 
 def criteriaQualification(vfn):
@@ -266,7 +263,6 @@ def importUncompleted(stopctxevent):
                 src = Path(apath)
                 src_mountpoint = Path(*src.parts[:3])   # ('/', 'mnt', 'data')
                 relative = src.relative_to(src_mountpoint)
-                # TODO this could be guessed from the first mount found having "import in str" or shting like that
                 dst_mountpoint = Path("/mounts/local_import")
                 dst_path = dst_mountpoint / relative
 
@@ -333,12 +329,14 @@ def computePolicies():
 
         # groups: key 's01e02' -> list[(storage, vfn, Qpol, Lpol, L2pol, ...)]
         groups = {}
+        # avoid jgxmultiple and jgxbluray ! (toimprove)
+        if "JGxBluRay" in parentPath or "JGxMultiple" in parentPath:
+            continue
 
         # 1) collect + group by SxxEyy
         for (vfn, actual_path, dlcomp) in jgDB.lc_ls_virtual_folder(parentPath):
 
-            # TODO avoid jgxmultiple and jgxbluray !
-
+            
             # LOCAL / REMOTE (ta logique)
             if "remote" not in actual_path.split("/", 2)[2]:
                 storage = 1

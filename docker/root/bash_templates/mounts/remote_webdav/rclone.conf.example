@@ -1,0 +1,4 @@
+[remote_webdav]
+type = webdav
+url = <url>
+vendor = other

@@ -517,7 +517,7 @@ def rdump_backup(including_backup = True, returning_data = False):
         #ipage=1
         ipage=1 
         while nbelements == inbelements:
-            idata = RD.torrents.get(limit=inbelements, page=ipage).json() # does RD return no json if out of index ? TODO verify
+            idata = RD.torrents.get(limit=inbelements, page=ipage).json() # does RD return no json if out of index ? toimprove ?
             data += idata
             ipage += 1
             nbelements = len(idata)
