@@ -1,0 +1,19 @@
+#!/command/with-contenv sh
+set -eu
+
+LIST_FILE="/run/bind-mounts.list"
+
+if [ ! -f "$LIST_FILE" ]; then
+  exit 0
+fi
+
+# Umount en ordre inverse (plus safe)
+tac "$LIST_FILE" 2>/dev/null | while IFS= read -r dst; do
+  [ -n "$dst" ] || continue
+  if mountpoint -q "$dst"; then
+    umount "$dst" || umount -l "$dst" || true
+    echo "[bind-mounts] unmounted $dst"
+  fi
+done
+
+exit 0
