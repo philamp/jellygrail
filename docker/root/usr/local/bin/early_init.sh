@@ -199,6 +199,7 @@ if [ -d "/root/devmode" ]; then
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-mariadb
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/kodi_addons
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/specificmounts
   # disrupt normal python execution
   cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/newmain.py
   mkdir -p /root/dev
