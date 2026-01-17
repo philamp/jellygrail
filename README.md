@@ -1,3 +1,33 @@
+
+## ✋ 1/ Prerequisites
+
+- Linux system 🐧 with Bash shell.
+- Tested on x86 system, should build on ARM and should run on a Raspberry 4, but not tested yet.
+- Docker 🐳.
+- Git client to clone this repo (TODO: provide a prebuilt image).
+- Having a Real-Debrid account is better.
+
+## 🚧 2/ Build
+
+````
+git clone https://github.com/philamp/jellygrail.git
+cd jellygrail/docker
+sudo docker build -t philamp/jellygrail .
+````
+
+> [!TIP]
+> Find a conveniant directory on your system, beware that by default this folder will store
+> - ``jellygrail`` subfolder with config and runtime data
+> - the rclone cache _(0.5%~ of your real-debrid storage size)_.
+
+## ✨ 3/ Configuration wizard for first install and upgrade
+
+````
+./jg-config.sh
+````
+
+
+
 > [!CAUTION]
 > - New version named "20240915", **don't forget to RERUN PREPARE.SH !!!, also there are differents arguments in the docker run command**
 >   - breaking changes:
