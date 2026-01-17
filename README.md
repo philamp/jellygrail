@@ -19,6 +19,7 @@ sudo docker build -t philamp/jellygrail .
 > Find a conveniant directory on your system, beware that by default this folder will store
 > - ``jellygrail`` subfolder with config and runtime data
 > - the rclone cache _(0.5%~ of your real-debrid storage size)_.
+> - Dev note : change docker/root/usr/local/bin/early_init.sh in case of devmode
 
 ## ✨ 3/ Configuration wizard for first install and upgrade
 
