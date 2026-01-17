@@ -23,6 +23,7 @@ sudo docker build -t philamp/jellygrail .
 ## ✨ 3/ Configuration wizard for first install and upgrade
 
 ````
+cd ..
 ./jg-config.sh
 ````
 
