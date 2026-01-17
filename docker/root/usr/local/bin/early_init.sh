@@ -1,5 +1,5 @@
 #!/bin/sh -e
-VERSION="20250808" # !!! Should be aligned to settings.env.template and main.py !!!
+VERSION="20260117" # !!! Should be aligned to settings.env.template and newmain.py !!!
 # - Jellygrail figlet:
 cat << "EOF"
 

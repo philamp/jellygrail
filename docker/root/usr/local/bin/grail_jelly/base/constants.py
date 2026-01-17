@@ -4,6 +4,7 @@ import socket
 
 import threading
 
+VERSION = "20260117" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 
 class genericClass:
 
@@ -65,8 +66,6 @@ SSDP_TOKEN = SSDPToken.get()
 KODI_INSTANCES_FILE = "/jellygrail/data/kodi_instances.json"
 
 NFO_BATCHES_FILES = "/jellygrail/data/nfo_batches.json"
-
-VERSION = "20250808" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 
 # ANSI color codes
 RED = "\033[91m"
