@@ -80,10 +80,10 @@ RESET = "\033[0m"
 KODI_INSTANCES_JSON = "/jellygrail/data/kodi_instances.json"
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
 
-REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
+REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION') or ""
 USE_REMOTE_RDUMP_ACTUALLY = True if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234" else False
 
-REMOTE_WED_DAV_LOCATION = os.getenv('REMOTE_WED_DAV_LOCATION')
+REMOTE_WED_DAV_LOCATION = os.getenv('REMOTE_WED_DAV_LOCATION') or ""
 USE_REMOTE_WED_DAV_ACTUALLY = True if REMOTE_WED_DAV_LOCATION.startswith('http') and REMOTE_WED_DAV_LOCATION != "http://hostname-or-ip:8089" else False
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
@@ -91,9 +91,9 @@ LAN_IP = guess_lan_ip() or "127.0.0.1"
 INCR_KODI_REFR_MAX = 8
 
 #default that can be overriden in config/settings.env
-WEBDAV_INTERNAL_PORT = int(os.getenv('WEBDAV_INTERNAL_PORT', 0)) or 8085
-WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT', 0)) or 6502
-SSDP_PORT = int(os.getenv('SSDP_PORT', 0)) or 1900
+WEBDAV_INTERNAL_PORT = int(os.getenv('WEBDAV_INTERNAL_PORT') or "8085") 
+WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT') or "6502")
+SSDP_PORT = int(os.getenv('SSDP_PORT') or "1900")
 
 # kodi mysql config
 # used by ssdp message
@@ -102,7 +102,7 @@ KODI_MYSQL_CONFIG = {
     'user' : 'kodi',
     'password' : 'kodi',
     #'database' : 'kodi_video131',
-    'port' : int(os.getenv('MYSQL_INTERNAL_PORT', 0)) or 6503
+    'port' : int(os.getenv('MYSQL_INTERNAL_PORT') or "6503") # dont change this settiing in config, not implemented in s6 scripts TODO
 }
 
 # ip set in config:

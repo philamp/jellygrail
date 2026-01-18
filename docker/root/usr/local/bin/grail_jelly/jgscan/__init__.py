@@ -54,6 +54,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
     #logger.info(f"  > BROWSING PATH: {endpoint}/{releasefolder}")
 
+    mountemp = f"/mnt/tmp/{endpoint}"
+
     # 0 - init some default values
     multiple_movie_or_disc_present = False
     bdmv_present = False
@@ -256,15 +258,15 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     nomergetype = " - JGxBluRay"
                     iso_file_path = os.path.join(root, filename)
                     try:
-                        mount_iso(iso_file_path, "/mnt/tmp")
-                        if read_small_files("/mnt/tmp"):
+                        mount_iso(iso_file_path, mountemp)
+                        if read_small_files(mountemp):
                             nomergetype = " - JGxDVD"
                     except Exception as e:
                         stopthere = True
                         stopreason += ' >> Pre-reading ISO failed'
                         logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
                     finally:
-                        unmount_iso("/mnt/tmp")
+                        unmount_iso(mountemp)
                     stdout = None
                     if not stopthere:
                         prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
@@ -657,6 +659,8 @@ def scanThread(pnt, present_folders, stopEvent):
 
     dual_ep = []
 
+    mountemp = f"/mnt/tmp/{pnt[0]}"
+
     for d in os.scandir(MOUNTS_ROOT+"/"+pnt[0]):
         if d.name == '@eaDir':
             continue
@@ -792,8 +796,8 @@ def scanThread(pnt, present_folders, stopEvent):
                         iso_file_path = f.path
 
                         try:
-                            mount_iso(iso_file_path, "/mnt/tmp")
-                            if read_small_files("/mnt/tmp"):
+                            mount_iso(iso_file_path, mountemp)
+                            if read_small_files(mountemp):
                                 nomergetype = " - JGxDVD"
                         except Exception as e:
                             logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
@@ -804,7 +808,7 @@ def scanThread(pnt, present_folders, stopEvent):
                             if fferr != 0:
                                 stdout = None
                         finally:
-                            unmount_iso("/mnt/tmp")
+                            unmount_iso(mountemp)
                     
                     
                     threadDB.insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
