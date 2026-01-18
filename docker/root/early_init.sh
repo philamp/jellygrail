@@ -154,7 +154,7 @@ for dir_path in /mounts/*; do
                        "rar2fs_${dir_name}" \
                        "${dir_path}/" \
                        "${dir_name}"
-        echo " - ${dir_path} will be mounted with rclone and rar2fs."
+        echo " - ${dir_path} driven by rclone and rar2fs."
       else
         echo "Warning: No rclone.conf found in ${dir_path}. Skipping..."
       fi
@@ -165,9 +165,9 @@ for dir_path in /mounts/*; do
                      "" \
                      "rar2fs_${dir_name}" \
                      "${dir_path}/"
+      echo " - ${dir_path} driven by rar2fs."
       ;;
     *)
-      echo " - ${dir_path} is normal folder."
       ;;
   esac
 done
