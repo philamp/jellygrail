@@ -600,14 +600,14 @@ def socket_server_waiting(socket_type):
     # Listen for incoming connections
     server_socket.listen()
     if socket_type == "ffprobe":
-        logger.info(f"    SOCKET/ Waiting for any {socket_type} wrapper transaction ~")
+        logger.info(f"    SOCKET| Waiting for any {socket_type} wrapper transaction ~")
 
     while True:
         #print(".", end="", flush=True)
         connection, client_address = server_socket.accept() # it waits here
         if socket_type == "nfopath":
             socket_started = True
-            logger.info(f"    SOCKET/ BindFS connected")
+            logger.info(f"    SOCKET| BindFS connected")
         _handle_client_thread = threading.Thread(target=handle_socket_request, args=(connection, client_address, socket_type))
         _handle_client_thread.daemon = True
         _handle_client_thread.start()
@@ -675,7 +675,7 @@ if __name__ == "__main__":
 
     if JF_WANTED:
         if not jfconfig():
-            logger.critical("  JELLYFIN/ Config failed, please stop the container and fix the error. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders but it will remove all your Jellyfin libraries, configuration and users.")
+            logger.critical("  JELLYFIN| Config failed, please stop the container and fix the error. If login/password lost, you can reset Jellyfin by emptying /jellygrail/jellyfin/config and /jellygrail/jellyfin/cache folders but it will remove all your Jellyfin libraries, configuration and users.")
             JF_WANTED_ACTUALLY = False
 
 
@@ -696,18 +696,18 @@ if __name__ == "__main__":
     thread_e.start()
 
 
-    logger.info("    SOCKET/ Waiting for BindFS ...")
+    logger.info("    SOCKET| Waiting for BindFS ...")
     waitloop = 0
     while not socket_started:
         #print(".", end="", flush=True)
         waitloop += 1
         time.sleep(1)
         if(waitloop > 30):
-            logger.critical("    SOCKET/ BindFS is not connecting to socket !!!")
+            logger.critical("    SOCKET| BindFS is not connecting to socket !!!")
         if(waitloop > 32):
             # this is a workaround if docker logs contains : s6-sudoc: fatal: unable to get exit status from server: Operation timed out, docker restarts and usually works after. Weird error. Seems related to the way socket is instanciated
             full_run = False
-            logger.critical(f"    SOCKET/ JellyGrail now restarts if '--restart unless-stopped' was set, so please stop it manually to fix errors !!!")
+            logger.critical(f"    SOCKET| JellyGrail now restarts if '--restart unless-stopped' was set, so please stop it manually to fix errors !!!")
             break
 
     # ----------------- INITs -----------------------------------------

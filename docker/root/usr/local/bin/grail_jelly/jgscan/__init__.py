@@ -54,7 +54,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
     #logger.info(f"  > BROWSING PATH: {endpoint}/{releasefolder}")
 
-    mountemp = f"/mnt/tmp/{endpoint}"
+    mountemp = f"/mnt/tmp-{endpoint}"
 
     # 0 - init some default values
     multiple_movie_or_disc_present = False
@@ -266,7 +266,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         stopreason += ' >> Pre-reading ISO failed'
                         logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
                     finally:
-                        unmount_iso(mountemp)
+                        if os.path.ismount(mountemp):
+                            unmount_iso(mountemp)
                     stdout = None
                     if not stopthere:
                         prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
@@ -379,18 +380,18 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     elif(nbvideos_e > 1):
         multiple_movie_or_disc_present = True
         nomergetype = " - JGxMultiple"
-        logger.info("          | <- Multiple videos release")
+        logger.info("      SCAN| <- Multiple videos release")
     elif bdmv_present:
-        logger.info("          | <- BDMV or DVD Release")
+        logger.info("      SCAN| <- BDMV or DVD Release")
     elif season_present:
-        logger.info("          | <- TV show release")
+        logger.info("      SCAN| <- TV show release")
     else:
-        logger.info("          | <- Single video release")
+        logger.info("      SCAN| <- Single video release")
 
 
     if stopthere == True:
         #logger.warning(f"          ~ Failed Item: {os.path.join(endpoint, releasefolder)} ; Reasons: {stopreason}")
-        logger.warning(f"          | ...but failed because:{stopreason}")
+        logger.warning(f"      SCAN| ...but failed because:{stopreason}")
         return False
     # ---- DIVE S READ + insert + S_DUP idxcheck, unless stopthere is true-----
     if season_present and not stopthere:
@@ -659,7 +660,7 @@ def scanThread(pnt, present_folders, stopEvent):
 
     dual_ep = []
 
-    mountemp = f"/mnt/tmp/{pnt[0]}"
+    mountemp = f"/mnt/tmp-{pnt[0]}"
 
     for d in os.scandir(MOUNTS_ROOT+"/"+pnt[0]):
         if d.name == '@eaDir':
@@ -676,7 +677,7 @@ def scanThread(pnt, present_folders, stopEvent):
         for f in os.scandir(src1):
             if f.path not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
-                    logger.info(f"          | *new* {f.name}")
+                    logger.info(f"      SCAN| >>>> {f.name}")
                     browse = True
                     endpoint2browse = src1
                     rar_item = None
@@ -684,7 +685,7 @@ def scanThread(pnt, present_folders, stopEvent):
                         if g.name.lower().endswith('.rar') :
                             rar_item = g.path
                             endpoint2browse = src2
-                            logger.info(f"          | with a .RAR file: {g.name}")
+                            logger.info(f"      SCAN| with a .RAR file: {g.name}")
                             if storetype == "remote":
                                 for i in range(2):
                                     # cache-heater 0 for RAR files and rar2fs
@@ -699,7 +700,7 @@ def scanThread(pnt, present_folders, stopEvent):
                                                 browse = False
                                                 break
                                         elif unrar_result == "ERROR_NOFILES":
-                                            logger.warning(f"          | ...but NO Files in this RAR : {g.path}")
+                                            logger.warning(f"      SCAN| ...but NO Files in this RAR : {g.path}")
                                             browse = False
                                             break
                                         elif unrar_result == "ERROR":
@@ -718,7 +719,7 @@ def scanThread(pnt, present_folders, stopEvent):
                 
                 elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
 
-                    logger.info(f"          | *new* (folder-orphan) {f.name}")
+                    logger.info(f"      SCAN| >>>> (folder-orphan) {f.name}")
 
                     dvprofile = None
                     mediatype = None
@@ -808,7 +809,8 @@ def scanThread(pnt, present_folders, stopEvent):
                             if fferr != 0:
                                 stdout = None
                         finally:
-                            unmount_iso(mountemp)
+                            if os.path.ismount(mountemp):
+                                unmount_iso(mountemp)
                     
                     
                     threadDB.insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
@@ -856,7 +858,7 @@ def scan():
                         if g.name.lower().endswith('.rar') :
                             rar_item = g.path
                             endpoint2browse = src2
-                            logger.info(f"          | with a .RAR file: {g.name}")
+                            logger.info(f"      SCAN| with a .RAR file: {g.name}")
                             if storetype == "remote":
                                 for i in range(2):
                                     # cache-heater 0 for RAR files and rar2fs
@@ -871,7 +873,7 @@ def scan():
                                                 browse = False
                                                 break
                                         elif unrar_result == "ERROR_NOFILES":
-                                            logger.warning("          | ...but NO Files in this RAR")
+                                            logger.warning("      SCAN| ...but NO Files in this RAR")
                                             browse = False
                                             break
                                         elif unrar_result == "ERROR":

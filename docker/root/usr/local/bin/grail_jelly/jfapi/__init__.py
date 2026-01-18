@@ -31,13 +31,13 @@ def authByName():
     try:
         resp = requests.post(f'{BASE_URI}/Users/AuthenticateByName', headers=headers, json=json_payload)
         if resp.status_code != 200:
-            logger.critical("    JF-API/ FAILURE to authenticate to Jellyfin API, check your JF_LOGIN and JF_PASSWORD settings.env variables")
+            logger.critical("    JF-API| FAILURE to authenticate to Jellyfin API, check your JF_LOGIN and JF_PASSWORD settings.env variables")
             return False
         jfapikey = resp.json().get('AccessToken')
-        logger.info("    JF-API/ ... Authenticated to Jellyfin API")
+        logger.info("    JF-API| ... Authenticated to Jellyfin API")
         return True
     except requests.RequestException as e:
-        logger.critical(f"    JF-API/ Exception during authentication: {e}")
+        logger.critical(f"    JF-API| Exception during authentication: {e}")
         return False
 
 
@@ -51,7 +51,7 @@ def jellyfin(path, method='get', **kwargs):
 
     # Handle 401 Unauthorized (token invalid)
     if resp is not None and resp.status_code == 401:
-        logger.warning("    JF-API/ 401 Token rejected, attempting re-authentication...")
+        logger.warning("    JF-API| 401 Token rejected, attempting re-authentication...")
         jfapikey = None  # reset legacy token
         if authByName():
             resp = jellyfin_req(path, method, **kwargs)
@@ -59,7 +59,7 @@ def jellyfin(path, method='get', **kwargs):
             return None
     # handle other errors
     elif resp is not None and resp.status_code >= 400:
-        logger.critical(f"    JF-API/ {resp.status_code} error on GET/POST at : {path}")
+        logger.critical(f"    JF-API| {resp.status_code} error on GET/POST at : {path}")
         return None
 
     return resp
@@ -79,17 +79,17 @@ def jellyfin_req(path, method='get', **kwargs):
         try:
             response = getattr(requests, method)(url, headers=headers, **kwargs)
             if response.status_code in retryable:
-                logger.warning(f"    JF-API/ Attempt {attempt}: Received retryable status {response.status_code}")
+                logger.warning(f"    JF-API| Attempt {attempt}: Received retryable status {response.status_code}")
             else:
                 return response
         except Exception as e:
-            logger.warning(f"    JF-API/ Attempt {attempt}: Low level exception occurred: {e}")
+            logger.warning(f"    JF-API| Attempt {attempt}: Low level exception occurred: {e}")
         
         if attempt < retries:
             time.sleep(delay)
 
     # Final failure
-    logger.critical(f"    JF-API/ Failed after {retries} attempts to reach {url}")
+    logger.critical(f"    JF-API| Failed after {retries} attempts to reach {url}")
     return None
 
 def wait_for_jfscan_to_finish(stopEvent):

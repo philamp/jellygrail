@@ -248,7 +248,7 @@ def read_jfsqdate_from_file():
         with open(JFSQ_LAST_REQUEST, 'r') as file:
             strincr = file.read().strip()
     except FileNotFoundError:
-        logger.warning(f"No last sync queue date file found because first Jellyfin scan not happened yet")
+        logger.warning(f"   NFO-GEN|No last sync queue date file found because first Jellyfin scan not happened yet")
         return "2024-06-16T00:00:00.0000000Z"
     else:
         return strincr

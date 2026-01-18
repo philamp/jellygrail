@@ -70,11 +70,11 @@ async def handle_ffprobe(reader: asyncio.StreamReader, writer: asyncio.StreamWri
 
 
 async def handle_nfopath(reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-    logger.info(f"    SOCKET/ ...BindFS connected")
+    logger.info(f"    SOCKET| ...BindFS connected")
     while True:
         data = await reader.read(1024)
         if not data:
-            logger.error("    SOCKET/ nfopath socket disconnected (BindFS instance must have crashed!!)")
+            logger.error("    SOCKET| nfopath socket disconnected (BindFS instance must have crashed!!)")
             break
 
         message = data.decode('utf-8')
@@ -101,9 +101,9 @@ async def socket_server_waiting(socket_type: str):
     os.chmod(server_address, 0o777)
 
     if socket_type == "ffprobe":
-        logger.info(f"    SOCKET/ Waiting for any {socket_type} wrapper transaction ~")
+        logger.info(f"    SOCKET| Waiting for any {socket_type} wrapper transaction ~")
     else:
-        logger.info(f"    SOCKET/ BindFS waiting connection...")
+        logger.info(f"    SOCKET| BindFS waiting connection...")
 
     async with server:
         await server.serve_forever()
