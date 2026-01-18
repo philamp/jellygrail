@@ -165,7 +165,6 @@ for dir_path in /mounts/*; do
                      "" \
                      "rar2fs_${dir_name}" \
                      "${dir_path}/"
-      echo " - ${dir_path} will be mounted with rar2fs."
       ;;
     *)
       echo " - ${dir_path} is normal folder."
