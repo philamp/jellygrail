@@ -230,12 +230,14 @@ COPY root/ /
 RUN chmod u+x /init && \
     chmod -R +x /etc/s6-overlay/s6-rc.d && \
     chmod +x /kodi_addons.sh && \
-    chmod +x /usr/local/bin/early_init.sh && \
-    chmod +x /usr/local/bin/grail_jelly/main.py
+    chmod +x /early_init.sh && \
+    chmod +x /mountspecific.sh && \
+    chmod +x /unmountspecific.sh && \
+    chmod +x /usr/local/bin/grail_jelly/newmain.py
 
 # insert source to early_init.sh in s6-overlay /init
 RUN sed -i '1a\
-. /usr/local/bin/early_init.sh' /init
+. /early_init.sh' /init
 
 # ffprobew build with gcc
 RUN cd /usr/local/bin/ffprobe_wrapper && \
