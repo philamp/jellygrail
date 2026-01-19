@@ -567,6 +567,7 @@ def new_send_full_nfo_to_kodi(kid, kdb):
 
     batchid = "FULL"
 
+    #i = 0 #toremove
 
     try:
         dbo = sqlKodiDB(kdb)
@@ -580,7 +581,12 @@ def new_send_full_nfo_to_kodi(kid, kdb):
 
 
         for root, _, files in os.walk(JFSQ_STORED_NFO):
+            #if i > 50: #toremove
+            #    break #toremove
             for filename in files:
+            #    i += 1 #toremove
+            #    if i > 50: #toremove
+            #        break #toremove
                 tofetch = os.path.basename(root)
                 if filename.lower().endswith(('.nfo.jf',)):
                     # very small chance that a movie or episode contains those strings but theorically we should test substring with endswith()
@@ -641,6 +647,7 @@ def new_send_nfo_to_kodi(kid, kdb):
 
 
     already_sent_ids = []
+    already_seen_paths = []
 
     payload = {}
 
@@ -659,6 +666,12 @@ def new_send_nfo_to_kodi(kid, kdb):
                 }
 
                 for path in nfo_entries:
+
+                    if path not in already_seen_paths:
+                        already_seen_paths.append(path)
+                    else:
+                        continue
+
                     root = os.path.dirname(path)
                     tofetch = os.path.basename(root)
                     filename = os.path.basename(path)

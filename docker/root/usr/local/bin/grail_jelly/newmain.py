@@ -499,7 +499,7 @@ api_routes = tokenize(
 # no / route here to let the user put a proxy in front of this and the webdav server # TODO remove bypass below to enable
 app = Starlette(
     routes=[
-            Route("/getrdincrementBYPASS/{arg:int}", rdIncrRoute)
+            Route("/getrdincrement/{arg:int}", rdIncrRoute)
         ]
 )
 app.mount("/api", api_routes) # tokenized paths
@@ -637,7 +637,7 @@ if __name__ == "__main__":
     staticDB.sinit()
 
     # ---------------periodic jobs launched once in startup event
-    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=11)
+    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=15)
     JobManager.register_job("ssdpBroadcast", SSDPTask, is_sync=False) #ASYNC !
 
 
@@ -647,7 +647,7 @@ if __name__ == "__main__":
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
     # WARNING, nfoGenJob must be registered AFTER jfScan
-    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=10)
+    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=30)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
     JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True)
     JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=1600)

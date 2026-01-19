@@ -576,7 +576,7 @@ def init_mountpoints():
                     typem = "remote"
                     logger.info(f"   STORAGE/ remote_webdav/{g.name}")
                     pointNamesAndType.append(("remote_webdav/"+g.name,typem))
-        elif f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name and not f.name.startswith("local_import"):
+        elif f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
             typem = "local" if f.name.startswith("local_") else "remote"
             logger.info(f"   STORAGE/ {f.name}")
             pointNamesAndType.append((f.name,typem))
@@ -673,7 +673,7 @@ def scanThread(pnt, present_folders, stopEvent):
         if stopEvent.is_set():
             logger.warning("      SCAN| Stop event detected, stopping scanThread...")
             break
-        logger.info(f"      SCAN| /{pnt[0]} /{sdname} ...")
+        logger.info(f" SCANPOINT| /{pnt[0]} /{sdname} ...")
         for f in os.scandir(src1):
             if f.path not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:

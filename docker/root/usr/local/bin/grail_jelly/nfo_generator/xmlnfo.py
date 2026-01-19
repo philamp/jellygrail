@@ -226,7 +226,7 @@ def add_images_from_fs_people(s: io.StringIO, pname: str, tstmp: int):
     for fpath in glob.glob(os.path.join(folder, "*")):
         fname = os.path.basename(fpath).lower()
         #url = f"http://[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?{tstmp}"
-        url = f"[PROTO_HOST_PORT]/pics{urllib.parse.quote(fpath[JF_MD_SHIFT:], safe=SAFE)}?[TIME]"
+        url = f"[PROTO_HOST_PORT]/pics{urllib.parse.quote(fpath[JF_MD_SHIFT:], safe=SAFE)}?.{tstmp}."
         if "folder" in fname:
             s.write(f"<thumb>{url}</thumb>\n")
 
@@ -243,7 +243,7 @@ def add_images_from_fs_season(s: io.StringIO, season: list, tstmp: int):
 
     for fpath in glob.glob(os.path.join(folder, "*")):
         fname = os.path.basename(fpath).lower()
-        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?[TIME]"
+        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?.{tstmp}."
 
         if "poster" in fname:
             s.write(f"<thumb aspect=\"poster\" type=\"season\" season=\"{season['sidx']}\">{escape(url)}</thumb>\n")
@@ -261,7 +261,7 @@ def add_images_from_fs(s: io.StringIO, item: Item, tstmp: int):
 
     for fpath in glob.glob(os.path.join(folder, "*")):
         fname = os.path.basename(fpath).lower()
-        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?[TIME]"
+        url = f"[PROTO_HOST_PORT]/pics{fpath[JF_MD_SHIFT:]}?.{tstmp}."
 
 
         if "poster" in fname:
@@ -431,7 +431,9 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
 
             xml = svariant.getvalue()
 
-            return new_write_to_disk(xml, nfo_full_path, batchUid)
+            new_write_to_disk(xml, nfo_full_path, batchUid)
+        return True
+        
 
     else:
         if item.Path:
@@ -440,21 +442,26 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
             return new_write_to_disk(xml, nfo_full_path, batchUid)
 
 
+NORMALIZE_RE = re.compile(r'\?\.[^.]+\.')
+
+def normalize(content: str) -> str:
+    return NORMALIZE_RE.sub('', content)
+
+
 def new_write_to_disk(root, nfo_full_path, batchUid):
-    # write to file if changed
-    # return True if written, False if not changed
+    normalized_root = normalize(root)
+
     if os.path.exists(nfo_full_path):
         with open(nfo_full_path, "r", encoding="utf-8") as existing:
-            if existing.read() == root:
-                #logger.debug(f"No write needed, content identical: {nfo_full_path}")
-                return False  # no write needed
-    #logger.debug(f"Writing NFO: {nfo_full_path}")
+            normalized_existing = normalize(existing.read())
+            if normalized_existing == normalized_root:
+                # logger.debug(f"No write needed, content identical (normalized): {nfo_full_path}")
+                return False  # pas de changement réel
 
-    os.makedirs(os.path.dirname(nfo_full_path), exist_ok = True)
+    os.makedirs(os.path.dirname(nfo_full_path), exist_ok=True)
     with open(nfo_full_path, "w", encoding="utf-8") as file:
         file.write(root)
 
-    # else
     kodiDBRegistry.addToNfoBatch(batchUid, nfo_full_path)
     return True
 
