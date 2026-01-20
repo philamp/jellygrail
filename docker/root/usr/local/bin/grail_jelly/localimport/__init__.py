@@ -75,7 +75,7 @@ def criteriaQualification(vfn):
 
 
 
-def globalLevelExtractor(vfn, uhdarray, hdarray):
+def globalLevelExtractor(vfn, uhdarray, hdarray, sdarray):
 
     nLmatches = lowersArray(extract_triplets(vfn))
 
@@ -92,6 +92,12 @@ def globalLevelExtractor(vfn, uhdarray, hdarray):
             hdarray.append(2)
         else:
             hdarray.append(1)
+    else:
+        if PREFLANG in nLmatches:
+            sdarray.append(2)
+        else:
+            sdarray.append(1)
+
 
 def setPolicy(parentPaths, Qpolicy, Lpolicy):
     jgDB = jellyDB()
@@ -404,9 +410,11 @@ def getMenuItems(mediatype, mediaid, uid):
 
     R_HD_lang_level = []
     R_UHD_lang_level = []
+    R_SD_lang_level = []
 
     L_UHD_lang_level = []
     L_HD_lang_level = []
+    L_SD_lang_level = []
 
     Title = ""
 
@@ -466,12 +474,11 @@ def getMenuItems(mediatype, mediaid, uid):
                     #logger.info(f"menubuilder       | actual_path split: {actual_path.split('/',2)}")
                     # LOCAL
                     if "remote" not in actual_path.split("/", 2)[2]:
-                        globalLevelExtractor(vfn, L_UHD_lang_level, L_HD_lang_level)
+                        globalLevelExtractor(vfn, L_UHD_lang_level, L_HD_lang_level, L_SD_lang_level)
 
                     # REMOTE
                     else:
-                        globalLevelExtractor(vfn, R_UHD_lang_level, R_HD_lang_level)
-
+                        globalLevelExtractor(vfn, R_UHD_lang_level, R_HD_lang_level, R_SD_lang_level)
         jgDB.sqclose()
 
         # build information string based on findings
@@ -479,20 +486,26 @@ def getMenuItems(mediatype, mediaid, uid):
         final_L_HD_lang_level = max(L_HD_lang_level) if L_HD_lang_level else 0
         final_R_UHD_lang_level = max(R_UHD_lang_level) if R_UHD_lang_level else 0
         final_R_HD_lang_level = max(R_HD_lang_level) if R_HD_lang_level else 0
+        final_R_SD_lang_level = max(R_SD_lang_level) if R_SD_lang_level else 0
+        final_L_SD_lang_level = max(L_SD_lang_level) if L_SD_lang_level else 0
+
 
 
         L_info_tpl = "Local:"
         L_info_tpl += " UHD" if final_L_UHD_lang_level > 0 else ""
         L_info_tpl += f" with {PREFLANG}" if final_L_UHD_lang_level > 1 else ""
-
-        L_info_tpl += ", HD" if final_L_HD_lang_level > 0 else ""
+        L_info_tpl += ", FHD" if final_L_HD_lang_level > 0 else ""
         L_info_tpl += f" with {PREFLANG}" if final_L_HD_lang_level > 1 else ""
+        L_info_tpl += ", HD" if final_L_SD_lang_level > 0 else ""
+        L_info_tpl += f" with {PREFLANG}" if final_L_SD_lang_level > 1 else ""
 
         R_info_tpl = "Remote:"
         R_info_tpl += " UHD" if final_R_UHD_lang_level > 0 else ""
         R_info_tpl += f" with {PREFLANG}" if final_R_UHD_lang_level > 1 else ""
-        R_info_tpl += ", HD" if final_R_HD_lang_level > 0 else ""
+        R_info_tpl += ", FHD" if final_R_HD_lang_level > 0 else ""
         R_info_tpl += f" with {PREFLANG}" if final_R_HD_lang_level > 1 else ""
+        R_info_tpl += ", HD" if final_R_SD_lang_level > 0 else ""
+        R_info_tpl += f" with {PREFLANG}" if final_R_SD_lang_level > 1 else ""
 
         ctMenu['menu'][f'{Title}'] = "#NULL"
         ctMenu['menu'][f"{L_info_tpl}"] = "#NULL"

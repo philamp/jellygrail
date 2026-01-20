@@ -654,7 +654,7 @@ if __name__ == "__main__":
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
     # WARNING, nfoGenJob must be registered AFTER jfScan
-    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=1200)
+    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=20)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
     JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True)
     JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=1600)

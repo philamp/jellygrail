@@ -55,7 +55,7 @@ async def handle_ffprobe(reader: asyncio.StreamReader, writer: asyncio.StreamWri
 
         messagein = args[rkey]
 
-        logger.info(f"    SOCKET| ffprobe request for file: {messagein}")
+        #logger.info(f"    SOCKET| ffprobe request for file: {messagein}")
 
         stdout, stderr, returncode = await asyncio.to_thread(get_fastpass_ffprobe, messagein)
 
