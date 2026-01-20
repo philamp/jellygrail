@@ -296,6 +296,9 @@ def install_librairies():
                     ],
                     "DelimiterWhitelist": [],
                     "DisabledSubtitleFetchers": [],
+                    "DisabledSubtitleFetchers": [
+                        "subbuzz"
+                    ],
                     "SubtitleFetcherOrder": [
                         "subbuzz"
                     ],

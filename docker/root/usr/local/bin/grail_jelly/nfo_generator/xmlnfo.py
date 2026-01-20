@@ -398,13 +398,7 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
         for tag in item.Tags or []:
             s.write(f"<tag>{escape(tag)}</tag>\n")
 
-    # --- fermeture
-    if item.Type == "Movie":
-        s.write("</movie>\n")
-    elif item.Type == "Episode":
-        s.write("</episodedetails>\n")
-    elif item.Type == "Series":
-        s.write("</tvshow>\n")
+
 
     #xml = s.getvalue()
 
@@ -429,6 +423,13 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
             if tech_details := get_tech_xml_details(get_wo_ext_out):
                 svariant.write(tech_details)
 
+            # --- fermeture
+            if item.Type == "Movie":
+                svariant.write("</movie>\n")
+            elif item.Type == "Episode":
+                svariant.write("</episodedetails>\n")
+
+
             xml = svariant.getvalue()
 
             new_write_to_disk(xml, nfo_full_path, batchUid)
@@ -437,6 +438,7 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
 
     else:
         if item.Path:
+            s.write("</tvshow>\n")
             xml = s.getvalue()
             nfo_full_path = JFSQ_STORED_NFO + item.Path[JG_VIRT_SHIFT:] + "/tvshow.nfo.jf"
             return new_write_to_disk(xml, nfo_full_path, batchUid)

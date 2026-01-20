@@ -189,6 +189,12 @@ async def ask_kodi_refresh(request):
         "status": 201
     }, status_code=201)
 
+async def ask_jf_refresh(request):
+    JobManager.trigger("jfScan", "manual_refresh_from_api")
+    return JSONResponse({
+        "status": 201
+    }, status_code=201)
+
 async def askFullNfoRefresh(request):
     kid = request.query_params.get("uid")
 
@@ -508,6 +514,7 @@ app.mount("/app", Router(
     routes=[
         Route("/health", homepage),
         Route("/ask_kodi_refresh", ask_kodi_refresh),
+        Route("/ask_jf_refresh", ask_jf_refresh),
         Route("/test", rd_test_api),
         Route("/getrdincrement/{arg:int}", rdIncrRoute)
     ]
@@ -647,7 +654,7 @@ if __name__ == "__main__":
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
     # WARNING, nfoGenJob must be registered AFTER jfScan
-    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=30)
+    JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=1200)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
     JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True)
     JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=1600)
