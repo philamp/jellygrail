@@ -203,8 +203,8 @@ def get_tech_xml_details(pathwoext):
                             last_subs.append(normalize_to_iso639_2b(sub_l).capitalize())
 
         # éviter doublons
-        first_subs = list(set(first_subs))
-        last_subs  = list(set(last_subs))
+        first_subs = list(dict.fromkeys(first_subs))
+        last_subs  = list(dict.fromkeys(last_subs))
         first_subs.extend(last_subs)
         for lang in first_subs:
             parts.append("    <subtitle>")
@@ -457,8 +457,7 @@ def new_write_to_disk(root, nfo_full_path, batchUid):
         with open(nfo_full_path, "r", encoding="utf-8") as existing:
             normalized_existing = normalize(existing.read())
             if normalized_existing == normalized_root:
-                # logger.debug(f"No write needed, content identical (normalized): {nfo_full_path}")
-                return False  # pas de changement réel
+                return False  # pas de changement réel$
 
     os.makedirs(os.path.dirname(nfo_full_path), exist_ok=True)
     with open(nfo_full_path, "w", encoding="utf-8") as file:

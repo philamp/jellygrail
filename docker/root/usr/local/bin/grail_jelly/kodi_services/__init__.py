@@ -656,6 +656,11 @@ def new_send_nfo_to_kodi(kid, kdb):
 
 
         for batchid in batchesToDo:
+
+            if kodiDBRegistry.get_all_batches_pointer().get(batchid, {}).get("done", True) == False:
+                continue
+
+
             if nfo_entries := kodiDBRegistry.get_all_batches_pointer().get(batchid, {}).get("items", []):
                 
 

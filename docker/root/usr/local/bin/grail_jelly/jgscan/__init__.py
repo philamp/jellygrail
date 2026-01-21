@@ -622,6 +622,17 @@ def multiScan(stopEvent):
     logger.info(f"MULTI-SCAN| Launching {len(pointNamesAndType)} scanner(s) in multithread")
 
     with ThreadPoolExecutor(max_workers=len(pointNamesAndType)) as executor:
+        try:
+            list(executor.map(
+                lambda d: scanThread(d, present_folders, stopEvent),
+                pointNamesAndType
+            ))
+        except Exception as e:
+            logger.critical(f"MULTI-SCAN| ❌ scanThread: {e}")
+            traceback.print_exc()
+
+    '''
+    with ThreadPoolExecutor(max_workers=len(pointNamesAndType)) as executor:
         futures = {
             executor.submit(scanThread, d, present_folders, stopEvent): d
             for d in pointNamesAndType
@@ -634,6 +645,7 @@ def multiScan(stopEvent):
             except Exception as e:
                 logger.critical(f"MULTI-SCAN| ❌ scanThread({d[0]}): {e}")
                 traceback.print_exc()
+    '''
 
 
     '''
