@@ -47,7 +47,7 @@ class JobManager:
             "is_sync": is_sync,
             "interval": interval,
             "event": asyncio.Queue(maxsize=1),     # remplace asyncio.Event pour transporter wfid
-            "lock": JobManager.jobs["jfScan"]["lock"] if name == "nfoGenJob" else asyncio.Lock(),       # self-lock uniquement
+            "lock": JobManager.jobs["jgScanJob"]["lock"] if (name == "nfoGenJob" or name == "jfScan") else asyncio.Lock(),       # self-lock uniquement
         }
         JobManager.job_order.append(name)
 

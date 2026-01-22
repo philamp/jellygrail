@@ -404,6 +404,7 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
 
     # --- écriture
     if item.Type != "Series":
+        returning = False
         for ms in item.MediaSources or []:
 
             svariant = io.StringIO(s.getvalue())
@@ -432,8 +433,9 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
 
             xml = svariant.getvalue()
 
-            new_write_to_disk(xml, nfo_full_path, batchUid)
-        return True
+            if new_write_to_disk(xml, nfo_full_path, batchUid):
+                returning = True
+        return returning
         
 
     else:

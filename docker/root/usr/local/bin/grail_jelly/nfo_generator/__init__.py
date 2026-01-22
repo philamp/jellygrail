@@ -119,6 +119,7 @@ def nfo_loop_service(stopEvent) -> bool:
 
     items_added_and_updated_pre = syncqueue.ItemsAdded + syncqueue.ItemsUpdated
     if not items_added_and_updated_pre:
+        #save_jfsqdate_to_file(nowdate) # write only if changes to avoid multiple writes
         return False
     
     # new nfo batch generation
@@ -233,6 +234,7 @@ def nfo_loop_service(stopEvent) -> bool:
     
     if nbofepisode + nbofmovie + nboftvshow == 0:
         kodiDBRegistry.remove_nfo_batch(batchId)
+        save_jfsqdate_to_file(nowdate) # write only if changes to avoid multiple writes
         return False
         
 
