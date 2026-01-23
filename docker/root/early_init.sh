@@ -110,7 +110,7 @@ if [ "$REMOTE_WEB_DAV_LOCATION" != "http://hostname-or-ip:8089" ] && [ "$REMOTE_
   mkdir -p "/mounts/remote_webdav"
   cp -f "/bash_templates/mounts/remote_webdav/rclone.conf.example" "/mounts/remote_webdav/rclone.conf"
   # Replace the placeholder with the ip+port
-  sed -i "s/<url>/$REMOTE_WEB_DAV_LOCATION/" "/mounts/remote_webdav/rclone.conf"
+  sed -i "s@<url>@$REMOTE_WEB_DAV_LOCATION@" "/mounts/remote_webdav/rclone.conf"
 fi
 
 if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ] && [ "$RD_APITOKEN" != "" ] ; then
