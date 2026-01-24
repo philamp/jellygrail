@@ -1,5 +1,5 @@
 #!/bin/sh -e
-VERSION="20260117" # !!! Should be aligned to settings.env.template and newmain.py !!!
+YVERSION="2026" # !!! Should be aligned to settings.env.template and newmain.py !!!
 # - Jellygrail figlet:
 cat << "EOF"
 
@@ -12,7 +12,7 @@ github.com/philamp/jellygrail
                 |__/
 
 EOF
-echo "               ${VERSION}"
+echo "               ${YVERSION}"
 echo ""
 
 # - runtime created folders

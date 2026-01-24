@@ -249,8 +249,10 @@ async def getContextMenu(request):
         'Open Add-on settings': '#OPENSETTINGS'
     }
 
+    result['preflang'] = LITPREFLANG
 
-    logger.info(f"menu data sent to kodi is : {result}")
+
+    #logger.info(f"menu data sent to kodi is : {result}")
 
     return JSONResponse(result, status_code=200)
 

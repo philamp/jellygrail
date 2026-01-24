@@ -24,6 +24,7 @@ present_virtual_folders_shows = []
 #dual_endpoints = []
 
 pointNamesAndType = []
+pointNamesAndTypeWD = []
 
 items_scanned = 0
 
@@ -567,7 +568,8 @@ def init_mountpoints():
 
     #global dual_endpoints
     global pointNamesAndType
-    logger.info("   STORAGE/ Rclone startup (10s)...") #toimprove with s6 ?
+    global pointNamesAndTypeWD
+    logger.info("   STORAGE/ Rclone startup and mountpoints initialization (10s)...") #toimprove with s6 ?
     time.sleep(1)
     for f in os.scandir(MOUNTS_ROOT):
         if f.name == "remote_webdav":
@@ -575,10 +577,10 @@ def init_mountpoints():
                 if g.is_dir() and g.name.startswith("local_") and not '@eaDir' in g.name and not g.name.startswith("local_import"):
                     typem = "remote"
                     logger.info(f"   STORAGE/ remote_webdav/{g.name}")
-                    pointNamesAndType.append(("remote_webdav/"+g.name,typem))
+                    pointNamesAndTypeWD.append(("remote_webdav/"+g.name,typem))
         elif f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
             typem = "local" if f.name.startswith("local_") else "remote"
-            logger.info(f"   STORAGE/ {f.name}")
+            #logger.info(f"   STORAGE/ {f.name}")
             pointNamesAndType.append((f.name,typem))
             
     #print(dual_endpoints)
@@ -600,9 +602,11 @@ def multiScan(stopEvent):
     if RD_API_SET:
         logger.info("MULTI-SCAN| Rclone update interval wait...") #toimprove
         time.sleep(1)
-    logger.info(f"   STORAGE/ Found {len(pointNamesAndType)} mountpoint(s):")
+    logger.info(f"   STORAGE| Found {len(pointNamesAndType)+len(pointNamesAndTypeWD)} mountpoint(s):")
     for src1, storetype in pointNamesAndType:
-        logger.info(f"          - /{src1} | Type: {storetype}")
+        logger.info(f"          | - /{src1} | Type: {storetype}")
+    for src1, storetype in pointNamesAndTypeWD:
+        logger.info(f"          | - /{src1} | Type: {storetype}")
     
     
     # use a dbojbect
@@ -619,6 +623,21 @@ def multiScan(stopEvent):
     # prescan use done
     db_prescan_fetcher.sqclose()
 
+
+    if pointNamesAndTypeWD:
+        logger.info(f"MULTI-SCAN| Launching remote webdav scanner first")
+
+        with ThreadPoolExecutor(max_workers=len(pointNamesAndTypeWD)) as executor:
+            try:
+                list(executor.map(
+                    lambda d: scanThread(d, present_folders, stopEvent),
+                    pointNamesAndTypeWD
+                ))
+            except Exception as e:
+                logger.critical(f"MULTI-SCAN| ❌ WebdavScanThread: {e}")
+                traceback.print_exc()
+
+
     logger.info(f"MULTI-SCAN| Launching {len(pointNamesAndType)} scanner(s) in multithread")
 
     with ThreadPoolExecutor(max_workers=len(pointNamesAndType)) as executor:
@@ -628,7 +647,7 @@ def multiScan(stopEvent):
                 pointNamesAndType
             ))
         except Exception as e:
-            logger.critical(f"MULTI-SCAN| ❌ scanThread: {e}")
+            logger.critical(f"MULTI-SCAN| ❌ RegularScanThread: {e}")
             traceback.print_exc()
 
     '''
@@ -689,38 +708,42 @@ def scanThread(pnt, present_folders, stopEvent):
         for f in os.scandir(src1):
             if f.path not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
-                    logger.info(f"      SCAN| >>>> {f.name}")
+                    logger.info(f"      SCAN| >< {f.name}")
                     browse = True
                     endpoint2browse = src1
                     rar_item = None
-                    for g in os.scandir(f.path):
-                        if g.name.lower().endswith('.rar') :
-                            rar_item = g.path
-                            endpoint2browse = src2
-                            logger.info(f"      SCAN| with a .RAR file: {g.name}")
-                            if storetype == "remote":
-                                for i in range(2):
-                                    # cache-heater 0 for RAR files and rar2fs
-                                    unrar_result = unrar_to_void(g.path)
-                                    if not unrar_result == "OK":
-                                        if unrar_result == "ERROR_IO":
-                                            logger.error(f" - IO Error on first try, waits 5s and retry ... {g.path}")
-                                            if i == 0:
-                                                time.sleep(5)
-                                            if i == 1:
-                                                logger.error(f" - FAILURE_unrar : IO Error on second try {g.path}")
+                    try:
+                        for g in os.scandir(f.path):
+                            if g.name.lower().endswith('.rar') :
+                                rar_item = g.path
+                                endpoint2browse = src2
+                                logger.info(f"      SCAN| with a .RAR file: {g.name}")
+                                if storetype == "remote":
+                                    for i in range(2):
+                                        # cache-heater 0 for RAR files and rar2fs
+                                        unrar_result = unrar_to_void(g.path)
+                                        if not unrar_result == "OK":
+                                            if unrar_result == "ERROR_IO":
+                                                logger.error(f" - IO Error on first try, waits 5s and retry ... {g.path}")
+                                                if i == 0:
+                                                    time.sleep(5)
+                                                if i == 1:
+                                                    logger.error(f" - FAILURE_unrar : IO Error on second try {g.path}")
+                                                    browse = False
+                                                    break
+                                            elif unrar_result == "ERROR_NOFILES":
+                                                logger.warning(f"      SCAN| ...but NO Files in this RAR : {g.path}")
                                                 browse = False
                                                 break
-                                        elif unrar_result == "ERROR_NOFILES":
-                                            logger.warning(f"      SCAN| ...but NO Files in this RAR : {g.path}")
-                                            browse = False
+                                            elif unrar_result == "ERROR":
+                                                logger.error(f" - FAILURE_unrar : unknown on {g.path}")
+                                                browse = False
+                                                break
+                                        else:
                                             break
-                                        elif unrar_result == "ERROR":
-                                            logger.error(f" - FAILURE_unrar : unknown on {g.path}")
-                                            browse = False
-                                            break
-                                    else:
-                                        break
+                    except FileNotFoundError as e:
+                        logger.warning(f"      SCAN| Folder disapeared during scan, will be probably back later: {f.path}")
+                        browse = False
 
                     if browse:
                     # Browse it through !
@@ -731,7 +754,7 @@ def scanThread(pnt, present_folders, stopEvent):
                 
                 elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
 
-                    logger.info(f"      SCAN| >>>> (folder-orphan) {f.name}")
+                    logger.info(f"      SCAN| >< (folder-orphan) {f.name}")
 
                     dvprofile = None
                     mediatype = None
