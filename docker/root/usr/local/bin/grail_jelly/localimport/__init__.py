@@ -262,6 +262,7 @@ def importUncompleted(stopctxevent):
             if get_wo_ext(vpath) not in bl_noext_items and "remote" in apath.split("/", 2)[2]:
 
                 jgDB.lc_set_dl_completion_specific(vpath, 1)
+                jgDB.sqcommit()
 
             
                 # create parent folders
@@ -285,11 +286,13 @@ def importUncompleted(stopctxevent):
                     if premium_timeleft() != 0:
                         bl_noext_items.append(get_wo_ext(vpath))
                         jgDB.lc_update_blacklist(vpath)
+                        jgDB.sqcommit()
 
                         
                 elif resdl == 2:
                     jgDB.lc_set_dl_completion_specific(vpath, 2)
                     jgDB.lc_update_actual_path(vpath, str(dst_path))
+                    jgDB.sqcommit()
                 
 
                 #else

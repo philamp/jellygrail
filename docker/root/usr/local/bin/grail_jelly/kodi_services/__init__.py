@@ -616,7 +616,7 @@ def new_send_full_nfo_to_kodi(kid, kdb):
                     tofetch = urllib.parse.quote(tofetch, safe=SAFE)
                     tofetch = tofetch.replace("%", r"\%")
 
-                    logger.info(f". Kodi mysqldb fetching : {root}/{filename} as {tofetch} IN TABLE {tabletofetch}")
+                    #logger.info(f". Kodi mysqldb fetching : {root}/{filename} as {tofetch} IN TABLE {tabletofetch}")
 
                     for (result, uidtype) in dbo.fetch_media_id(tofetch, tabletofetch, idtofetch):
 
@@ -708,7 +708,7 @@ def new_send_nfo_to_kodi(kid, kdb):
                         tofetch = urllib.parse.quote(tofetch, safe=SAFE)
                         tofetch = tofetch.replace("%", r"\%")
 
-                        logger.info(f". Kodi mysqldb fetching : {root}/{filename} as {tofetch} IN TABLE {tabletofetch}")
+                        #logger.info(f". Kodi mysqldb fetching : {root}/{filename} as {tofetch} IN TABLE {tabletofetch}")
 
                         for (result, uidtype) in dbo.fetch_media_id(tofetch, tabletofetch, idtofetch):
 
