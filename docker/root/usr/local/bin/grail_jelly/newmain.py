@@ -183,6 +183,13 @@ async def setConsumed(request):
         "status": 201
     }, status_code=201)
 
+async def all_events_ask(request):
+    reset_kodi_instances_refresh("toScan")
+    reset_kodi_instances_refresh("toNfoRefresh")
+    return JSONResponse({
+        "status": 201
+    }, status_code=201)
+
 async def ask_kodi_refresh(request):
     JobManager.trigger("kodiScan", "manual_refresh_from_api")
     return JSONResponse({
@@ -390,6 +397,7 @@ async def should_refresh(request):
     # Timeout handling (= no event fired)
     if not done:
         # Annule les tasks restantes
+        #logger.info("API       | should_refresh timeout, no event fired.")
         for t in pending:
             t.cancel()
         return JSONResponse({
@@ -409,6 +417,8 @@ async def should_refresh(request):
 
             if name == "toScan":
                 kodi_marks_will_update(request.query_params.get("uid"))
+
+            logger.info(f"API       | should_refresh event fired: {name} for db {db}")
 
             dbentry[name].clear() # mark it done even before it's called by client, easier this way and no real issue unless kodi client stops scanning
 
@@ -516,6 +526,7 @@ app.mount("/app", Router(
     routes=[
         Route("/health", homepage),
         Route("/ask_kodi_refresh", ask_kodi_refresh),
+        Route("/testallevents", all_events_ask),
         Route("/ask_jf_refresh", ask_jf_refresh),
         Route("/test", rd_test_api),
         Route("/getrdincrement/{arg:int}", rdIncrRoute)

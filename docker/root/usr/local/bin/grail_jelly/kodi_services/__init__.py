@@ -114,6 +114,7 @@ def full_nfo_refresh_call(kid):
     kodiDBRegistry.get_all_dbs_pointer().get(kdb, {}).get("toFullNfoRefresh").set()
 
 
+
 # update or insert
 def set_kodi_instance(puid, pdbname, pkodi_ip, pkodi_version):
 
