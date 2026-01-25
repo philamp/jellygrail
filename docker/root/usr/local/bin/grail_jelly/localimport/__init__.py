@@ -148,7 +148,9 @@ def rsync_partial_download_sync_strict_progress(
         rsync_path,
         "--partial",
         "--no-inc-recursive",
+        "--append",
         "--inplace",
+        "--outbuf=L",
         str(source),
         str(dest_part),
     ]
