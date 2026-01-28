@@ -614,7 +614,7 @@ def multiScan(stopEvent):
 
     #--- fetch current status of db in terms of release processed and virtual folders created---
     # reset each time but not updated on the fly
-    present_folders = [item[0] for item in db_prescan_fetcher.fetch_present_release_folders()] 
+    present_folders = [os.path.basename(item[0]) for item in db_prescan_fetcher.fetch_present_release_folders() if item[0] is not None]
 
     # reset each time and updated on the fly
     jgScan.present_virtual_folders = [os.path.basename(itemv[0]) for itemv in db_prescan_fetcher.fetch_present_virtual_folders() if (itemv[1] == 'movie' or itemv[1] == 'conce') ]
@@ -706,7 +706,7 @@ def scanThread(pnt, present_folders, stopEvent):
             break
         logger.info(f" SCANPOINT| /{pnt[0]} /{sdname} ...")
         for f in os.scandir(src1):
-            if f.path not in present_folders:
+            if os.path.basename(f.path) not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
                     logger.info(f"      SCAN| >< {f.name}")
                     browse = True
