@@ -4,7 +4,7 @@ import socket
 
 import threading
 
-VERSION = "20260124" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
+VERSION = "20260128" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 
 class genericClass:
 

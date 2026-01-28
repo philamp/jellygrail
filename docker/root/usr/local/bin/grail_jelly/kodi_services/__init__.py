@@ -201,6 +201,8 @@ def clean_all_consumed_nfo_batches():
             kodiDBRegistry.remove_nfo_batch(bid)
     kodiDBRegistry.SaveNfoBatches()
 
+
+# unused
 def set_previous_batches_as_consumed(puid):
     if not kodiDBRegistry.get(puid):
         return
