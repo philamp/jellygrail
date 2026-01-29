@@ -205,7 +205,9 @@ async def ask_jf_refresh(request):
 async def askFullNfoRefresh(request):
     kid = request.query_params.get("uid")
 
-    full_nfo_refresh_call(kid)
+    deltamode = True if request.query_params.get("deltamode") == "y" else False
+
+    full_nfo_refresh_call(kid, deltamode=deltamode)
 
     return JSONResponse({
         "status": 201
@@ -252,6 +254,7 @@ async def getContextMenu(request):
     result['submenu'] = {
         'Trigger full scan': '#FULLSCAN',
         'Trigger full NFO refresh': '#FULLNFOREFRESH',
+        'Trigger delta NFO refresh': '#DELTANFOREFRESH',
         'Reset Add-on': '#RESETADDON',
         'Open Add-on settings': '#OPENSETTINGS'
     }
@@ -378,13 +381,15 @@ async def should_refresh(request):
             "nforefresh": False,
             "scan": False,
             "fullNfoRefresh": False,
+            "deltaNfoRefresh": False,
             "broken": True
         }, status_code=404)
 
     tasks = {
         "toNfoRefresh": asyncio.create_task(dbentry["toNfoRefresh"].wait()),
         "toScan": asyncio.create_task(dbentry["toScan"].wait()),
-        "toFullNfoRefresh": asyncio.create_task(dbentry["toFullNfoRefresh"].wait())
+        "toFullNfoRefresh": asyncio.create_task(dbentry["toFullNfoRefresh"].wait()),
+        "toDeltaNfoRefresh": asyncio.create_task(dbentry["toDeltaNfoRefresh"].wait())
     }
 
     # first completed task waiter
@@ -404,6 +409,7 @@ async def should_refresh(request):
             "nforefresh": False,
             "scan": False,
             "fullNfoRefresh": False,
+            "deltaNfoRefresh": False,
             "broken": False
         }, status_code=200)
 
@@ -427,6 +433,7 @@ async def should_refresh(request):
                 "nforefresh": name == "toNfoRefresh",
                 "scan": name == "toScan",
                 "fullNfoRefresh": name == "toFullNfoRefresh",
+                "deltaNfoRefresh": name == "toDeltaNfoRefresh",
                 "broken": False
             }, status_code=201)
 
@@ -435,6 +442,7 @@ async def should_refresh(request):
         "nforefresh": False,
         "scan": False,
         "fullNfoRefresh": False,
+        "deltaNfoRefresh": False,
         "broken": True
     }, status_code=503)
 
@@ -507,6 +515,7 @@ api_routes = tokenize(
     Route("/what_should_do", should_refresh),
     Route("/gimme_nfos", gimmeNfos),
     Route("/trigger_full_nfo_refresh", askFullNfoRefresh),
+    Route("/trigger_delta_nfo_refresh", askFullNfoRefresh),
     Route("/set_consumed", setConsumed),
     Route("/ask_kodi_refresh", ask_kodi_refresh),
     Route("/get_cmenu_for/{mediatype:str}/{mediaid:int}", getContextMenu),

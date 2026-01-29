@@ -96,6 +96,7 @@ class kodiDBRegistry:
                     "toScan": asyncio.Event(),
                     "toNfoRefresh": asyncio.Event(),
                     "toFullNfoRefresh": asyncio.Event(),
+                    "toDeltaNfoRefresh": asyncio.Event(),
                     "last_max_lastplayed": "",
                     "last_max_fileid": 0
                 }
@@ -186,6 +187,7 @@ class kodiDBRegistry:
             "toScan": asyncio.Event(),
             "toNfoRefresh": asyncio.Event(),
             "toFullNfoRefresh": asyncio.Event(),
+            "toDeltaNfoRefresh": asyncio.Event(),
             "last_max_lastplayed": "",
             "last_max_fileid": 0
         }

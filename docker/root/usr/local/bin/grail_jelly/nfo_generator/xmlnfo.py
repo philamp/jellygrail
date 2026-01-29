@@ -314,7 +314,8 @@ def jf_xml_create(item: Item, is_updated: bool, sdata: dict[str, list[dict]] | N
     if item.TagLines:
         s.write(f"<tagline>{escape(item.TagLines[0])}</tagline>\n")
 
-    s.write(f"<runtime>{ticks_to_minutes(item.RunTimeTicks or 60)}</runtime>\n")
+    if item.Type in ("Movie", "Episode"):
+        s.write(f"<runtime>{ticks_to_minutes(item.RunTimeTicks or 60)}</runtime>\n")
     # --- images principales
     add_images_from_fs(s, item, tstmp)
 

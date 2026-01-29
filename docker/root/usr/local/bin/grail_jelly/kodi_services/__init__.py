@@ -107,11 +107,14 @@ def getKodiInfo(puid, pmediatype, pmediaid):
             db.close()
 
 
-def full_nfo_refresh_call(kid):
+def full_nfo_refresh_call(kid, deltamode=False):
 
     kdb = kodiDBRegistry.get_all_instances_pointer().get(kid, None).get("dbname")
 
-    kodiDBRegistry.get_all_dbs_pointer().get(kdb, {}).get("toFullNfoRefresh").set()
+    if deltamode:
+        kodiDBRegistry.get_all_dbs_pointer().get(kdb, {}).get("toDeltaNfoRefresh").set()
+    else:
+        kodiDBRegistry.get_all_dbs_pointer().get(kdb, {}).get("toFullNfoRefresh").set()
 
 
 
@@ -562,7 +565,7 @@ def refresh_kodi():
 
 
 
-def new_send_full_nfo_to_kodi(kid, kdb):
+def new_send_full_nfo_to_kodi(kid, kdb, deltamode=False):
 
     already_sent_ids = []
 
@@ -623,7 +626,7 @@ def new_send_full_nfo_to_kodi(kid, kdb):
 
                     for (result, uidtype) in dbo.fetch_media_id(tofetch, tabletofetch, idtofetch):
 
-                        if result not in already_sent_ids:
+                        if result not in already_sent_ids and (uidtype == 'jellygrail' or deltamode == False):
                             already_sent_ids.append(result)
                             payload[batchid][reftype].append(result)
 
