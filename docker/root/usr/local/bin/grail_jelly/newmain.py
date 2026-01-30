@@ -34,7 +34,7 @@ from jgscan import multiScan
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
-from kodi_services import get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, new_send_full_nfo_to_kodi, full_nfo_refresh_call, append_batch_to_kodi_instance, new_merge_kodi_versions, getKodiInfo, extract_triplets
+from kodi_services import delta_nfo_refresh_call, get_kodi_instances_by_kodi_version, set_kodi_instance, reset_kodi_instances_refresh, get_kodidb_entry, kodi_marks_will_update, new_send_nfo_to_kodi, new_send_full_nfo_to_kodi, full_nfo_refresh_call, append_batch_to_kodi_instance, new_merge_kodi_versions, getKodiInfo, extract_triplets
 #from jg_services import premium_timeleft, test
 import jg_services
 
@@ -146,6 +146,7 @@ async def gimmeNfos(request):
     kdb = request.query_params.get("db")
     kid = request.query_params.get("uid")
     full = True if request.query_params.get("full") == "y" else False
+    delta = True if request.query_params.get("deltamode") == "y" else False
 
     if not get_kodidb_entry(kdb):
         return JSONResponse({
@@ -153,7 +154,9 @@ async def gimmeNfos(request):
         }, status_code=404)
     
     func = new_send_full_nfo_to_kodi if full else new_send_nfo_to_kodi
+    func = delta_nfo_refresh_call if delta else func
 
+    
     # call new_send_nfo_batch in a thread
     result = await asyncio.get_running_loop().run_in_executor(None, func, kid, kdb)
 

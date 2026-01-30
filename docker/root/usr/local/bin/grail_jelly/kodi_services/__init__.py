@@ -563,7 +563,8 @@ def refresh_kodi():
     ws.close()
     return True
 
-
+def delta_nfo_refresh_call(kid, kdb):
+    return new_send_full_nfo_to_kodi(kid, kdb, deltamode=True)
 
 def new_send_full_nfo_to_kodi(kid, kdb, deltamode=False):
 
