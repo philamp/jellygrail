@@ -1,3 +1,4 @@
+from os import name
 from base import *
 #from jgscan.jgsql import *
 from jgscan.jgsql import jellyDB, staticDB
@@ -697,7 +698,8 @@ def scanThread(pnt, present_folders, stopEvent):
         if d.name == '@eaDir':
             continue
         if d.is_dir():
-            if d.name.lower().startswith(SUB_FOLDER_SELECTIVITY):
+            lname = d.name.lower()
+            if any(s in lname for s in SUB_FOLDER_SELECTIVITY):
                 dual_ep.append(( MOUNTS_ROOT+"/"+pnt[0]+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+pnt[0]+"/"+d.name, pnt[1], d.name))
 
     for (src1, src2, storetype, sdname) in dual_ep:

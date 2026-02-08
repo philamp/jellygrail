@@ -331,8 +331,8 @@ def install_librairies():
 
     if systemconf := jfapi.jellyfin(f'System/Configuration', method='get'):
         systemconf = systemconf.json()
-        systemconf['LibraryScanFanoutConcurrency'] = 2
-        systemconf['LibraryMetadataRefreshConcurrency'] = 2
+        systemconf['LibraryScanFanoutConcurrency'] = 1
+        systemconf['LibraryMetadataRefreshConcurrency'] = 1
         jfapi.jellyfin(f'System/Configuration', json=systemconf, method='post')
 
     return True
