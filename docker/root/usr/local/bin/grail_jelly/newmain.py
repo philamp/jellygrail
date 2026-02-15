@@ -46,61 +46,6 @@ from base.jobmanager import JobManager
 
 
 
-'''
-def trigger_nfo_refresh():
-    return refreshByStep.run(steps_to_run=[3,5,6])
-
-    #call the refresh step scheduler with a given step (nfo_loop_service)
-
-    
-
-# maybe deprecated to removve
-async def periodic_trigger_launcher(func, interval: int, stop_event: threading.Event):
-    loop = asyncio.get_running_loop()
-    while not stop_event.is_set():
-        # Launch not async job
-        try:
-            await loop.run_in_executor(None, func)
-        except Exception as e:
-            logger.error(f" SCHEDULER| ❌ In job run by {func.__name__} : {e}")
-
-        # Pause period or stop, using timeout error raise as a continue tool
-        try:
-            await asyncio.wait_for(
-                loop.run_in_executor(None, stop_event.wait),
-                interval
-            )
-        except asyncio.TimeoutError:
-            continue
-        else:
-            break
-
-
-# === Worker générique ===
-async def worker(name, interval, func, stop_event: asyncio.Event):
-    loop = asyncio.get_running_loop()
-    while not stop_event.is_set():
-        try:
-            result = await loop.run_in_executor(None, func)
-            print(f"{name}: {result}")
-        except Exception as e:
-            print(f"{name}: erreur {e}")
-
-        # Attente du prochain cycle, mais annulable si stop_event est déclenché
-        sleep_task = asyncio.create_task(asyncio.sleep(interval))
-        stop_task = asyncio.create_task(stop_event.wait())
-        done, pending = await asyncio.wait(
-            {sleep_task, stop_task},
-            return_when=asyncio.FIRST_COMPLETED
-        )
-
-        # On annule la tâche restante pour éviter les warnings
-        for t in pending:
-            t.cancel()
-'''
-
-
-
 class QuietRouteMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, ignored_paths):
         super().__init__(app)
@@ -269,109 +214,6 @@ async def getContextMenu(request):
 
     return JSONResponse(result, status_code=200)
 
-
-
-
-
-
-'''
-#  remove old
-async def getContextMenuOld(request):
-    mediaid = int(request.path_params["mediaid"])
-    mediatype = request.path_params["mediatype"]
-    uid = request.query_params.get("uid")
-
-    local_prefLangPresentQLevel = 0
-
-    candidateVPathUHD_Tuples = []
-    candidateVPath_Tuples = []
-
-
-    ctMenu = {}
-
-    if not (result := await asyncio.get_running_loop().run_in_executor(None, getKodiInfo, uid, mediatype, mediaid)):
-        return JSONResponse({"status": 404}, status_code=404)
-    #else
-    # RETURN a metadata menu used in kodi context menu with all actions provided:
-    # - keep locally with url /keep_local?token=XXX&uid=YYY&mediatype=ZZZ&mediaid=NNN
-    # - remove locally with url /remove_local?token=XXX&uid=YYY&mediatype=ZZZ&mediaid=NNN
-
-    # find the actual_path in sqlite result
-    jgDB = jellyDB()
-
-    for item in result:
-        vpath = item.get("virtualPath", "")
-        vfn = item.get("virtualFilename", "")
-
-        prefLangHere = 0
-        logger.info(f"API       | Processing {vpath}")
-        for (actual_path,) in jgDB.get_path_actual(vpath):
-
-            logger.info(f"API       | Processing virtual filename {vfn} with actual path {actual_path}")
-            Lmatches = extract_triplets(vfn)
-            nLmatches = [m.lower() for m in Lmatches]
-
-            matchb = re.search(r'(\d+)Mbps', vfn)
-            
-            # LOCAL
-            if "remote" not in actual_path.split("/", 2)[2]:
-                # construct menu actions based on actual_path
-                
-                # if find INTERESTED_LANGUAGES is present str values in [] and {} in the filename:
-                # use regexp to extract them from filename
-
-                if USED_LANGS_JF[0].lower() in nLmatches:
-                    local_prefLangPresentQLevel = 1
-                    if 'UHD' in vfn:
-                        local_prefLangPresentQLevel = 2
-
-
-
-            # REMOTE
-            else:
-                
-                if matchb:
-                    mbps_value = int(matchb.group(1))
-                else:
-                    mbps_value = 25 
-
-                if USED_LANGS_JF[0].lower() in nLmatches:
-                    prefLangHere = 1
-                if 'UHD' in vfn:
-                    candidateVPathUHD_Tuples.append((vfn, prefLangHere, mbps_value))
-                else:
-                    candidateVPath_Tuples.append((vfn, prefLangHere, mbps_value))
-                
-
-    candidateVPathUHD_Tuples.sort(key=lambda t: (-t[1], t[2]))
-    candidateVPath_Tuples.sort(key=lambda t: (-t[1], t[2]))
-
-
-    jgDB.sqclose()
-    
-    # return a partial contextual menu for the item provided
-    # find data in all mediatype cases
-
-    # construct menu actions based on actual_path
-
-    logger.info(f"API       | Context menu request for {mediatype} id {mediaid} from kodi uid {uid}")
-    logger.info(f"API       | Local preferred language present quality level: {local_prefLangPresentQLevel}")
-    logger.info(f"API       | Remote UHD candidates: {candidateVPathUHD_Tuples}")
-    logger.info(f"API       | Remote non-UHD candidates: {candidateVPath_Tuples}")
-    # first add UHD if any
-    for (vfn, pl, mbps) in candidateVPathUHD_Tuples:
-        ctMenu[f'Keep remote UHD {vfn} ({mbps}Mbps)'] = f'/keep_remote?token={SSDP_TOKEN}&uid={uid}&mediatype={mediatype}&mediaid={mediaid}&vfn={vfn}'
-        break
-
-
-    # add other media entries for generic actions
-
-    ctMenu['Full NFO refresh'] = f'/trigger_full_nfo_refresh'
-
-    return JSONResponse({"status": 404}, status_code=404)
-
-    # movie / tvshow / season / episode
-'''
 
 
 
@@ -678,13 +520,12 @@ if __name__ == "__main__":
     JobManager.register_job("jfScan", lib_refresh_allWrapper, is_sync=True, cond=JF_WANTED_ACTUALLY)
     #JobManager.register_job("plexScan", plexScanWrapper, is_sync=True)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
-    # WARNING, nfoGenJob must be registered AFTER jfScan
+    # WARNING, nfoGenJob and jfscan must be registered AFTER jgscanjob because of the shared lock, if not they will never run because they will wait for a lock that is never released since jgScanJob is not registered
     JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=20)
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
     JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True, interval=750)
     JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=1600)
 
-    
 
     # UNIX sockets thread using uvloop
     t = threading.Thread(target=start_uvloop_thread, name="uvloop-thread", daemon=True)

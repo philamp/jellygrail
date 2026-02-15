@@ -249,9 +249,12 @@ def reset_kodi_instances_refresh(service="toScan"):
     # so the solution would be to consume any DONE unconsumed batch before scan
     # this would only go through db existing items
     # unexisting db items can be set as consumed as they will be consumed naturally by scan
+    '''
     if service=="toScan":
         for _, dbdict in kodiDBRegistry.get_all_dbs_pointer().items():
             dbdict["toNfoRefresh"].set()
+    '''
+    # above is not necessary (only on first scan)
 
     # warning, called by sync and async funcitons, dont' put blocking code here
     for _, dbdict in kodiDBRegistry.get_all_dbs_pointer().items():
