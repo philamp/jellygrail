@@ -23,9 +23,6 @@ import time
 import threading
 import re
 import requests
-import os
-import signal
-from datetime import datetime
 
 
 # JG MODULES
@@ -150,12 +147,6 @@ async def ask_kodi_refresh(request):
 
 async def ask_jf_refresh(request):
     JobManager.trigger("jfScan", "manual_refresh_from_api")
-    return JSONResponse({
-        "status": 201
-    }, status_code=201)
-
-async def ask_app_restart(request):
-    JobManager.trigger("restartApp", "manual_restart_from_api")
     return JSONResponse({
         "status": 201
     }, status_code=201)
@@ -373,7 +364,6 @@ api_routes = tokenize(
     Route("/trigger_delta_nfo_refresh", askFullNfoRefresh),
     Route("/set_consumed", setConsumed),
     Route("/ask_kodi_refresh", ask_kodi_refresh),
-    Route("/ask_app_restart", ask_app_restart),
     Route("/get_cmenu_for/{mediatype:str}/{mediaid:int}", getContextMenu),
     Route("/special_ops", doSqlStuffRoute),
     Route("/set_policy", setPolicyRoute, methods=["POST"])
@@ -391,7 +381,6 @@ app.mount("/app", Router(
     routes=[
         Route("/health", homepage),
         Route("/ask_kodi_refresh", ask_kodi_refresh),
-        Route("/ask_app_restart", ask_app_restart),
         Route("/testallevents", all_events_ask),
         Route("/ask_jf_refresh", ask_jf_refresh),
         Route("/test", rd_test_api),
@@ -456,31 +445,6 @@ def remoteScanWrapper(ctx, stop):
 def computePoliciesWrapper(ctx, stop):
     # run jgservices.remoteScan
     localimport.computePolicies()
-
-def restartAppWrapper(ctx, stop):
-    logger.warning("JOBMANAGER| Restart job triggered, stopping process to let container restart policy bring it back")
-    genericClass.stopImport()
-    JobManager.stop()
-    time.sleep(0.3)
-    os.kill(os.getpid(), signal.SIGTERM)
-
-last_weekly_stop_date = None
-
-def weeklyStopOnWednesdayWrapper(ctx, stop):
-    global last_weekly_stop_date
-
-    now = datetime.now()
-    if now.weekday() != 2 or now.hour != 6 or now.minute != 0:
-        return
-
-    today = now.date().isoformat()
-    if last_weekly_stop_date == today:
-        return
-
-    last_weekly_stop_date = today
-    wfid = f"scheduled-weekly-stop-{today}"
-    logger.warning("JOBMANAGER| Scheduled weekly stop triggered (Wednesday 06:00)")
-    JobManager.trigger("restartApp", wfid, ctx={"wfid": wfid})
 
 def plexScanWrapper(ctx, stop):
     for plex_url in PLEX_URLS_ARRAY:
@@ -572,7 +536,7 @@ if __name__ == "__main__":
 
     # ----------------triggered jobs launched on cascade on event
     JobManager.register_job("jgScanJob", multiScanWrapper, is_sync=True)
-    JobManager.register_job("restartApp", restartAppWrapper, is_sync=True)
+    #JobManager.register_job("restartApp", restartAppWrapper, is_sync=True)
     JobManager.register_job("jfScan", lib_refresh_allWrapper, is_sync=True, cond=JF_WANTED_ACTUALLY)
     JobManager.register_job("plexScan", plexScanWrapper, is_sync=True, cond=USE_PLEX_ACTUALLY)
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
@@ -581,7 +545,7 @@ if __name__ == "__main__":
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
     JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True, interval=750)
     JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=1600)
-    JobManager.register_job("weeklyStopOnWednesday", weeklyStopOnWednesdayWrapper, is_sync=True, interval=20)
+    #JobManager.register_job("weeklyStopOnWednesday", weeklyStopOnWednesdayWrapper, is_sync=True, interval=20)
 
 
     # UNIX sockets thread using uvloop
