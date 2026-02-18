@@ -56,7 +56,7 @@ class JobManager:
     def trigger(name: str, wfid: str, ctx: Optional[dict] = None):
         """Déclenche un job pour un workflow donné (wfid)."""
         if name not in JobManager.jobs:
-            logger.info(f"JOBMANAGER| Job {name} disabled due to configuration")
+            logger.info(f" SCHEDULER| Job {name} disabled due to configuration")
             return
         # créer ou récupérer le contexte partagé
         if wfid not in JobManager.contexts:
@@ -104,7 +104,7 @@ class JobManager:
                 break
 
             if JobManager.stop_event.is_set():
-                logger.info(f"JOBMANAGER| 🛑 Stop signal before starting {name}")
+                logger.info(f" SCHEDULER| 🛑 Stop signal before starting {name}")
                 return
 
             async with lock:
@@ -128,7 +128,7 @@ class JobManager:
 
                 
                 
-                logger.info(f"JOBMANAGER| ▶ {name}| {log_info}")
+                logger.info(f" SCHEDULER| ▶ {name}| {log_info}")
                 try:
                     if is_sync:
                         await asyncio.get_event_loop().run_in_executor(
@@ -136,14 +136,14 @@ class JobManager:
                         )
                     else:
                         await coro(ctx, JobManager.stop_event)
-                    logger.info(f"JOBMANAGER| ✅ {name}| {log_info}")
+                    logger.info(f" SCHEDULER| ✅ {name}| {log_info}")
                 except Exception as e:
                     import traceback
-                    logger.error(f"JOBMANAGER| 💥 Exception in job {name}: {e}")
+                    logger.error(f" SCHEDULER| 💥 Exception in job {name}: {e}")
                     traceback.print_exc()
 
             if JobManager.stop_event.is_set():
-                logger.info(f"JOBMANAGER| 🛑 Stop detected after {name}")
+                logger.info(f" SCHEDULER| 🛑 Stop detected after {name}")
                 break
 
     # === Lancement global ===
@@ -158,7 +158,7 @@ class JobManager:
     # === Arrêt global ===
     @staticmethod
     def stop():
-        logger.info("JOBMANAGER| 🛑 Stopping all jobs...")
+        logger.info(" SCHEDULER| 🛑 Stopping all jobs...")
         JobManager.running = False
         JobManager.stop_flag.set()
         try:

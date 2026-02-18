@@ -7,16 +7,24 @@ import threading
 VERSION = "20260128" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 
 class genericClass:
+	verboseLog = False
+	_event = threading.Event()
 
-    _event = threading.Event()
+	@classmethod
+	def setVerboseLog(cls, enabled: bool):
+		cls.verboseLog = bool(enabled)
 
-    @classmethod
-    def stopImport(cls):
-        cls._event.set()
+	@classmethod
+	def isVerboseLog(cls):
+		return cls.verboseLog
 
-    @classmethod
-    def getEvent(cls):
-        return cls._event
+	@classmethod
+	def stopImport(cls):
+		cls._event.set()
+
+	@classmethod
+	def getEvent(cls):
+		return cls._event
 
     
 

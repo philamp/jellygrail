@@ -23,6 +23,7 @@ import time
 import threading
 import re
 import requests
+import datetime
 
 
 # JG MODULES
@@ -45,6 +46,24 @@ import jg_services
 #from script_runner import refreshByStep
 from base.jobmanager import JobManager
 
+uvicorn_server = None
+
+
+def seconds_until_next_wednesday_5am(now=None):
+    if now is None:
+        now = datetime.datetime.now()
+
+    # Monday=0 ... Wednesday=2
+    days_ahead = (2 - now.weekday()) % 7
+    target = now.replace(hour=5, minute=0, second=0, microsecond=0) + datetime.timedelta(days=days_ahead)
+
+    if target <= now:
+        target += datetime.timedelta(days=7)
+
+    seconds_remaining = (target - now).total_seconds()
+    logger.info(f" SCHEDULER| Weekly restart scheduled in {seconds_remaining/3600:.2f} hours (= {int(seconds_remaining)} seconds) at {target}")
+
+    return int(seconds_remaining)
 
 
 class QuietRouteMiddleware(BaseHTTPMiddleware):
@@ -328,6 +347,29 @@ async def setPolicyRoute(request):
         "status": 200
     }, status_code=200)
 
+async def setVerboseLogRoute(request):
+    value = request.query_params.get("verboseLog")
+
+    if value is not None:
+        parsed = value.strip().lower()
+        if parsed in ("1", "true", "yes", "on", "y"):
+            genericClass.setVerboseLog(True)
+        elif parsed in ("0", "false", "no", "off", "n"):
+            genericClass.setVerboseLog(False)
+        else:
+            return JSONResponse({
+                "status": 400,
+                "error": "Invalid verboseLog value. Use true/false, 1/0, on/off, y/n."
+            }, status_code=400)
+
+        logger.info(f"HTTPSERVER| verboseLog set to {genericClass.isVerboseLog()}")
+
+    return JSONResponse({
+        "status": 201 if value is not None else 200,
+        "verboseLog": genericClass.isVerboseLog(),
+        "silencing": not genericClass.isVerboseLog()
+    }, status_code=201 if value is not None else 200)
+
 # ------------ TOKEN HANDLING -----------------
 async def verify_token(request):
     token = request.query_params.get("token")
@@ -366,7 +408,8 @@ api_routes = tokenize(
     Route("/ask_kodi_refresh", ask_kodi_refresh),
     Route("/get_cmenu_for/{mediatype:str}/{mediaid:int}", getContextMenu),
     Route("/special_ops", doSqlStuffRoute),
-    Route("/set_policy", setPolicyRoute, methods=["POST"])
+    Route("/set_policy", setPolicyRoute, methods=["POST"]),
+    Route("/set_verbose_log", setVerboseLogRoute)
 )
 
 # no / route here to let the user put a proxy in front of this and the webdav server # TODO remove bypass below to enable
@@ -384,7 +427,8 @@ app.mount("/app", Router(
         Route("/testallevents", all_events_ask),
         Route("/ask_jf_refresh", ask_jf_refresh),
         Route("/test", rd_test_api),
-        Route("/getrdincrement/{arg:int}", rdIncrRoute)
+        Route("/getrdincrement/{arg:int}", rdIncrRoute),
+        Route("/set_verbose_log", setVerboseLogRoute)
     ]
 ))
 
@@ -449,7 +493,7 @@ def computePoliciesWrapper(ctx, stop):
 def plexScanWrapper(ctx, stop):
     for plex_url in PLEX_URLS_ARRAY:
         if stop.is_set():
-            logger.warning("JOBMANAGER| plexScan interrupted by stop signal")
+            logger.warning(" SCHEDULER| plexScan interrupted by stop signal")
             return
 
         if not plex_url:
@@ -458,11 +502,11 @@ def plexScanWrapper(ctx, stop):
         try:
             response = requests.get(plex_url, timeout=10)
             if response.ok:
-                logger.info(f"JOBMANAGER| Plex scan trigger called: {plex_url}")
+                logger.info(f" SCHEDULER| Plex scan trigger called: {plex_url}")
             else:
-                logger.warning(f"JOBMANAGER| Plex scan trigger returned HTTP {response.status_code}: {plex_url}")
+                logger.warning(f" SCHEDULER| Plex scan trigger returned HTTP {response.status_code}: {plex_url}")
         except Exception as e:
-            logger.error(f"JOBMANAGER| Plex scan trigger failed for {plex_url}: {e}")
+            logger.error(f" SCHEDULER| Plex scan trigger failed for {plex_url}: {e}")
 
 
 def trigger_rd_progress(ctx, stop):
@@ -475,13 +519,13 @@ def multiScanWrapper(ctx, stop):
     # run the job and take total
     nbitems = multiScan(stop)
     if nbitems == 0 and ctx["wfid"] != "wf1":
-        logger.info("JOBMANAGER| No items to scan.")
+        logger.info("      SCAN| No items to scan.")
         return
     
     #else----
     
     if ctx["wfid"] == "wf1":
-        logger.info("JOBMANAGER| First workflow triggers the scan")
+        logger.info("      SCAN| First workflow triggers the scan")
 
     JobManager.trigger("computePolicies", ctx["wfid"])
 
@@ -500,13 +544,25 @@ def importUncompletedWrapper(ctx, stop):
     localimport.importUncompleted(stop)
 
 
+def weeklyStopOnWednesdayWrapper(ctx, stop):
+    if stop.is_set():
+        return
+
+    if uvicorn_server is None:
+        logger.warning(" SCHEDULER| weekly stop reached, but uvicorn server is not initialized yet")
+        return
+
+    logger.warning(" SCHEDULER| weekly stop timer reached, requesting HTTP server shutdown")
+    uvicorn_server.should_exit = True
+
+
 
 def nfo_generatorWrapper(ctx, stop):
     willNfoRefresh = False
     firsttime = False
 
     if ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "twf-nfoGenJob-1":
-        logger.info("JOBMANAGER| First workflow or scheduled wf triggers the nfoGen")
+        logger.info(" SCHEDULER| First workflow or scheduled wf triggers the nfoGen")
         firsttime = True
         
     if nfo_generator.nfo_loop_service(stop) or firsttime:
@@ -528,6 +584,7 @@ if __name__ == "__main__":
 
     bdd_install()
     staticDB.sinit()
+    weekly_stop_interval = max(3200, seconds_until_next_wednesday_5am())
 
     # ---------------periodic jobs launched once in startup event
     JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=15)
@@ -545,7 +602,7 @@ if __name__ == "__main__":
     JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
     JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True, interval=750)
     JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=1600)
-    #JobManager.register_job("weeklyStopOnWednesday", weeklyStopOnWednesdayWrapper, is_sync=True, interval=20)
+    JobManager.register_job("weeklyStopOnWednesday", weeklyStopOnWednesdayWrapper, is_sync=True, interval=weekly_stop_interval)
 
 
     # UNIX sockets thread using uvloop
@@ -554,7 +611,8 @@ if __name__ == "__main__":
 
     # HTTP Server
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=WEBSERVICE_INTERNAL_PORT, loop="asyncio", access_log=False) #careful, loop.sock_sento is not implemented in uvloop
-    #asyncio.run(server.serve())
+    config = uvicorn.Config(app, host="0.0.0.0", port=WEBSERVICE_INTERNAL_PORT, loop="asyncio", access_log=False)
+    uvicorn_server = uvicorn.Server(config)
+    uvicorn_server.run() #careful, loop.sock_sento is not implemented in uvloop
 
     staticDB.s.sqclose()

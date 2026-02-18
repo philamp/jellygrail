@@ -19,10 +19,7 @@ def play_config_check():
         if not JF_WANTED:
             logger.warning("    CONFIG| Kodi wanted but embedded Jellyfin disabled, Kodi can work without NFO sync from jellyfin, but make sure not to use the Local NFO data scrapper in Kodi video sources configuration.")
 
-    if not USE_PLEX:
-        logger.warning("    CONFIG| Plex integration not wanted.")
-    else:
-        if not USE_PLEX_ACTUALLY:
+    if USE_PLEX and not USE_PLEX_ACTUALLY:
             logger.error("    CONFIG| USE_PLEX is set but PLEX_URLS is empty, please check your settings.env file")
 
     if LAN_IP == '127.0.0.1':

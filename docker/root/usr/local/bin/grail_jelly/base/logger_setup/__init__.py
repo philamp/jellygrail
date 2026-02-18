@@ -2,6 +2,7 @@ import logging
 from colorlog import ColoredFormatter
 import time
 from collections import deque
+from base.constants import genericClass
 '''
 class LevelLetterFilter(logging.Filter):
     def filter(self, record):
@@ -39,8 +40,9 @@ class RecentDedupFilter(logging.Filter):
         )
 
         # 3) Silencing si déjà vu récemment (sur le *message brut*)
-        #if any(m == raw_msg for _, m in self.recent):
-        #    return False
+        #    -> actif seulement si verboseLog est désactivé
+        if not genericClass.isVerboseLog() and any(m == raw_msg for _, m in self.recent):
+            return False
 
         # 4) Prefix blanking (uniquement pour l’affichage)
         display_msg = raw_msg
