@@ -36,7 +36,10 @@ class JobManager:
     ):
         
         if not cond:
+            logger.info(f" SCHEDULER| Job {name} not registered due to configuration")
             return
+        else:
+            logger.info(f" SCHEDULER| Job {name} registered {'(sync)' if is_sync else '(async)'}{' with interval ' + str(interval) + 's' if interval else ''}")
         
         # special case for jobs sharing same lock
 
@@ -56,7 +59,7 @@ class JobManager:
     def trigger(name: str, wfid: str, ctx: Optional[dict] = None):
         """Déclenche un job pour un workflow donné (wfid)."""
         if name not in JobManager.jobs:
-            logger.info(f" SCHEDULER| Job {name} disabled due to configuration")
+            logger.info(f" SCHEDULER| ▶ Job {name} disabled due to configuration")
             return
         # créer ou récupérer le contexte partagé
         if wfid not in JobManager.contexts:
@@ -68,7 +71,7 @@ class JobManager:
             lambda job=JobManager.jobs[name]: (
                 job["event"].put_nowait(wfid)
                 if not job["event"].full()
-                else logger.info(f"JOBMANAGER | event [{name}/{wfid}] redondant, ignored")
+                else logger.info(f"JOBMANAGER | ▶ event [{name}/{wfid}] redondant, ignored")
             )
         )
 
@@ -128,7 +131,7 @@ class JobManager:
 
                 
                 
-                logger.info(f" SCHEDULER| ▶ {name}| {log_info}")
+                logger.debug(f" SCHEDULER| ▶ {name}| {log_info}")
                 try:
                     if is_sync:
                         await asyncio.get_event_loop().run_in_executor(
@@ -136,7 +139,7 @@ class JobManager:
                         )
                     else:
                         await coro(ctx, JobManager.stop_event)
-                    logger.info(f" SCHEDULER| ✅ {name}| {log_info}")
+                    logger.debug(f" SCHEDULER| ✅ {name}| {log_info}")
                 except Exception as e:
                     import traceback
                     logger.error(f" SCHEDULER| 💥 Exception in job {name}: {e}")
