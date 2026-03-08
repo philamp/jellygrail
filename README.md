@@ -1,3 +1,4 @@
+<img width="500" height="394" alt="jg" src="https://github.com/user-attachments/assets/6fb82460-2de6-437a-8741-593d57b14122" />
 
 ## ✋ 1/ Prerequisites
 
