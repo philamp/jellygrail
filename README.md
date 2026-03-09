@@ -1,17 +1,23 @@
-<img width="615" height="318" alt="jg" src="https://github.com/user-attachments/assets/08d19f68-f569-4f39-9307-5ab22c7dae8e" />
+<p align="center">
+<img alt="jg" src="jg.png" />
+</p>
+<p>
+<strong>One compatibility layer to merge them all, manage them all in Jellyfin and play them all in Kodi ; and in their RAR keep them</strong>
+</p>
 
-- Filesystem virtualization
-- Real-Debrid optimized
-- Streams become files
-- Live unraring
-- Plex compatibility
+
+# Features
+
+- Filesystem virtualization (streams become files)
+- Real-Debrid optimized (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly
+- On-the-fly unraring - https://github.com/hasse69/rar2fs
 - Zero-click Jellyfin setup
-- Kodi backend emulation
-- Metadata synced from Jellyfin
-- Kodi players add-on
-- Click to keep a media locally
-
-One compatibility layer to store them all and play them all in kodi
+- Lightweight WebDAV server - nginx
+- Kodi backend emulation / Kodi add-on
+  - Metadata synced from Jellyfin
+  - Multi database support - MariaDB
+  - Click to keep a media locally
+- Plex compatibility
 
 ## ✋ 1/ Prerequisites
 
