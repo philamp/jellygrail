@@ -199,10 +199,17 @@ At installation, the add-on auto detects the Jellygrail server and let you choos
 - Some files are not scanned
   - Solution : Verify that, inside the given mounted sources, folder names contains `movi`, `conc`, `disc` or `show`
 - Kodi does not show some posters and pictures
-  - Long click on an item then `}{ JellyGrail Menu` then `Admin actions` > `Trigger delta NFO refresh` or `Trigger full NFO refresh`
+  - Solution : Long click on an item then `}{ JellyGrail Menu` then `Admin actions` > `Trigger delta NFO refresh` or `Trigger full NFO refresh`
+- I moved files in the underlying filesystems
+  - Solution : Don't do that or refresh the virtual filesystem right after (see below)
+- After system restart, container does not start properly
+  - Solution : the rshared mount of folder ``./Video_Library/`` was probably not creaated, so you have to run ``./STOPSTART.SH`` to fix it.
 
 > [!CAUTION]
 > ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/data/bindfs/.bindfs_jelly.db`` file and **restart the docker container**
+
+> [!TIP]
+> If you restart your NAS frequently, add STOP.SH script to your shutdown tasks and START.SH script to your startup tasks so that shared mount points are still accessible (alternatively, you can use fstab)
 
 ### Is the container running ? 
 
@@ -239,95 +246,15 @@ Open http://your_system_ip:8096 to launch Jellyfin web interface.
 - Add DNLA server
 - Other folders could be created but they must start with 'movies' or 'shows' (make jellfin conf and kodi conf accordingly)
 - Explain the rmeote feature
-
-----
-
-
-
-
-
-
-
-Basically you won't use this trigger unless you want to synchronize your RD torrents with another instance of this app (aka friend remote instance).
-
-### 📡 Path: ``/rd_progress``
-
-> Not mandatory to be set as cron since it's triggered internally every 2 minutes.
-
-This is a service to check if there are changes worth calling ``/scan`` subsequently.
-
-
-
-
-# 🚀 First and daily Usage
-
-1. Verify that you have some torrents in your RD account _(JellyGrail does not provide any torrent indexer search or RD downloader)_.
-2. Wait for the ``./Video_Library/virtual/`` folder to be filled (The first library scan is called within 2 minutes if there are torrents in your RD account)
-    - or trigger it with  ``/scan`` (See 📡 Tasks triggering section above).
-4. Access the content in ``./Video_Library/virtual/`` (in the folder you ran the docker command).
-5. Jellyfin is ready to run and preconfigured with corresponding libraries on http://your_system_ip:8096.
-    - Initialize the user and language and don't do anoything else (don't add librairies)
-    - You can also disable Jellyfin at config time and point your plex Libraries to the ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders.
-    - If you don't need the filesystem fallback functionnality and use Plex, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
-6. For TV/Projector usage : it's recommended to use _Kodi + Jellyfin add-on_ on an Android TV device (or LibreELEC/Coreelec on specific devices).
-    - or Use the new Kodi integration, see [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail)
-8. On Mobile device, you can install Jellyfin app and switch to native included player in its settings (in other words: avoid the webview player because it leads Jellyfin to do unnecessary transcoding)
-9. Beware to have a paid RD account:
-    - configure ``/backup`` cron (See 📡 Tasks triggering section above).
-    - if you forgot a payment or deleted torrents by mistake, you can find your RD hashes backup in ./jellygrail/data/backup/ and use the /restore service (See 📡 Tasks triggering section above).
-10. You can re-arrange your virtual/shows and virtual/movies folders the way you like as if it were a normal file-system. Future calls to /scan service won't mess-up with your changes. Don't forget to refresh Jellyfin library after your changes.
-11. JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every day to improve reliability
-> [!TIP]
-> If you restart your NAS frequently, add STOP.SH script to your shutdown tasks and START.SH script to your startup tasks so that shared mount points are still accessible (alternatively, you can use fstab)
-
-> [!NOTE]
-> 
-> ``./fallbackdata/`` folder contains files added by you or any process that tries to write a file in _virtual_ folder and its subfolders.
-> 
-> ``./Video_Library/virtual_dv/`` is a dynamically filtered folder containing only Dolby Vision MP4/MKV files.
-> 
-> ``./Video_Library/virtual_bdmv/`` is a dynamically filtered folder containing only DVDs and Blu-rays data.
-
-
-
-
-# ✅ Sanity checks / Troubleshooting
-
-You can check it's running with following commands:
-
-
-
-
-
-___
-
-# Good to know / Known issues
-- Check **🚀 First and daily Usage** section above.
-- m2ts/ts files not inside a BDMV structure are ignored.
-- ⚠️ Deletion of a media item which is actually in a RAR file in the underlying file-system will cause the deletion of the whole RAR file.
-- ⚠️ If you've restarted your system, the docker container was maybe restarted but the rshared mount of folder ``./Video_Library/`` was not made so you have to run ``./STOPSTART.SH`` to fix it.
-- JELLYFIN_FFmpeg__analyzeduration reduced to 4 seconds to be light on Real-Debrid requests and rclone cache. On some video files ffprobe report might be uncomplete. TODO: reconsider an increase of JELLYFIN_FFmpeg__analyzeduration.
-- Additional Remote mounts points : You can add other rclone remote mount points (with your favorite cloud provider) by following the same structure as this: 
-  - create a "*name_of_your_cloud*" folder inside the ``.`` folder, and then create a "rclone.conf" file inside it.
-  - name your rclone config title (in between [ ] ) with *name_of_your_cloud* and fill the rest as you would do with rclone (you can generate a dummy config file with rclone).
-  - mount the "*name_of_your_cloud*" folder to "/mounts/name_of_your_cloud":
-    - (ex : ``-v ${PWD}/name_of_your_cloud:/mounts/name_of_your_cloud``) in the docker run command
-  - the cloud mount source is not configurable (yet)
-  - video files can't be directly located within the root of the mount (/mounts/remote_mycloud_provider/video.mkv will not be scanned it should rather be /mounts/remote_mycloud_provider/movies/Title/Title.mkv)
+- When detected as extras, videos are moved into extras subfolder but without their corresponding subtitles if any
+- if the Video_Library folder is then accessed through a SMB protocol, renaming/moving does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (fix that in bindfs_jelly if possible).
+- RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
 - Underlying files deletion:
   - REMOTE : follows rclone RD fork system : Inside folders containing multiple video files, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion are sometimes uncomplete in this case.
   - LOCAL : Underlying files are deleted but not folders (TODO:fix)
-- RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
-- 2 Jellyfin plugins are pre-installed:
-  - ``SubBuzz:``  not enabled on library scan but can be used on induvidual items. You can enable it on library scan if you want but beware it will cause additional download requests to Real-Debrid.
-  - ``Kodi Sync Queue:`` to improve the experience with Jellyfin kodi add-on 
-- rclone_jelly is an experimental fork of https://github.com/itsToggle/rclone_RD to change the normal behavior of rclone's vfs_cache and thus it's not a "cache" anymore: it stores RAR/ISO file structure data to improve access reliability especially when using Real-Debrid service.
-  - This cache will have a size equal to 0.5%~ of your real-debrid storage size, using it on an SSD is better (but not mandatory).
-- bindfs_jelly is a fork of https://github.com/mpartel/bindfs that brings virtual folders and virtual renaming.
-  - Its sqlite DB is initialized through inluded Python service that scans mounted local and remote folders (upon first start the virtual folder is empty).
-- ⚠️ You can manage your assets *only* through the virtual folder (rename, delete, move) otherwise if you do it directly on the underlying filesystems, linkage will be lost between virtual tree and actual trees. TODO: autofix when linkage is dead between bindFS and underlying filesystems
-- You can use a Real-Debrid download manager like [rdt-client](https://github.com/rogerfar/rdt-client) and disable downloading files to host since you don't need to have these files stored locally anymore. Thus you also have to stop using rename-and-organize feature of Radarr and Sonarr (basically you have to stop radarr/sonarr handling of finished downloads). 
-- if the Video_Library folder is then accessed through a SMB protocol, renaming/moving does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (TODO: fix that in bindfs_jelly if possible).
-- When detected as extras, videos are moved into extras subfolder but without their corresponding subtitles if any
+- deal with m2ts/ts files 
+- ⚠️ Deletion of a media item which is actually in a RAR file in the underlying file-system will cause the deletion of the whole RAR file.
+
+
 
 
