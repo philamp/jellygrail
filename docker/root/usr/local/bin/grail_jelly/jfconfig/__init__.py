@@ -327,12 +327,14 @@ def install_librairies():
             jfapi.jellyfin(f'ScheduledTasks/Running/7738148ffcd07979c7ceb148e06b3aed', method='delete') # should not stat right away, should stop for virtual folder to be completed first
             logger.info("  JELLYFIN| First autoscan halted. Will be managed by JellyGrail later")
 
+            if systemconf := jfapi.jellyfin(f'System/Configuration', method='get'):
+                systemconf = systemconf.json()
+                systemconf['LibraryScanFanoutConcurrency'] = 2
+                systemconf['LibraryMetadataRefreshConcurrency'] = 2
+                jfapi.jellyfin(f'System/Configuration', json=systemconf, method='post')
+
     jfapi.jellyfin(f'ScheduledTasks/7738148ffcd07979c7ceb148e06b3aed/Triggers', json=[], method='post') # disable libraryscan as well
 
-    if systemconf := jfapi.jellyfin(f'System/Configuration', method='get'):
-        systemconf = systemconf.json()
-        systemconf['LibraryScanFanoutConcurrency'] = 1
-        systemconf['LibraryMetadataRefreshConcurrency'] = 1
-        jfapi.jellyfin(f'System/Configuration', json=systemconf, method='post')
+    
 
     return True
