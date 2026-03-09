@@ -5,27 +5,24 @@
 <strong>One compatibility layer to merge them all, manage them all in Jellyfin and play them all in Kodi ; and in their RAR keep them</strong>
 </p>
 
-
-# Features
-
-- Filesystem virtualization (streams become files)
-- Real-Debrid optimized (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly
+- Merging multiple sources into one virtualized filesystem - https://github.com/philamp/bindfs_jelly
 - On-the-fly unraring - https://github.com/hasse69/rar2fs
+- Real-Debrid optimized (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly
 - Zero-click Jellyfin setup
 - Lightweight WebDAV server - nginx
 - Kodi backend emulation / Kodi add-on
   - Metadata synced from Jellyfin
   - Multi database support - MariaDB
+  - Auto-merging of movies variants
   - Click to keep a media locally
 - Plex compatibility
 
 ## ✋ 1/ Prerequisites
 
-- Linux system 🐧 with Bash shell.
-- Tested on x86 system, should build on ARM and should run on a Raspberry 4, but not tested yet.
+- Linux x86 system 🐧 with Bash shell.
 - Docker 🐳.
-- Git client to clone this repo (TODO: provide a prebuilt image).
-- Having a Real-Debrid account is better.
+- Git client to clone this repo.
+- Be fine with bypassing media import from your Radarr / Sonarr setup (to do manually)
 
 ## 🚧 2/ Build
 
@@ -50,19 +47,7 @@ cd ..
 
 
 
-> [!CAUTION]
-> - New version named "20240915", **don't forget to RERUN PREPARE.SH !!!, also there are differents arguments in the docker run command**
->   - breaking changes:
->     - ./jellygrail/.bindfs_jelly.db is now stored in ./jellygrail/data/bindfs : **Jellygrail will rescan all your library**
->     - Jellyfin is run under user "www-data" so that nginx can natively access to its files (no impact planned)
->     - Merge versions Jellyfin add-on to be removed. It's confusing when deleting library items since some variants are within same folders while other are not. Removing that will remove this ambiguity.
->     - Added Kodi synchronization, you must use [this guide](https://github.com/philamp/jellygrail/wiki/Configure-Kodi-for-Jellygrail) if interested
->     - ffprobe wrapper to reduce remote storage queries (jellygrail stores ffprobe results and gives it back to Jellyfin when requested)
->   - Fixes:
->     - fallbackdata items now displayed in all dynamically filtered folders
->     - real added date in virtual filesystem (so recently added lists are correct)
->     - improved datamodel upgrade management
->     - improved configuration wizard that remembers previous settings
+
 
 ----
 
