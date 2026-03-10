@@ -2,7 +2,7 @@
 <img alt="jg" src="jg.png" />
 </p>
 <p>
-<strong>One compatibility layer to merge them all, manage them all in Jellyfin and play them all in Kodi ; and in their RAR keep them</strong>
+<strong></strong>
 </p>
 <p align="center">This project is still experimental, way more stable than previous release though</p>
 
@@ -21,16 +21,17 @@
   - Extras files can be written
   - Renaming is possible
   - Deleting in the virtual FS also deletes underlying actual files
-- On-the-fly unraring - https://github.com/hasse69/rar2fs
-- Real-Debrid optimized (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly
-- Zero-click Jellyfin setup
-- Lightweight WebDAV server - nginx
-- Keep extras and subtitles in the most compatible way
+  - On-the-fly unraring - https://github.com/hasse69/rar2fs
+  - Real-Debrid optimized (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly
+  - Keep extras and subtitles in the most compatible way
+  - Wrapping ffprobe results for Jellyfin to get them very fast
 - Kodi backend emulation / Kodi add-on
   - Metadata synced from Jellyfin (manage your medias in Jellyfin only)
   - Multi database support - MariaDB
   - Auto-merging of movies variants
   - Click to keep a media locally
+  - Lightweight WebDAV server - nginx
+- Zero-click Jellyfin setup
 - Fully open-source solution
 - Plex compatibility
 
