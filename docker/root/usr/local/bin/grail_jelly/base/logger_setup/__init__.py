@@ -41,8 +41,8 @@ class RecentDedupFilter(logging.Filter):
 
         # 3) Silencing si déjà vu récemment (sur le *message brut*)
         #    -> actif seulement si verboseLog est désactivé
-        if not genericClass.isVerboseLog() and any(m == raw_msg for _, m in self.recent):
-            return False
+        #if not genericClass.isVerboseLog() and any(m == raw_msg for _, m in self.recent):
+        #    return False
 
         # 4) Prefix blanking (uniquement pour l’affichage)
         display_msg = raw_msg

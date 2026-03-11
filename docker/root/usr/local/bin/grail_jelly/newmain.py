@@ -1,5 +1,7 @@
 ### MAIN ONLY
 #from ast import arg
+#from importlib.resources import path
+
 from dotenv import load_dotenv
 load_dotenv('/jellygrail/config/settings.env')
 from base import logger_setup
@@ -24,6 +26,8 @@ import threading
 import re
 import requests
 import datetime
+from pathlib import Path
+from asyncinotify import Inotify, Mask
 
 
 # JG MODULES
@@ -31,8 +35,8 @@ import jg_services
 import nfo_generator
 import jfapi
 import localimport
-from jgscan.jgsql import jellyDB
-from jgscan import multiScan
+#from jgscan.jgsql import jellyDB
+from jgscan import multiScan, init_mountpoints
 from jgscan.jgsql import staticDB, bdd_install
 from jfconfig import jfconfig
 from kodi_services.sqlkodi import kodi_mysql_verify
@@ -444,8 +448,6 @@ app.add_middleware(
 # === Startup hook ===
 @app.on_event("startup")
 async def startup_event():
-
-    
     
     play_splash()
     play_config_check()
@@ -455,18 +457,16 @@ async def startup_event():
 
     if JF_WANTED:
         jfconfig()
+
+    watch_points = init_mountpoints()
             
     # START ALL ROOT TRIGGERED/PERIODIC JOBS
     await asyncio.sleep(0)
     asyncio.create_task(JobManager.run_all())
     await asyncio.sleep(0)
     JobManager.trigger("ssdpBroadcast", "🔁 5s loop in thread") #5s is handled in the job itself not in the jobmanager
+    JobManager.trigger("watchLocalFolders", "AsyncLocalWatcher", ctx={"wfid": "AsyncLocalWatcher", "watchpoints": watch_points})
     
-    #----BELOW DEPRECATED
-    #JobManager.trigger("rdProgressLoop", "null") #ticker handled by jobmanager periodic also set the job not to print the start message each time
-    #JobManager.trigger("nfoGenJob", "null", ctx={"wfid": "null"})
-    #JobManager.trigger("remoteScan", "null")
-    #-----
 
 # === Stopping hook ===
 @app.on_event("shutdown")
@@ -476,11 +476,58 @@ async def shutdown_event():
     JobManager.stop()
     staticDB.s.sqclose()
 
+async def watch_dirs(ctx, stop_event):
 
+    def trigger():
+        wfid = "twf-watchLocalFolders-"+JobManager.get_new_wfid()
+        logger.info(f" SCHEDULER| Triggering scan workflow from local file watcher with wfid {wfid}")
+        JobManager.trigger("jgScanJob", wfid, ctx={"wfid": wfid, "later": False})
+
+
+    WATCH_DIRS = ctx.get("watchpoints", [])
+
+    if stop_event.is_set():
+        return
+
+    with Inotify() as inotify:
+
+        # register all folders
+        for folder in WATCH_DIRS:
+            inotify.add_watch(
+                folder,
+                Mask.CREATE | Mask.MOVED_TO | Mask.CLOSE_WRITE
+            )
+
+        async for event in inotify:
+
+            if stop_event.is_set():
+                break
+
+            if event.name is None:
+                continue
+
+            path = Path(event.path)
+
+            # ignore directories
+            if path.is_dir() and (event.mask & Mask.CREATE or event.mask & Mask.MOVED_TO):
+                logger.info(f"   WATCHER| New directory: {path}")
+
+                #add path to watcher
+                inotify.add_watch(
+                    path,
+                    Mask.CREATE | Mask.MOVED_TO | Mask.CLOSE_WRITE
+                )
+                continue
+                
+            # new file with matching extension
+            elif path.suffix.lower() in VIDEO_EXTENSIONS and not (event.mask & Mask.CREATE):
+                logger.info(f"   WATCHER| New local file: {path}")
+
+                trigger()
+                continue
 
 async def kodiScanWrapper(ctx, stop):
     reset_kodi_instances_refresh("toScan")
-
 
 def remoteScanWrapper(ctx, stop):
     # run jgservices.remoteScan
@@ -491,6 +538,7 @@ def computePoliciesWrapper(ctx, stop):
     localimport.computePolicies()
 
 def plexScanWrapper(ctx, stop):
+    logger.info("      PLEX| Triggering Plex scan...")
     for plex_url in PLEX_URLS_ARRAY:
         if stop.is_set():
             logger.warning(" SCHEDULER| plexScan interrupted by stop signal")
@@ -525,7 +573,7 @@ def multiScanWrapper(ctx, stop):
     #else----
     
     if ctx["wfid"] == "wf1":
-        logger.info("      SCAN| First workflow triggers the scan")
+        logger.info("      SCAN| First jgscan triggers media librairies scans")
 
     JobManager.trigger("computePolicies", ctx["wfid"])
 
@@ -562,7 +610,7 @@ def nfo_generatorWrapper(ctx, stop):
     firsttime = False
 
     if ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "twf-nfoGenJob-1":
-        logger.info(" SCHEDULER| First workflow or scheduled wf triggers the nfoGen")
+        logger.info(" SCHEDULER| First workflow or scheduled wf triggers the Nfo generator job")
         firsttime = True
         
     if nfo_generator.nfo_loop_service(stop) or firsttime:
@@ -589,6 +637,8 @@ if __name__ == "__main__":
     # ---------------periodic jobs launched once in startup event
     JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=15)
     JobManager.register_job("ssdpBroadcast", SSDPTask, is_sync=False) #ASYNC !
+
+    JobManager.register_job("watchLocalFolders", watch_dirs, is_sync=False) #ASYNC, launched in startup with watch points as ctx, it will run indefinitely and react to file events, no need to trigger it again since it runs in loop, it will check the stop event to stop itself
 
 
     # ----------------triggered jobs launched on cascade on event

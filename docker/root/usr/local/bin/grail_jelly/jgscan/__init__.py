@@ -1,4 +1,4 @@
-from os import name
+#from os import name
 from base import *
 #from jgscan.jgsql import *
 from jgscan.jgsql import jellyDB, staticDB
@@ -25,7 +25,7 @@ present_virtual_folders_shows = []
 #dual_endpoints = []
 
 pointNamesAndType = []
-pointNamesAndTypeWD = []
+pointNamesAndTypeLI = []
 
 items_scanned = 0
 
@@ -569,23 +569,36 @@ def init_mountpoints():
 
     #global dual_endpoints
     global pointNamesAndType
-    global pointNamesAndTypeWD
-    logger.info("   STORAGE/ Rclone startup and mountpoints initialization (10s)...") #toimprove with s6 ?
-    time.sleep(1)
+    global pointNamesAndTypeLI
+    logger.info("   STORAGE/ Mountpoints initialization...") #toimprove with s6 ?
+    time.sleep(0.1)
     for f in os.scandir(MOUNTS_ROOT):
         if f.name == "remote_webdav":
             for g in os.scandir(MOUNTS_ROOT+"/remote_webdav"):
                 if g.is_dir() and g.name.startswith("local_") and not '@eaDir' in g.name and not g.name.startswith("local_import"):
                     typem = "remote"
                     logger.info(f"   STORAGE/ remote_webdav/{g.name}")
-                    pointNamesAndTypeWD.append(("remote_webdav/"+g.name,typem))
-        elif f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
+                    pointNamesAndType.append(("remote_webdav/"+g.name,typem))
+        elif f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name and not f.name.startswith("local_import"):
             typem = "local" if f.name.startswith("local_") else "remote"
             #logger.info(f"   STORAGE/ {f.name}")
             pointNamesAndType.append((f.name,typem))
+        elif f.is_dir() and f.name.startswith("local_import"):
+            typem = "local"
+            pointNamesAndTypeLI.append((f.name,typem))
             
     #print(dual_endpoints)
-    to_watch = [MOUNTS_ROOT+"/"+point for (point, point_type) in pointNamesAndType if point_type == 'local']
+    #to_watch = [MOUNTS_ROOT+"/"+point for (point, point_type) in pointNamesAndType if point_type == 'local']
+
+    to_watch = []
+
+    for (point, point_type) in pointNamesAndType:
+        if point_type == 'local':
+            for d in os.scandir(MOUNTS_ROOT+"/"+point):
+                if d.name == '@eaDir':
+                    continue
+                if d.is_dir():
+                    to_watch.append(MOUNTS_ROOT+"/"+point+"/"+d.name)
 
     return to_watch
 
@@ -595,19 +608,22 @@ def init_mountpoints():
 def multiScan(stopEvent):
 
 
-    if not pointNamesAndType:
-        init_mountpoints()
+    #if not pointNamesAndType:
+    #    init_mountpoints()
 
     jgScan.i_scanned = 0 
     # instanciate as many workers as there are
     if RD_API_SET:
-        logger.info("MULTI-SCAN| Rclone update interval wait...") #toimprove
-        time.sleep(1)
-    logger.info(f"   STORAGE| Found {len(pointNamesAndType)+len(pointNamesAndTypeWD)} mountpoint(s):")
+        logger.info("MULTI-SCAN| RD update interval wait...") #toimprove , find if remote storage has triggered this
+        time.sleep(8)
+    else:
+        logger.info("MULTI-SCAN| No RD, starting immediately...")
+    logger.info(f"   STORAGE| There are currently {len(pointNamesAndType)+len(pointNamesAndTypeLI)} storage(s):")
+    for src1, storetype in pointNamesAndTypeLI:
+        logger.info(f"          | /{src1} | Type: {storetype}")
     for src1, storetype in pointNamesAndType:
-        logger.info(f"          | - /{src1} | Type: {storetype}")
-    for src1, storetype in pointNamesAndTypeWD:
-        logger.info(f"          | - /{src1} | Type: {storetype}")
+        logger.info(f"          | /{src1} | Type: {storetype}")
+    
     
     
     # use a dbojbect
@@ -625,21 +641,21 @@ def multiScan(stopEvent):
     db_prescan_fetcher.sqclose()
 
 
-    if pointNamesAndTypeWD:
-        logger.info(f"MULTI-SCAN| Launching remote webdav scanner first")
+    if pointNamesAndTypeLI:
+        logger.info(f"MULTI-SCAN| Scanning Local Import storage first, in case it already contains content that we would find in remote storages")
 
-        with ThreadPoolExecutor(max_workers=len(pointNamesAndTypeWD)) as executor:
+        with ThreadPoolExecutor(max_workers=len(pointNamesAndTypeLI)) as executor:
             try:
                 list(executor.map(
                     lambda d: scanThread(d, present_folders, stopEvent),
-                    pointNamesAndTypeWD
+                    pointNamesAndTypeLI
                 ))
             except Exception as e:
                 logger.critical(f"MULTI-SCAN| ❌ WebdavScanThread: {e}")
                 traceback.print_exc()
 
 
-    logger.info(f"MULTI-SCAN| Launching {len(pointNamesAndType)} scanner(s) in multithread")
+    logger.info(f"MULTI-SCAN| Scanning {len(pointNamesAndType)} storage(s) in parallel")
 
     with ThreadPoolExecutor(max_workers=len(pointNamesAndType)) as executor:
         try:
@@ -706,7 +722,7 @@ def scanThread(pnt, present_folders, stopEvent):
         if stopEvent.is_set():
             logger.warning("      SCAN| Stop event detected, stopping scanThread...")
             break
-        logger.info(f" SCANPOINT| /{pnt[0]} /{sdname} ...")
+        logger.info(f" SCANPOINT| /{pnt[0]} | /{sdname} ...")
         for f in os.scandir(src1):
             if os.path.basename(f.path) not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
