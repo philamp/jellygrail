@@ -570,18 +570,18 @@ def init_mountpoints():
     #global dual_endpoints
     global pointNamesAndType
     global pointNamesAndTypeLI
-    logger.info("   STORAGE/ Mountpoints initialization...") #toimprove with s6 ?
+    logger.info("   STORAGE| Mountpoints initialization...") #toimprove with s6 ?
     time.sleep(0.1)
     for f in os.scandir(MOUNTS_ROOT):
         if f.name == "remote_webdav":
             for g in os.scandir(MOUNTS_ROOT+"/remote_webdav"):
                 if g.is_dir() and g.name.startswith("local_") and not '@eaDir' in g.name and not g.name.startswith("local_import"):
                     typem = "remote"
-                    logger.info(f"   STORAGE/ remote_webdav/{g.name}")
+                    logger.info(f"   STORAGE| remote_webdav/{g.name}")
                     pointNamesAndType.append(("remote_webdav/"+g.name,typem))
         elif f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name and not f.name.startswith("local_import"):
             typem = "local" if f.name.startswith("local_") else "remote"
-            #logger.info(f"   STORAGE/ {f.name}")
+            #logger.info(f"   STORAGE| {f.name}")
             pointNamesAndType.append((f.name,typem))
         elif f.is_dir() and f.name.startswith("local_import"):
             typem = "local"

@@ -4,17 +4,17 @@
 <p align="center">
 <strong>Virtualized filesystem merging multiples storage sources + Kodi backend emulation</strong>
 </p>
-<p align="center">WARNING: This project is still experimental</p>
+<p align="center">WARNING: This project is still experimental !</p>
 
 <p align="center">
   <a href="#prerequisites">Prerequisites</a> &bull;
   <a href="#build">Build</a> &bull;
   <a href="#configuration">Configuration</a> &bull;
   <a href="#run">Run</a> &bull;
-  <a href="#performance">Performance</a> &bull;
-  <a href="#add-on">Add-on</a> &bull;
+  <a href="#kodi-add-on">Kodi add-on</a> &bull;
   <a href="#usage">Usage</a> &bull;
-  <a href="#troubleshooting">Troubleshooting</a>
+  <a href="#troubleshooting">Troubleshooting</a> &bull;
+  <a href="#performance">Performance</a>
 </p>
 
 ---
@@ -27,13 +27,16 @@
   - Real-Debrid optimized (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly.
   - Keep extras and subtitles in the most compatible way.
   - ffprobe wrapper to avoid redundant ffprobe requests.
-- Kodi backend emulation / Kodi add-on.
-  - Metadata synced from Jellyfin (manage your medias in Jellyfin only).
-  - Multi database support (MariaDB).
+- Kodi backend emulation.
+  - Kodi add-on - https://github.com/philamp/grail_kodi.
+  - Metadata synced from Jellyfin.
+  - Multi Kodi players support.
   - Auto-merging of movies variants.
   - Exclusive add-on features (Click to keep a media locally).
   - Lightweight WebDAV server (nginx).
+  - Kodi DB server side (MariaDB).
 - Zero-click Jellyfin setup.
+- Easy add-on setup.
 - Fully open-source solution.
 - Plex compatibility.
 
@@ -42,18 +45,19 @@
 - Linux x86 system 🐧 with Bash shell.
 - Docker 🐳.
 - Git client to clone this repo.
-- Configure Bypass media import from your Radarr / Sonarr : Uncheck `Automatically import completed downloads from download client`.
-- Local torrent download.
-  - check `Append .!qB extension to incomplete files` in qBittorrent (or equivalent in other clients).
-- Remote torrent manager.
-  - Configure RealDebrid client not to download files.
+- Bypass media import from your Radarr / Sonarr instances: 
+  - Uncheck `Automatically import completed downloads from download client`.
+- Local torrent download config:
+  - Check `Append .!qB extension to incomplete files` (example for `qBittorrent`, but other clients have similar functionnality).
+- Remote torrent download config:
+  - `Post Torrent Download Action` > `Don't download any files to host` (example for `RealDebrid Client`, but other clients have similar functionnality).
 
 > [!CAUTION]
 > - I'm not responsible of any data loss / I'm not responsible of any illegal use / Use at your own risks.
 > - This solution does not include any torrent indexer search. 
 > - Do not open ports 8085, 8089 and 6502 to the internet.
 > - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
-> - Jellygrail is still experimental/BETA : you should not submit any issues to the XBMC (Kodi backend emulation disrupts the way Kodi works by modifying with the database directly !).
+> - Jellygrail is still experimental/BETA : you should not submit any issues to the XBMC team (Kodi backend emulation disrupts the way Kodi works by modifying the database directly !).
 
 ## Build
 
@@ -77,6 +81,10 @@ sudo chmod u+x jf-config.sh _MOUNT.SH
 
 ## Run
 Once compilation is done, launch your adapted variant of this docker run command, still inside the root folder of the projet.
+
+> [!TIP]
+> Beware that by default this working folder will store `jellygrail` subfolder with config and runtime data such as the rclone ISO/RAR structure cache _(0.5%~ of your real-debrid storage size)_.
+
 ````
 sudo docker run -d --privileged --security-opt apparmor=unconfined \
 --cap-add MKNOD \
@@ -101,30 +109,129 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 philamp/jellygrail:latest
 ````
 
-Then run `sudo docker logs -f jellygrail` to monitor the output.
-
-> [!TIP]
-> Beware that by default this working folder will store `jellygrail` subfolder with config and runtime data such as the rclone ISO/RAR structure cache _(0.5%~ of your real-debrid storage size)_.
-
 > [!WARNING]
-> - If you're not running an Ubuntu/Debian system you will need to run _MOUNT.SH script (with sudo!) to make a two-way bind mount https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759.
+> - If you're not running an Ubuntu system you will need to run _MOUNT.SH script (with sudo!) to make a two-way bind mount https://forums.docker.com/t/make-mount-point-accesible-from-container-to-host-rshared-not-working/108759.
 >   - To mount : `sudo ./_MOUNT.SH mount`.
 >   - To unmount : `sudo ./_MOUNT.SH unmount`.
+
+> [!TIP]
+- run `sudo docker logs -f jellygrail` to monitor the console output.
+- Check http://your-server-ip:6502/status.
 
 ### Put your custom rclone.conf file
 Real-Debrid support is included, but if you have another rclone compatible cloud storage you can add it this way:
 - Create a dedicated folder named `remote_yourservice`.
 - Put the rclone file in it.
 - The rclone file content should start with `[remote_yourservice]`.
-- Check docker run command above to mount it.
+- Check docker run command above (`-v /path/remote_yourservice:/mounts/remote_yourservice  `) to mount it.
 
-### Folder selectivity inside the given mounted sources
+## Kodi Add-on
 
-Folders containing 'movi', 'conc', 'show', or 'disc' will be scanned.
+<img alt="jg" width="200" src="kodi.png" />\
+A Kodi add-on is now provided to ease the Kodi Webdav/SQL configuration process and provide new functionnalities.
 
-### Folder selectivity inside the ./Video_Library
+### Add-on installation
+Before installing the add-on, please do the following:
+* In `Settings`/`Medias`/`Library`:
+  * Disable `Update library on startup`.
+  * Enable `Ignore different versions on scan` (managed by the backend).
+  * Disable `Ignore video extras on scan`.
+* In `Settings`/`Medias`/`Videos`, (to increase scanning speed):
+  * Disable `Extract video information from files`.
+  * Disable `Extract chapter thumbnails`.
+  * Disable `Extract thumnails from video files`.
 
-At start /movies and /shows are created. Do not create other folders on this level.
+Make sur Webdav is available on your local network : `http://your-server-ip:8085`:
+- Go to `Settings` > `File mananager` > `Àdd source` > `Browse` > `Add network location` > `webdav`.
+- `Protocol` : `WebDAV (HTTP)`.
+- `Server address` : Your server local ip.
+- `Port` : `8085`.
+- Click `Ok`.
+- Go back to `Settings` > `Add-ons` > `Install from zip file`.
+- In the newly created location browse to `actual/kodi/software`.
+- Click on `context.kodi_grail-2026xxxx.zip`.
+
+> [!WARNING]
+> - If you have custom `<video> <sources>` nodes in profile/sources.xml, they will be erased.
+> - If you have custom `<videodatabase>` nodes in profile/advancedsettings.xml, they will be erased.
+
+
+### Add-on features
+
+At installation, the add-on auto detects the Jellygrail server and let you choose the compatible DB among existing ones, otherwise a new DB will be created on the server.
+
+- Long click on a *movie* or a TVshow *season*, a contextual manu appears with this item: `}{ JeallyGrail Menu` at the bottom:
+
+<img width="300" src="https://github.com/user-attachments/assets/aae497cf-3153-4e24-8c7c-32f8ac05a1c2" />
+
+- Functionnalities:
+  - keep medias
+  - check their current local or remote availability
+  - Admin actions
+  - ... more to come
+
+## Usage
+
+1. Verify that you have some torrents in your RD account _(JellyGrail does not provide any torrent indexer search or RD downloader)_.
+2. Monitor `sudo docker logs -f jellygrail` to check for JellyGrail progress or errors.
+3. Wait for the ``./Video_Library/virtual/`` folder to be filled by the scanner.
+4. Access the content in ``./Video_Library/virtual/`` :
+    - WebDAV : http://your_system_ip:8085.
+    - Jellyfin : http://your_system_ip:8096.
+    - or Kodi (see Add-on paragraph above).
+5. For Plex you can point your librairies to ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders. If you don't need the virtual filesystem functionnality, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
+6. Beware that JellyGrail restarts by itself at 5.00am 🕡 every wednesday to improve stability.
+
+### Folder naming pattern
+
+#### inside the given mounted sources:
+
+Level 1 folders containing 'movi', 'conc', 'show', or 'disc' will be scanned.
+
+#### inside the ./Video_Library virtual folder:
+
+At start, level 1 folders /movies and /shows are created. Do not create other folders on this level (not yet supported).
+
+## Troubleshooting
+
+- Jellygrail scans files that are currently downloading.
+  - Solution : Configure Bittorrent client to append a temporary extension to uncomplete files.
+- Some files are not scanned.
+  - Solution : Verify that, inside the given mounted sources, folder names contains `movi`, `conc`, `disc` or `show`.
+- Kodi does not show some posters and pictures.
+  - Solution : Long click on an item then `}{ JellyGrail Menu` then `Admin actions` > `Trigger delta NFO refresh` or `Trigger full NFO refresh`.
+- I moved files in the underlying filesystems.
+  - Solution : Don't do that or refresh the virtual filesystem right after (see below).
+- I created new folder(s) along `movies` and `shows` inside the ./Video_Library folder and they're not scanned.
+  - Solution : don't do that, it's not supported yet. 
+- After system restart, container does not start properly.
+  - Solution : the rshared mount of folder ``./Video_Library/`` was probably not creaated, so you have to run ``./STOPSTART.SH`` to fix it.
+- Jellyfin stops scanning before reaching 100% : Known issue, see _Perforamnce_ paragraph above.
+  - Solution : Relaunch the jellyfin scan inside jellyfin untill it reaches 100% + increase the `memory` value in docker run command. Avoid complex bluray structures.
+
+> [!CAUTION]
+> ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/data/bindfs/.bindfs_jelly.db`` file and **restart the docker container**
+
+> [!TIP]
+> If you restart your NAS frequently and mounts are not "rshared" by default (like it is in Ubuntu), add STOP.SH script to your shutdown tasks and START.SH script to your startup tasks.
+
+### Is the container running ? 
+
+````
+sudo docker ps
+````
+
+### Container logs
+
+````
+sudo docker logs -f jellygrail
+````
+
+### Python service HTTP test
+
+````
+Browse to http://localhost:6502/status
+````
 
 ## Performance
 
@@ -144,111 +251,12 @@ If you have different types of storage, you can override `jellygrail` specific s
 - `/jellygrail/data/mariadb` - MariaDB db files.
 - `/jellygrail/vfs_cache` - rclone iso/rar structure cache files.
 
-## Add-on
-
-A Kodi add-on is now provided to ease the installation process and provide new functionnalities.
-
-### Add-on installation
-
-Before you install Add-on please do the following:
-* In `Settings`/`Medias`/`Library`:
-  * Disable `Update library on startup` (Automatically triggered by Jellygrail).
-  * Enable `Ignore different versions on scan` (Automatically merged by Jellygrail SQL special ops).
-  * Disable `Ignore video extras on scan`.
-* In `Settings`/`Medias`/`Videos`, disable all "Extract *" settings (important to speed up scanning):
-  * Disable `Extract video information from files` (Already present in NFO generated by Jellygrail).
-  * Disable `Extract chapter thumbnails`.
-  * Disable `Extract thumnails from video files`.
-
-Make sur Webdav is available on your local network : `http://your-server-ip:8085`:
-- Go to `Settings` > `File mananager` > `Àdd source` > `Browse` > `Add network location` > `webdav`.
-- `Protocol` : `WebDAV (HTTP)`.
-- `Server address` : Your server local ip.
-- `Port` : `8085` (default).
-- Click `ok`.
-- Go back to `Settings` > `Add-ons` > `Install from zip file`.
-- Browse to the newly created location.
-- Go to `actual/kodi/software`.
-- Click on the obvious choice.
-
-> [!WARNING]
-> - If you have custom `<video> <sources>` nodes in profile/sources.xml, they will be erased.
-> - If you have custom `<videodatabase>` nodes in profile/advancedsettings.xml, they will be erased.
-
-
-### Add-on features
-
-At installation, the add-on auto detects the Jellygrail server and let you choose the compatible DB you can use among existing ones, otherwise a new DB will be created on the server.
-
-- Long click on a movie or a TVshow *season*, the last item `}{ JeallyGrail Menu` will appear:
-
-<img width="300" src="https://github.com/user-attachments/assets/aae497cf-3153-4e24-8c7c-32f8ac05a1c2" />
-
-- Context menu functionnalities:
-  - keep medias
-  - check their current local or remote availability
-  - Admin actions
-  - ... more to come
-
-## Usage
-
-1. Verify that you have some torrents in your RD account _(JellyGrail does not provide any torrent indexer search or RD downloader)_.
-2. Monitor `sudo docker logs -f jellygrail` to check for JellyGrail progress or errors.
-3. Wait for the ``./Video_Library/virtual/`` folder to be filled (library scan is called within 15 seconds upon new RD torrents detected).
-4. Access the content in ``./Video_Library/virtual/`` via WebDAV (http://your_system_ip:8085), Jellyfin or Kodi (see Add-on paragraph above).
-5. For Plex you can point your librairies to ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders. If you don't need the virtual filesystem functionnality, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
-6. JellyGrail being experimental, it restarts by itself at 6.30am 🕡 every wednesday.
-
-## Troubleshooting
-
-- Jellygrail scans files that are currently downloading.
-  - Solution : Configure Bittorrent client to append a temporary extension to uncomplete files.
-- Some files are not scanned.
-  - Solution : Verify that, inside the given mounted sources, folder names contains `movi`, `conc`, `disc` or `show`.
-- Kodi does not show some posters and pictures.
-  - Solution : Long click on an item then `}{ JellyGrail Menu` then `Admin actions` > `Trigger delta NFO refresh` or `Trigger full NFO refresh`.
-- I moved files in the underlying filesystems.
-  - Solution : Don't do that or refresh the virtual filesystem right after (see below).
-- I create dnew folder along movies and shows inside the ./Video_Library folder.
-  - Solution : don't do that, it's not supported yet. 
-- After system restart, container does not start properly.
-  - Solution : the rshared mount of folder ``./Video_Library/`` was probably not creaated, so you have to run ``./STOPSTART.SH`` to fix it.
-- Jellyfin stops scanning before reaching 100% : Known issue, see _Perforamnce_ paragraph above.
-  - Solution : Relaunch the jellyfin scan inside jellyfin untill it reaches 100% + increase the `memory` value in docker run command. Avoid complex bluray structures.
-
-> [!CAUTION]
-> ⚠️ If you need to have your virtual folder rebooted with fresh entries, do not delete file items in ``./Video_Library/virtual/`` folder, as it will also delete corresponding files in the underlying file-systems. Just delete the ``./jellygrail/data/bindfs/.bindfs_jelly.db`` file and **restart the docker container**
-
-> [!TIP]
-> If you restart your NAS frequently and mounts are not rshared by default (like in ubuntu), add STOP.SH script to your shutdown tasks and START.SH script to your startup tasks.
-
-### Is the container running ? 
-
-````
-sudo docker ps
-````
-
-### Container logs
-
-````
-sudo docker logs -f jellygrail
-````
-
-### Python service HTTP test
-
-````
-curl http://localhost:6502/app/test
-````
-
-### Jellyfin 
-
-Open http://your_system_ip:8096 to launch Jellyfin web interface.
-
 ## Todo
 
-- 💡inotify sources change detection
+- 💡~~inotify sources change detection~~
 - 💡RD backup
 - 💡Add audio support
+- 💡Proxification compatibility (with automatic fallback to local sqlite DB)
 - 💡Call full stack refresh whenever virtual renaming happens (or avoid renaming)
 - 💡Fix versions sync progress if set to unwatched in kodi
 - 💡Update jellyfin version

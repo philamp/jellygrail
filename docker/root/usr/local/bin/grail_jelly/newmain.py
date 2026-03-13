@@ -19,6 +19,7 @@ import asyncio
 from starlette.applications import Starlette
 from starlette.responses import JSONResponse
 from starlette.responses import HTMLResponse
+from html import escape
 from starlette.routing import Route, Router
 from starlette.middleware.base import BaseHTTPMiddleware
 import time
@@ -88,7 +89,68 @@ class QuietRouteMiddleware(BaseHTTPMiddleware):
 
 # === Routes Starlette ===
 async def homepage(request):
-    return JSONResponse({"status": "ok", "registered_jobs": "BETA"})
+    items = [
+        f"Preferred languages: {escape(os.getenv('INTERESTED_LANGUAGES') or 'not set')}",
+    ]
+
+    if JF_WANTED:
+        items.extend([
+            f"Jellyfin metadata: country={escape(os.getenv('JF_COUNTRY') or 'not set')}, language={escape(os.getenv('JF_LANGUAGE') or 'not set')}",
+            f"Jellyfin host: http://{escape(LAN_IP)}:8096 (login: {escape(os.getenv('JF_LOGIN') or 'admin')})",
+            f"Nginx WebDAV server for local: http://{escape(str(WEBDAV_HOST_PORT))} (no auth, local access only)",
+            f"Nginx WebDAV server as remote: http://{escape(str(WEBDAV_REMOTE_HOST_PORT))} (no auth, local access only)",
+            f"JellyGrail WebService: http://{escape(LAN_IP)}:{escape(str(WEBSERVICE_INTERNAL_PORT))} (no auth, local access only)",
+            f"SSDP Multicast port: {escape(str(SSDP_PORT))}",
+            f"MySQL port: {escape(str(KODI_MYSQL_CONFIG.get('port', 0)))}",
+        ])
+
+    if USE_KODI_ACTUALLY:
+        items.append(
+            f"Kodi NFO Sync: {'Enabled' if JF_WANTED else 'Disabled, do not use Kodi NFO scraper'}"
+        )
+
+    if USE_REMOTE_RDUMP_ACTUALLY:
+        items.append(f"Remote JG WS URL: {escape(REMOTE_RDUMP_BASE_LOCATION)}")
+
+    if USE_REMOTE_WED_DAV_ACTUALLY:
+        items.append(f"Remote JG WebDAV URL: {escape(REMOTE_WED_DAV_LOCATION)}")
+
+    if RD_API_SET:
+        items.append("Real-Debrid API: Enabled (token set)")
+
+    if USE_PLEX_ACTUALLY:
+        items.append(f"Plex refresh URL(s): {escape(', '.join(PLEX_URLS_ARRAY))}")
+    else:
+        items.append("Plex integration: Disabled")
+
+    list_html = "".join(f"<li>{item}</li>" for item in items)
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>JellyGrail Web Service</title>
+</head>
+<body>
+  <h1>JellyGrail Web Service</h1>
+
+  <pre>
+        ___     _ _        ____          _ _
+       |_  |___| | |_   _ / __/ _ ____ _(_) |
+      _  | / _ \ | | | | | |  _/ '_/ _` | | |
+     / |_|   __/ |   |_|   |_| | |  (_| | | |    
+     \____/\___,_,_|\__, /\____,_| \__,_,_,_|    
+                     |__/                        
+  </pre>
+  <p>Welcome to the JellyGrail Web Service. This service provides an API for its Kodi add-on.</p>
+  <ul>
+    {list_html}
+  </ul>
+</body>
+</html>"""
+
+    return HTMLResponse(html)
 
 
 async def get_compatible_kodiDBs(request):
@@ -419,14 +481,14 @@ api_routes = tokenize(
 # no / route here to let the user put a proxy in front of this and the webdav server # TODO remove bypass below to enable
 app = Starlette(
     routes=[
-            Route("/getrdincrement/{arg:int}", rdIncrRoute)
+            Route("/getrdincrement/{arg:int}", rdIncrRoute),
+            Route("/status", homepage)
         ]
 )
 app.mount("/api", api_routes) # tokenized paths
 #public paths:
 app.mount("/app", Router(
     routes=[
-        Route("/health", homepage),
         Route("/ask_kodi_refresh", ask_kodi_refresh),
         Route("/testallevents", all_events_ask),
         Route("/ask_jf_refresh", ask_jf_refresh),
@@ -453,7 +515,7 @@ async def startup_event():
     play_config_check()
     kodi_mysql_verify(logit = True)
     if RD_API_SET:
-        logger.warning(f"REALDEBRID/ Premium days remaining: {str(jg_services.premium_timeleft()/86400)[:4]}")
+        logger.warning(f"REALDEBRID| Premium days remaining: {str(jg_services.premium_timeleft()/86400)[:4]}")
 
     if JF_WANTED:
         jfconfig()

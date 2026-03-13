@@ -20,20 +20,20 @@ def kodi_mysql_verify(str = "%_JGx_", logit = False):
 
         if result:
             if logit:
-                logger.info(f"  SQL-KODI/ {len(result)} Kodi database(s) detected:")
+                logger.info(f"  SQL-KODI| {len(result)} Kodi database(s) detected:")
                 dbs = [res[0] for res in result]
                 logger.info(f"          | {dbs}")
 
             return True
         else:
-            logger.warning("  SQL-KODI/ No DBs detected. Please instanciate DB using JellyGrail Kodi addon, no need to restart JellyGrail")
+            logger.warning("  SQL-KODI| No DBs detected. Please instanciate DB using JellyGrail Kodi addon, no need to restart JellyGrail")
             return False
 
     except mysql.connector.Error as err:
         if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-            logger.error("  SQL-KODI/ Authentication failed. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container")
+            logger.error("  SQL-KODI| Authentication failed. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container")
         else:
-            logger.critical(f"  SQL-KODI/ SQL server messed-up. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container. Error is: {err}")
+            logger.critical(f"  SQL-KODI| SQL server messed-up. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container. Error is: {err}")
         return False
     
     finally:
@@ -72,9 +72,9 @@ class sqlKodiDB:
 
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                logger.error("  SQL-KODI/ Authentication failed. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container")
+                logger.error("  SQL-KODI| Authentication failed. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container")
             else:
-                logger.critical(f"  SQL-KODI/ SQL server messed-up. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container. Error is: {err}")
+                logger.critical(f"  SQL-KODI| SQL server messed-up. Container mariadb setup failed on your system. Delete the jellygrail/data/mariadb folder and verify that S6_CMD_WAIT_FOR_SERVICES_MAXTIME env is set and restart the container. Error is: {err}")
             raise ValueError(f"Impossible to connect or other error")
 
             

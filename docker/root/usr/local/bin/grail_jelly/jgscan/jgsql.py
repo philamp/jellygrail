@@ -36,7 +36,7 @@ class jellyDB:
             cursor = self.conn.cursor()
             cursor.execute("SELECT depenc('/wqefwqfewq')")
         except sqlite3.OperationalError as e:
-            logger.critical("  JELLY-DB/ lib supercollate non chargée dans ce thread")
+            logger.critical("  JELLY-DB| lib supercollate non chargée dans ce thread")
         '''
         
     def sqbegin(self):
@@ -56,10 +56,10 @@ class jellyDB:
             self.conn.executescript(sql)
         except sqlite3.OperationalError as e:
             if "duplicate column name" in str(e):
-                logger.debug("  JELLY-DB/ The column already exists. Skipping addition.")
+                logger.debug("  JELLY-DB| The column already exists. Skipping addition.")
                 return True
             else:
-                logger.critical("  JELLY-DB/ Migration failure, SQLite error is: ", e)
+                logger.critical("  JELLY-DB| Migration failure, SQLite error is: ", e)
                 return False
         else:
             return True
@@ -88,9 +88,9 @@ class jellyDB:
                 if self.apply_migration(os.path.join(sqlfiles_folder, migration_file)):
                     self.set_current_version(migration_version)
                     self.sqcommit()
-                    logger.warning(f'  JELLY-DB/ Applied {migration_file} migr. file and commited')
+                    logger.warning(f'  JELLY-DB| Applied {migration_file} migr. file and commited')
                 else:
-                    logger.critical("  JELLY-DB/ Migration failure just happened")
+                    logger.critical("  JELLY-DB| Migration failure just happened")
 
 
     def insert_data(self, virtual_fullpath, actual_fullpath, jginfo_rd_torrent_folder, jginfo_rclone_cache_item, mediatype = None, ffprobe = None, completion = None):
