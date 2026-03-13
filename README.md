@@ -115,8 +115,8 @@ philamp/jellygrail:latest
 >   - To unmount : `sudo ./_MOUNT.SH unmount`.
 
 > [!TIP]
-- run `sudo docker logs -f jellygrail` to monitor the console output.
-- Check http://your-server-ip:6502/status.
+> - run `sudo docker logs -f jellygrail` to monitor the console output.
+> - Check http://your-server-ip:6502/status.
 
 ### Put your custom rclone.conf file
 Real-Debrid support is included, but if you have another rclone compatible cloud storage you can add it this way:
@@ -142,7 +142,7 @@ Before installing the add-on, please do the following:
   * Disable `Extract thumnails from video files`.
 
 Make sur Webdav is available on your local network : `http://your-server-ip:8085`:
-- Go to `Settings` > `File mananager` > `Àdd source` > `Browse` > `Add network location` > `webdav`.
+- Go to `Settings` > `File mananager` > `Add source` > `Browse` > `Add network location` > `webdav`.
 - `Protocol` : `WebDAV (HTTP)`.
 - `Server address` : Your server local ip.
 - `Port` : `8085`.
