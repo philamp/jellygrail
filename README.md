@@ -2,7 +2,8 @@
 <img alt="jg" src="jg.png" />
 </p>
 <p align="center">
-<strong>Virtualized filesystem merging multiples storage sources + Kodi backend emulation</strong>
+<strong>One compatibility layer to rule them all.</strong></p>
+<p align="center"><i>Enhanced Jellyfin Docker image unifying local and cloud media sources + Kodi backend emulation and Plex compatibility.</i>
 </p>
 <p align="center">WARNING: This project is still experimental !</p>
 
@@ -19,26 +20,24 @@
 
 ---
 
-- Merging multiple sources into one virtualized filesystem - https://github.com/philamp/bindfs_jelly.
-  - Extras files can be written.
-  - Renaming is possible.
-  - Deleting in the virtual FS also deletes underlying actual files.
+- Merging multiple media sources into one virtualized filesystem - https://github.com/philamp/bindfs_jelly :
+
   - On-the-fly unraring - https://github.com/hasse69/rar2fs.
-  - Real-Debrid optimized (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly.
-  - Keep extras and subtitles in the most compatible way.
-  - ffprobe wrapper to avoid redundant ffprobe requests.
-- Kodi backend emulation.
-  - Kodi add-on - https://github.com/philamp/grail_kodi.
-  - Metadata synced from Jellyfin.
-  - Multi Kodi players support.
+  - Virtual moving/renaming + Write new files via fallback storage.
+  - Deleting virtual files deletes underlying actual files.
+  - Native Real-Debrid integration + rclone optimization (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly.
+  - ffprobe wrapper to avoid redundant ffprobe requests (except with Plex).
+  - Keep movie extras and subtitles.
+  - Folders structure and naming pattern following opinionated conventions.
+- Kodi backend emulation with multiple Kodi players support :
+  - Based on MariaDB + Nginx WebDAV server (with new files write support).
+  - Kodi add-on with exclusive funcionnalities - https://github.com/philamp/grail_kodi
+  - Seamless local server detection and setup.
+  - Update triggering + metadata synced from Jellyfin.
   - Auto-merging of movies variants.
-  - Exclusive add-on features (Click to keep a media locally).
-  - Lightweight WebDAV server (nginx).
-  - Kodi DB server side (MariaDB).
-- Zero-click Jellyfin setup.
-- Easy add-on setup.
-- Fully open-source solution.
-- Plex compatibility.
+- Multiple media librairies support with update triggering:
+  - Jellyfin included with zero-click setup.
+  - External Plex support.
 
 ## Prerequisites
 
@@ -56,7 +55,7 @@
 > - I'm not responsible of any data loss / I'm not responsible of any illegal use / Use at your own risks.
 > - This solution does not include any torrent indexer search. 
 > - Do not open ports 8085, 8089 and 6502 to the internet.
-> - ⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s).
+> - ⚠️⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s)⚠️⚠️.
 > - Jellygrail is still experimental/BETA : you should not submit any issues to the XBMC team (Kodi backend emulation disrupts the way Kodi works by modifying the database directly !).
 
 ## Build
@@ -256,27 +255,23 @@ If you have different types of storage, you can override `jellygrail` specific s
 - 💡~~inotify sources change detection~~
 - 💡RD backup
 - 💡Add audio support
-- 💡Proxification compatibility (with automatic fallback to local sqlite DB)
+- 💡Proxification compatibility (with automatic fallback to local sqlite kodi DB)
 - 💡Call full stack refresh whenever virtual renaming happens (or avoid renaming)
 - 💡Fix versions sync progress if set to unwatched in kodi
 - 💡Update jellyfin version
-- 💡Update rclone
-- 💡Sync to *arr metadata
+- 💡Update rclone version
+- 💡Sync to *arr metadata + additional virtual FS point dedicated to plex compatible naming pattern
 - 💡Native Integration of other cloud services
 - 💡Preselect audio/subtitles languages in Kodi DB
 - 💡Add DNLA server ?
-- 💡Other folders could be created but they must start with 'movies' or 'shows' (make jellfin conf and kodi conf accordingly)
-- 💡Explain the rmeote feature
-- ⚠️When detected as extras, videos are moved into extras subfolder but without their corresponding subtitles if any
-- ⚠️Episode files not inside a directory are currently ignored
+- 💡Other folders could be created in virtal FS but they must start with 'movies' or 'shows' (make jellfin conf and kodi conf accordingly)
+- 💡 When multiple Kodi players are connected and use same DB, refresh UIs of players that did not own the refresh.
+- ⚠️When detected as extras, videos are moved into extras subfolder but without their corresponding subtitles if any.
+- ⚠️Episode files not inside a directory are currently ignored.
 - ⚠️if the Video_Library folder is then accessed through a SMB protocol, renaming/moving does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (fix that in bindfs_jelly if possible).
-- ⚠️RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay (TODO: trying to fix that in a next version)
+- ⚠️RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay
 - ⚠️Underlying files deletion:
   - REMOTE : follows rclone RD fork system : Inside folders containing multiple video files, only 1 file will be deleted (TODO: fix this issue to improve other cloud provider support). In other words it means that underlying files deletion are sometimes uncomplete in this case.
-  - LOCAL : Underlying files are deleted but not folders (TODO:fix)
-- ⚠️deal with m2ts/ts files 
+  - LOCAL : Underlying files are deleted but not folders
+- ⚠️ deal with m2ts/ts files - maybe at the virtual FS layer to keep only then main m2ts file or let the user choose
 - ⚠️ Deletion of a media item which is actually in a RAR file in the underlying file-system will cause the deletion of the whole RAR file.
-
-
-
-
