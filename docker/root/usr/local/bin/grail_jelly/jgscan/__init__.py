@@ -1,12 +1,20 @@
+#from os import name
 from base import *
-from jgscan.jgsql import *
+#from jgscan.jgsql import *
+from jgscan.jgsql import jellyDB, staticDB
 from jgscan.caching import *
-import requests
+from jgscan.scanClasses import jgScan
+#import requests
 from jgscan.arena import *
 import PTN
 #logger = logging.getLogger('jellygrail')
 
 from base.constants import *
+
+# new multiscan
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import traceback
 
 # merge those 2 elements
 ALLOWED_EXTENSIONS = SUB_EXTS + VIDEO_EXTENSIONS
@@ -14,57 +22,30 @@ ALLOWED_EXTENSIONS = SUB_EXTS + VIDEO_EXTENSIONS
 present_virtual_folders = []
 present_virtual_folders_shows = []
 
-dual_endpoints = []
+#dual_endpoints = []
 
+pointNamesAndType = []
+pointNamesAndTypeLI = []
+
+items_scanned = 0
 
 
 def get_fastpass_ffprobe(file_path):
     # get ffprobe info from sqlite or use ffprobe
 
-
     fakestderror = ""
 
-
-    if (ffprobesq_result := [ffpitem[0] for ffpitem in get_path_props(file_path[file_path.find("/") + JG_VIRT_SHIFT:]) if ffpitem[0] is not None]):
+    if (ffprobesq_result := [ffpitem[0] for ffpitem in staticDB.s.get_path_props(file_path[file_path.find("/") + JG_VIRT_SHIFT:]) if ffpitem[0] is not None]):
         #logger.debug(f"ffprobe from SQLITE data: {file_path}")
 
         return (ffprobesq_result[0], fakestderror.encode("utf-8"), 0)
 
 
     logger.debug(f"fallback on real ffprobe for: {file_path}")
-    return get_plain_ffprobe(file_path)
-
-def init_mountpoints():
-
-    global dual_endpoints
-    logger.info("   STORAGE/ Rclone startup (10s)...") #toimprove with s6 ?
-    time.sleep(10)
-    for f in os.scandir(MOUNTS_ROOT): 
-        if f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name:
-            type = "local" if f.name.startswith("local_") else "remote"
-            logger.info(f"   STORAGE/ {f.name}")
-            for d in os.scandir(f.path):
-                if d.is_dir() and d.name != '@eaDir':
-                    dual_endpoints.append(( MOUNTS_ROOT+"/"+f.name+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+f.name+"/"+d.name, type))
-    #print(dual_endpoints)
-    to_watch = [point for (point, _, point_type) in dual_endpoints if point_type == 'local']
-
-    return to_watch    
-
-def bdd_install():
-
-    # Play migrations
-    jg_datamodel_migration()
-
-    # create movies and shows parent folders
-    insert_data("/movies", None, None, None, 'all')
-    insert_data("/shows", None, None, None, 'all')
-    #insert_data("/concerts", None, None, None, 'all')
-    sqcommit()
+    return get_plain_ffprobe(file_path)    
 
 
-
-def release_browse(endpoint, releasefolder, rar_item, release_folder_path, storetype):
+def release_browse(endpoint, releasefolder, rar_item, release_folder_path, storetype, threadDB):
 
     # E = movie folder
     #   EF = bdmv case or multiple video release
@@ -74,6 +55,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     # S_DUP = S duplicate workaround when merging
 
     #logger.info(f"  > BROWSING PATH: {endpoint}/{releasefolder}")
+
+    mountemp = f"/mnt/tmp-{endpoint}"
 
     # 0 - init some default values
     multiple_movie_or_disc_present = False
@@ -173,7 +156,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                             if previous_show_folder != show: # dont find most similar on every file, if it's same as previous file, don't bother redoing it
                                 previous_show_folder = show
-                                (show, will_idx_check) = show_find_most_similar(show, present_virtual_folders_shows)
+                                (show, will_idx_check) = show_find_most_similar(show, jgScan.present_virtual_folders_shows)
                                 previous_found_folder = show
                             else:
                                 show = previous_found_folder
@@ -241,10 +224,6 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     if season_present: 
                         if show != "": 
                             # ensuring structure
-                            # todo : first_audio must be at the show level of dive_s
-                            
-                            
-
 
                             # ensuring end
                             # dive_s_[show]['finalname'] = show + first_audio old way, and it's already set
@@ -258,7 +237,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                     else:
 
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':os.path.getsize(os.path.join(root, filename)), 'ffprobed' : stdout, 'premetas': f" -{premetastpl} JGx"})
+                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize':safe_getsize(os.path.join(root, filename)), 'ffprobed' : stdout, 'premetas': f" -{premetastpl} JGx"})
                         
                         dive_e_['single_premetas'] = f" -{premetastpl} JGx"
 
@@ -281,15 +260,16 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     nomergetype = " - JGxBluRay"
                     iso_file_path = os.path.join(root, filename)
                     try:
-                        mount_iso(iso_file_path, "/mnt/tmp")
-                        if read_small_files("/mnt/tmp"):
+                        mount_iso(iso_file_path, mountemp)
+                        if read_small_files(mountemp):
                             nomergetype = " - JGxDVD"
                     except Exception as e:
                         stopthere = True
                         stopreason += ' >> Pre-reading ISO failed'
                         logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
                     finally:
-                        unmount_iso("/mnt/tmp")
+                        if os.path.ismount(mountemp):
+                            unmount_iso(mountemp)
                     stdout = None
                     if not stopthere:
                         prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
@@ -402,18 +382,18 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
     elif(nbvideos_e > 1):
         multiple_movie_or_disc_present = True
         nomergetype = " - JGxMultiple"
-        logger.info("          | <- Multiple videos release")
+        logger.info("      SCAN| <- Multiple videos release")
     elif bdmv_present:
-        logger.info("          | <- BDMV or DVD Release")
+        logger.info("      SCAN| <- BDMV or DVD Release")
     elif season_present:
-        logger.info("          | <- TV show release")
+        logger.info("      SCAN| <- TV show release")
     else:
-        logger.info("          | <- Single video release")
+        logger.info("      SCAN| <- Single video release")
 
 
     if stopthere == True:
         #logger.warning(f"          ~ Failed Item: {os.path.join(endpoint, releasefolder)} ; Reasons: {stopreason}")
-        logger.warning(f"          | ...but failed because:{stopreason}")
+        logger.warning(f"      SCAN| ...but failed because:{stopreason}")
         return False
     # ---- DIVE S READ + insert + S_DUP idxcheck, unless stopthere is true-----
     if season_present and not stopthere:
@@ -436,7 +416,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         if (will_idx_check):
                         # LS the sim folder with no ext files (because we loop check at filename level, we want to list video only and not subs)
                             ls_virtual_folder_a = []
-                            for itemv in ls_virtual_folder("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"):
+                            threadDB.sqbegin()
+                            for itemv in threadDB.ls_virtual_folder("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"):
                                 if os.path.basename(itemv[0]).lower().endswith(VIDEO_EXTENSIONS):
                                     ls_virtual_folder_a.append(get_wo_ext(os.path.basename(itemv[0])))
 
@@ -464,11 +445,11 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         # toimprove : put "subs" subfolders back in (ex: agatha raison s04)
 
                         # S FOLDERS INSERT 
-                        insert_data("/shows/"+keyshow, None, None, None, episodeattribs['mediatype_s'])
-                        insert_data("/shows/"+keyshow+"/Season "+seasonkey, None, None, None, episodeattribs['mediatype_s'])
-                        insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}", None, None, None, episodeattribs['mediatype_s'])
+                        threadDB.insert_data("/shows/"+keyshow, None, None, None, episodeattribs['mediatype_s'])
+                        threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey, None, None, None, episodeattribs['mediatype_s'], None, 0)
+                        threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}", None, None, None, episodeattribs['mediatype_s'])
                         # S FILES INSERT
-                        insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"+"/"+f"{keyshow} S{seasonkey}E{episodekey}{metas}{filename_ext}", rootfilename, release_folder_path, rd_cache_item, episodeattribs['mediatype_s'], ffprobed)
+                        threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"+"/"+f"{keyshow} S{seasonkey}E{episodekey}{metas}{filename_ext}", rootfilename, release_folder_path, rd_cache_item, episodeattribs['mediatype_s'], ffprobed)
 
     if not season_present and not stopthere:
         
@@ -478,7 +459,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
             # GENERIC META FOR Esingle case
             title_year = clean_string(f"{release_parse['title']}{ytpl(release_parse.get('year'))}")
             # ... fuzzy mathing to merge with similar releases
-            result = find_most_similar(title_year, present_virtual_folders)
+            result = find_most_similar(title_year, jgScan.present_virtual_folders)
 
             will_idx_check = False
             if result is not None:
@@ -490,7 +471,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     #logger.debug(f"      # similarmovie found is : {most_similar_string} with score {similarity_score}")
 
                     # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
-                    ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in ls_virtual_folder("/movies/"+title_year)]
+                    threadDB.sqbegin()
+                    ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in threadDB.ls_virtual_folder("/movies/"+title_year)]
 
                     # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry
                     ls_virtual_folder_a = list(set(ls_virtual_folder_a))
@@ -499,9 +481,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     will_idx_check = True
 
                 else:
-                    present_virtual_folders.append(title_year)
+                    jgScan.add_to_pvm(title_year)
             else:
-                present_virtual_folders.append(title_year)
+                jgScan.add_to_pvm(title_year)
             #logger.debug(f"      ## definitive sim movie folder : {title_year}")
 
         # ----- DIVE E READ + E_DUP check idx + insert
@@ -532,9 +514,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             idxdupmovset += idxdupmovset+1
                     jgxmultiple_parse += str(idxdupmovset)
                     jgxmultiple_parses.append(jgxmultiple_parse)
-                    insert_data("/movies/"+releasefolder+nomergetype+"/"+jgxmultiple_parse+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
+                    threadDB.insert_data("/movies/"+releasefolder+nomergetype+"/"+jgxmultiple_parse+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
                 else:
-                    insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
+                    threadDB.insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
 
             # Esingle case ------------ can have extras but with switch
             elif rootfilename.lower().endswith(ALLOWED_EXTENSIONS):
@@ -550,19 +532,19 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                 # E_DUP
 
                 if not rootfilename.lower().endswith(VIDEO_EXTENSIONS):
-                    insert_data("/movies/"+title_year+"/"+title_year+metas+subtitle_extension(os.path.basename(asifrootfilename)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
+                    threadDB.insert_data("/movies/"+title_year+"/"+title_year+metas+subtitle_extension(os.path.basename(asifrootfilename)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'])
                 else:
                     if item['as_if_vroot'].endswith('extras'):
-                        insert_data("/movies/"+title_year+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], item['ffprobed'])
+                        threadDB.insert_data("/movies/"+title_year+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], item['ffprobed'])
                     else:
-                        insert_data("/movies/"+title_year+"/"+title_year+metas+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], item['ffprobed'])
+                        threadDB.insert_data("/movies/"+title_year+"/"+title_year+metas+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], item['ffprobed'])
 
                     at_least_one_movie_present = True
 
         # rootfolders for EF case
         for rootfoldername in dive_e_['rootfoldernames']:
             if multiple_movie_or_disc_present:
-                insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(rootfoldername, os.path.join(endpoint, releasefolder)), None, release_folder_path, rar_item, dive_e_['mediatype'])
+                threadDB.insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(rootfoldername, os.path.join(endpoint, releasefolder)), None, release_folder_path, rar_item, dive_e_['mediatype'])
 
 
         # RELEASE-like BASE FOLDERs including extras subfolder if applies
@@ -570,20 +552,336 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
         if multiple_movie_or_disc_present:
             bdmv_ffprobed = None if bdmv_ffprobed == "None" else bdmv_ffprobed
-            insert_data("/movies/"+releasefolder+nomergetype, None, None, None, dive_e_['mediatype'], bdmv_ffprobed)
+            threadDB.insert_data("/movies/"+releasefolder+nomergetype, None, None, None, dive_e_['mediatype'], bdmv_ffprobed)
             if atleastoneextra:
-                insert_data("/movies/"+releasefolder+nomergetype+"/extras", None, None, None, dive_e_['mediatype'])
+                threadDB.insert_data("/movies/"+releasefolder+nomergetype+"/extras", None, None, None, dive_e_['mediatype'])
 
         # Esingle folders
         if at_least_one_movie_present:
-            insert_data("/movies/"+title_year, None, None, None, dive_e_['mediatype'])
+            threadDB.insert_data("/movies/"+title_year, None, None, None, dive_e_['mediatype'], None, 0)
             if atleastoneextra:
-                insert_data("/movies/"+title_year+"/extras", None, None, None, dive_e_['mediatype'])
+                threadDB.insert_data("/movies/"+title_year+"/extras", None, None, None, dive_e_['mediatype'])
         # S folders are done in first filename loop and do not have extras
     return True
 
+
+def init_mountpoints():
+
+    #global dual_endpoints
+    global pointNamesAndType
+    global pointNamesAndTypeLI
+    logger.info("   STORAGE| Mountpoints initialization...") #toimprove with s6 ?
+    time.sleep(0.1)
+    for f in os.scandir(MOUNTS_ROOT):
+        if f.name == "remote_webdav":
+            for g in os.scandir(MOUNTS_ROOT+"/remote_webdav"):
+                if g.is_dir() and g.name.startswith("local_") and not '@eaDir' in g.name and not g.name.startswith("local_import"):
+                    typem = "remote"
+                    logger.info(f"   STORAGE| remote_webdav/{g.name}")
+                    pointNamesAndType.append(("remote_webdav/"+g.name,typem))
+        elif f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name and not f.name.startswith("local_import"):
+            typem = "local" if f.name.startswith("local_") else "remote"
+            #logger.info(f"   STORAGE| {f.name}")
+            pointNamesAndType.append((f.name,typem))
+        elif f.is_dir() and f.name.startswith("local_import"):
+            typem = "local"
+            pointNamesAndTypeLI.append((f.name,typem))
+            
+    #print(dual_endpoints)
+    #to_watch = [MOUNTS_ROOT+"/"+point for (point, point_type) in pointNamesAndType if point_type == 'local']
+
+    to_watch = []
+
+    for (point, point_type) in pointNamesAndType:
+        if point_type == 'local':
+            for d in os.scandir(MOUNTS_ROOT+"/"+point):
+                if d.name == '@eaDir':
+                    continue
+                if d.is_dir():
+                    to_watch.append(MOUNTS_ROOT+"/"+point+"/"+d.name)
+
+    return to_watch
+
+#### new stuff BEGIN
+
+
+def multiScan(stopEvent):
+
+
+    #if not pointNamesAndType:
+    #    init_mountpoints()
+
+    jgScan.i_scanned = 0 
+    # instanciate as many workers as there are
+    if RD_API_SET:
+        logger.info("MULTI-SCAN| RD update interval wait...") #toimprove , find if remote storage has triggered this
+        time.sleep(8)
+    else:
+        logger.info("MULTI-SCAN| No RD, starting immediately...")
+    logger.info(f"   STORAGE| There are currently {len(pointNamesAndType)+len(pointNamesAndTypeLI)} storage(s):")
+    for src1, storetype in pointNamesAndTypeLI:
+        logger.info(f"          | /{src1} | Type: {storetype}")
+    for src1, storetype in pointNamesAndType:
+        logger.info(f"          | /{src1} | Type: {storetype}")
+    
+    
+    
+    # use a dbojbect
+    db_prescan_fetcher = jellyDB()
+
+    #--- fetch current status of db in terms of release processed and virtual folders created---
+    # reset each time but not updated on the fly
+    present_folders = [os.path.basename(item[0]) for item in db_prescan_fetcher.fetch_present_release_folders() if item[0] is not None]
+
+    # reset each time and updated on the fly
+    jgScan.present_virtual_folders = [os.path.basename(itemv[0]) for itemv in db_prescan_fetcher.fetch_present_virtual_folders() if (itemv[1] == 'movie' or itemv[1] == 'conce') ]
+    jgScan.present_virtual_folders_shows = [os.path.basename(itemv[0]) for itemv in db_prescan_fetcher.fetch_present_virtual_folders() if itemv[1] == 'shows' ]
+
+    # prescan use done
+    db_prescan_fetcher.sqclose()
+
+
+    if pointNamesAndTypeLI:
+        logger.info(f"MULTI-SCAN| Scanning Local Import storage first, in case it already contains content that we would find in remote storages")
+
+        with ThreadPoolExecutor(max_workers=len(pointNamesAndTypeLI)) as executor:
+            try:
+                list(executor.map(
+                    lambda d: scanThread(d, present_folders, stopEvent),
+                    pointNamesAndTypeLI
+                ))
+            except Exception as e:
+                logger.critical(f"MULTI-SCAN| ❌ WebdavScanThread: {e}")
+                traceback.print_exc()
+
+
+    logger.info(f"MULTI-SCAN| Scanning {len(pointNamesAndType)} storage(s) in parallel")
+
+    with ThreadPoolExecutor(max_workers=len(pointNamesAndType)) as executor:
+        try:
+            list(executor.map(
+                lambda d: scanThread(d, present_folders, stopEvent),
+                pointNamesAndType
+            ))
+        except Exception as e:
+            logger.critical(f"MULTI-SCAN| ❌ RegularScanThread: {e}")
+            traceback.print_exc()
+
+    '''
+    with ThreadPoolExecutor(max_workers=len(pointNamesAndType)) as executor:
+        futures = {
+            executor.submit(scanThread, d, present_folders, stopEvent): d
+            for d in pointNamesAndType
+        }
+
+        for future in as_completed(futures):
+            d = futures[future]  # pour savoir quel disque causait le problème
+            try:
+                future.result()
+            except Exception as e:
+                logger.critical(f"MULTI-SCAN| ❌ scanThread({d[0]}): {e}")
+                traceback.print_exc()
+    '''
+
+
+    '''
+    with ThreadPoolExecutor(max_workers=len(dual_endpoints)) as executor:
+        executor.map(lambda d: scanThread(d, present_folders), dual_endpoints)
+
+    
+
+    #TEST IDENTIFY issue : dual enpoint construction, locks removed, threadpool broken
+
+    for d in dual_endpoints:
+        scanThread(d, present_folders)
+    '''
+
+    # return the number of items
+    return jgScan.i_scanned
+        
+
+def scanThread(pnt, present_folders, stopEvent):
+
+    # open a dedicated sqlite connection for this thread
+
+    threadDB = jellyDB()
+
+    dual_ep = []
+
+    mountemp = f"/mnt/tmp-{pnt[0]}"
+
+    for d in os.scandir(MOUNTS_ROOT+"/"+pnt[0]):
+        if d.name == '@eaDir':
+            continue
+        if d.is_dir():
+            lname = d.name.lower()
+            if any(s in lname for s in SUB_FOLDER_SELECTIVITY):
+                dual_ep.append(( MOUNTS_ROOT+"/"+pnt[0]+"/"+d.name,MOUNTS_ROOT+"/rar2fs_"+pnt[0]+"/"+d.name, pnt[1], d.name))
+
+    for (src1, src2, storetype, sdname) in dual_ep:
+        if stopEvent.is_set():
+            logger.warning("      SCAN| Stop event detected, stopping scanThread...")
+            break
+        logger.info(f" SCANPOINT| /{pnt[0]} | /{sdname} ...")
+        for f in os.scandir(src1):
+            if os.path.basename(f.path) not in present_folders:
+                if f.is_dir() and not '@eaDir' in f.name:
+                    logger.info(f"      SCAN| >< {f.name}")
+                    browse = True
+                    endpoint2browse = src1
+                    rar_item = None
+                    try:
+                        for g in os.scandir(f.path):
+                            if g.name.lower().endswith('.rar') :
+                                rar_item = g.path
+                                endpoint2browse = src2
+                                logger.info(f"      SCAN| with a .RAR file: {g.name}")
+                                if storetype == "remote":
+                                    for i in range(2):
+                                        # cache-heater 0 for RAR files and rar2fs
+                                        unrar_result = unrar_to_void(g.path)
+                                        if not unrar_result == "OK":
+                                            if unrar_result == "ERROR_IO":
+                                                logger.error(f" - IO Error on first try, waits 5s and retry ... {g.path}")
+                                                if i == 0:
+                                                    time.sleep(5)
+                                                if i == 1:
+                                                    logger.error(f" - FAILURE_unrar : IO Error on second try {g.path}")
+                                                    browse = False
+                                                    break
+                                            elif unrar_result == "ERROR_NOFILES":
+                                                logger.warning(f"      SCAN| ...but NO Files in this RAR : {g.path}")
+                                                browse = False
+                                                break
+                                            elif unrar_result == "ERROR":
+                                                logger.error(f" - FAILURE_unrar : unknown on {g.path}")
+                                                browse = False
+                                                break
+                                        else:
+                                            break
+                    except FileNotFoundError as e:
+                        logger.warning(f"      SCAN| Folder disapeared during scan, will be probably back later: {f.path}")
+                        browse = False
+
+                    if browse:
+                    # Browse it through !
+                        if release_browse(endpoint2browse, f.name, rar_item, f.path, storetype, threadDB):
+                            jgScan.itemincr()
+                        threadDB.sqcommit()
+
+                
+                elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
+
+                    logger.info(f"      SCAN| >< (folder-orphan) {f.name}")
+
+                    dvprofile = None
+                    mediatype = None
+                    nomergetype = ""
+                    metas = ""
+                    stdout = None
+
+                    idxdupmovset = 1
+                    #file not in a release folder
+
+                    # A - prepare parse for single movie release
+                    release_parse = PTN.parse(f.name)
+
+                    # compute ext
+                    filename_ext = get_ext(os.path.basename(f.path))
+
+                    # GENERIC META FOR Esingle case
+                    title_year = clean_string(f"{release_parse['title']}{ytpl(release_parse.get('year'))}")
+
+                    if f.name.lower().endswith(VIDEO_EXTENSIONS):
+                        result = find_most_similar(title_year, jgScan.present_virtual_folders)
+
+                        will_idx_check = False
+                        if result is not None:
+                            most_similar_string, similarity_score = result
+
+                            if similarity_score > 94:
+                                title_year = most_similar_string
+                                #logger.debug(f"      # similar movie check on : {title_year}")
+                                #logger.debug(f"      # similar movie found is : {most_similar_string} with score {similarity_score}")
+
+                                # LS the sim folder with no ext files (because we loop check at release level, we don't need to filter by ext, we just deduplicate the array)
+                                threadDB.sqbegin()
+                                ls_virtual_folder_a = [get_wo_ext(os.path.basename(itemv[0])) for itemv in threadDB.ls_virtual_folder("/movies/"+title_year)]
+
+                                # deduplicate the array + We deduplicate anyway to have videofilename.* count as one entry
+                                ls_virtual_folder_a = list(set(ls_virtual_folder_a))
+
+                                # Mdup:
+                                will_idx_check = True
+
+                            else:
+                                jgScan.add_to_pvm(title_year)
+                        else:
+                            jgScan.add_to_pvm(title_year)
+
+                        #logger.debug(f"      ## definitive similar movie folder : {title_year}")
+
+                        (stdout, _, fferr) = get_plain_ffprobe(f.path)
+                        if fferr != 0:
+                            stdout = None
+                        
+                        (premetastpl, dvprofile) = parse_ffprobe(stdout, f.path)
+                        metas = f" -{premetastpl} JGx"
+
+                        #(bitrate, dvprofile) = get_ffprobe(f.path)
+                        if(dvprofile):
+                            mediatype = '_dv'
+
+                        # E_DUP:
+                        if(will_idx_check):
+                            for existing_file in ls_virtual_folder_a:
+                                if title_year+metas+str(idxdupmovset) == existing_file:
+                                    idxdupmovset += 1
+                        metas = metas + str(idxdupmovset)
+                        # E_DUP
+
+                    elif f.name.lower().endswith('.iso'):
+                        mediatype = '_bdmv'
+
+                        # cache-heater 0bis for all iso files if storing is remote
+                        # done here because a RAR can store an ISO
+                        # if storetype == 'remote': # change : read them even if not remote to know if its a dvd or bluray
+                        nomergetype = " - JGxBluRay"
+                        iso_file_path = f.path
+
+                        try:
+                            mount_iso(iso_file_path, mountemp)
+                            if read_small_files(mountemp):
+                                nomergetype = " - JGxDVD"
+                        except Exception as e:
+                            logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
+                        else:
+                            stdout = None
+                            prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
+                            (stdout, _, fferr) = get_plain_ffprobe(prefix+iso_file_path)
+                            if fferr != 0:
+                                stdout = None
+                        finally:
+                            if os.path.ismount(mountemp):
+                                unmount_iso(mountemp)
+                    
+                    
+                    threadDB.insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
+                    threadDB.insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
+                    threadDB.sqcommit()
+                    jgScan.itemincr()
+    threadDB.sqclose()
+    return True
+
+
+#### new stuff END
+### TODO : improve Exx episode + handle standalone episodes
+
+# will be deprecated when new classes are done
+'''
 def scan():
 
+    global items_scanned
     #init_database()
 
     #global logger
@@ -613,7 +911,7 @@ def scan():
                         if g.name.lower().endswith('.rar') :
                             rar_item = g.path
                             endpoint2browse = src2
-                            logger.info(f"          | with a .RAR file: {g.name}")
+                            logger.info(f"      SCAN| with a .RAR file: {g.name}")
                             if storetype == "remote":
                                 for i in range(2):
                                     # cache-heater 0 for RAR files and rar2fs
@@ -628,7 +926,7 @@ def scan():
                                                 browse = False
                                                 break
                                         elif unrar_result == "ERROR_NOFILES":
-                                            logger.warning("          | ...but NO Files in this RAR")
+                                            logger.warning("      SCAN| ...but NO Files in this RAR")
                                             browse = False
                                             break
                                         elif unrar_result == "ERROR":
@@ -745,5 +1043,5 @@ def scan():
     return items_scanned
     # Close the connection
     #sqclose()
-
+'''
 

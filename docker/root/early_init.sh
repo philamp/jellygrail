@@ -1,12 +1,38 @@
 #!/bin/sh -e
+YVERSION="2026"
+# - Jellygrail figlet:
+cat << "EOF"
 
-# This is the first program launched at container start.
-# We don't know where our binaries are and we cannot guarantee
-# that the default PATH can access them.
-# So this script needs to be entirely self-contained until it has
-# at least /command, /usr/bin and /bin in its PATH.
+github.com/philamp/jellygrail
+     _     _ _        ____          _ _
+    | |___| | |_   _ / __/ _ ____ _(_) |
+ _  | / _ \ | | | | | |  _/ '_/ _` | | |
+/ |_|   __/ |   |_|   |_| | |  (_| | | |
+\____/\___,_,_|\__, /\____,_| \__,_,_,_|
+                |__/
 
-# jellygrail custom function:
+EOF
+echo "               ${YVERSION}"
+echo ""
+
+# - runtime created folders
+mkdir -p /jellygrail/jellyfin/config
+mkdir -p /jellygrail/jellyfin/cache
+mkdir -p /jellygrail/config
+mkdir -p /jellygrail/log
+mkdir -p /jellygrail/data/bindfs
+mkdir -p /jellygrail/vfs_cache
+mkdir -p /Video_Library
+mkdir -p /Cache_Check_Video_Library
+mkdir -p /Kodi_Video_Library
+mkdir -p /mounts/kodi/software
+mkdir -p /mounts/kodi/backups
+mkdir -p /localremounts
+chown -R www-data:root /jellygrail/jellyfin
+
+# every folder that can't be created on build time (they would be overwritten by empty runtime mounted folders.
+
+# JG CUSTOM FUNCTIONS
 create_service() {
   template_path=$1
   dst_folder=$2
@@ -14,7 +40,7 @@ create_service() {
   service_name=$4
   src_folder=$5
   dependency=$6
-  
+
   service_dir="/etc/s6-overlay/s6-rc.d/${service_name}"
   dependencies_dir="${service_dir}/dependencies.d"
   contents_file="/etc/s6-overlay/s6-rc.d/user/contents.d/${service_name}"
@@ -22,7 +48,6 @@ create_service() {
   mkdir -p "${dst_folder}" "${service_dir}" "${dependencies_dir}"
   echo "longrun" > "${service_dir}/type"
   touch "${dependencies_dir}/base"
-  touch "${dependencies_dir}/create_data_folder"
 
   # it becomes a dependency for bindfs main service
   touch "/etc/s6-overlay/s6-rc.d/bindfs/dependencies.d/${service_name}"
@@ -37,36 +62,11 @@ create_service() {
   [ ! -z "${cfg_file}" ] && sed -i "s|<cfg_file>|${cfg_file}|g" "${service_dir}/run"
   [ ! -z "${src_folder}" ] && sed -i "s|<src_folder>|${src_folder}|g" "${service_dir}/run"
   sed -i "s|<service_name>|${service_name}|g" "${service_dir}/run"
-
-  # touch "${contents_file}"
 }
 
-addpath () {
-  x="$1"
-  IFS=:
-  set -- $PATH
-  IFS=
-  while test "$#" -gt 0 ; do
-    if test "$1" = "$x" ; then
-      return
-    fi
-    shift
-  done
-  PATH="${x}:$PATH"
-}
 
-if test -z "$PATH" ; then
-  PATH=/bin
-fi
-
-addpath /bin
-addpath /usr/bin
-addpath /command
-export PATH
-
-# --- Jellygrail env related ---
-
-# --- add www-data to graphic card groups (VAAPI etc..)
+# JG CUSTOM TASKS
+# - add www-data to graphic card groups (VAAPI etc..)
 for dev in /dev/dri/card* /dev/dri/renderD*; do
   [ -e "$dev" ] || continue
   gid=$(stat -c "%g" "$dev")
@@ -97,13 +97,23 @@ for dev in /dev/dri/card* /dev/dri/renderD*; do
   usermod -aG "$groupname" www-data
 done
 
-# --- read JS settings
+# - read JG settings
 . /jellygrail/config/settings.env
-if [ "$JF_WANTED" = "no" ]; then
+
+# - does not start jellyfin if not wanted
+if [ "$JF_WANTED" = "n" ]; then
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
 fi
 
-if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ]; then
+if [ "$REMOTE_WEB_DAV_LOCATION" != "http://hostname-or-ip:8089" ] && [ "$REMOTE_WEB_DAV_LOCATION" != "" ] ; then
+  # Copy the example configuration file to the new configuration file
+  mkdir -p "/mounts/remote_webdav"
+  cp -f "/bash_templates/mounts/remote_webdav/rclone.conf.example" "/mounts/remote_webdav/rclone.conf"
+  # Replace the placeholder with the ip+port
+  sed -i "s@<url>@$REMOTE_WEB_DAV_LOCATION@" "/mounts/remote_webdav/rclone.conf"
+fi
+
+if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ] && [ "$RD_APITOKEN" != "" ] ; then
   # Copy the example configuration file to the new configuration file
   mkdir -p "/mounts/remote_realdebrid"
   cp -f "/bash_templates/mounts/remote_realdebrid/rclone.conf.example" "/mounts/remote_realdebrid/rclone.conf"
@@ -111,19 +121,21 @@ if [ "$RD_APITOKEN" != "PASTE-YOUR-KEY-HERE" ]; then
   sed -i "s/PASTE-YOUR-KEY-HERE/$RD_APITOKEN/" "/mounts/remote_realdebrid/rclone.conf"
 fi
 
-# Webdav conf according to settings.env
-if [ "$WEBDAV_LAN_HOST" != "PASTE-WEBDAV-LAN-HOST-HERE" ]; then
-  cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
-  sed -i "s/#WDLH#/$WEBDAV_LAN_HOST/" "/etc/nginx/nginx.conf"
-else
-  echo "CRITICAL : WEBDAV_LAN_HOST is not set in settings.env"
+# - Webdav conf according to settings.env
+# Webdav port 8085 is default
+if [ "$WEBDAV_INTERNAL_PORT" = "" ] ; then
+  WEBDAV_INTERNAL_PORT="8085"
 fi
 
+if [ "$WEBDAV_REMOTE_INTERNAL_PORT" = "" ] ; then
+  WEBDAV_REMOTE_INTERNAL_PORT="8089"
+fi
 
-# --- Jellygrail env related end ---
+cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
+sed -i "s/#WDP#/$WEBDAV_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
+sed -i "s/#REMOTEWDP#/$WEBDAV_REMOTE_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
 
-# Jellygrail services install
-
+# - JellyGrail services install
 for dir_path in /mounts/*; do
   [ -d "${dir_path}" ] || continue # if not a directory, skip
   dir_name=$(basename "${dir_path}")
@@ -142,23 +154,20 @@ for dir_path in /mounts/*; do
                        "rar2fs_${dir_name}" \
                        "${dir_path}/" \
                        "${dir_name}"
+        echo " - ${dir_path} driven by rclone and rar2fs."
       else
         echo "Warning: No rclone.conf found in ${dir_path}. Skipping..."
       fi
       ;;
     local_*)
-      if [ -d "${dir_path}/movies" ] || [ -d "${dir_path}/shows" ]; then
-        create_service "/bash_templates/remote_rar2fs.tpl.sh" \
-                       "/mounts/rar2fs_${dir_name}" \
-                       "" \
-                       "rar2fs_${dir_name}" \
-                       "${dir_path}/"
-      else
-        echo "Warning: 'movies' or 'shows' directories not found in ${dir_path}. Skipping..."
-      fi
+      create_service "/bash_templates/remote_rar2fs.tpl.sh" \
+                     "/mounts/rar2fs_${dir_name}" \
+                     "" \
+                     "rar2fs_${dir_name}" \
+                     "${dir_path}/"
+      echo " - ${dir_path} driven by rar2fs."
       ;;
     *)
-      echo "Skipping ${dir_path} as it does not start with 'remote_' or 'local_'"
       ;;
   esac
 done
@@ -166,43 +175,33 @@ done
 # this part triggers only if /root/devmode folder is found, it's for devleopment purposes only
 if [ -d "/root/devmode" ]; then
   apt-get install openssh-server libsqlite3-dev sqlite3 cmake -y
-  rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/*
-  #rm -f /etc/s6-overlay/s6-rc.d/jellyfin/dependencies.d/bindfs
+  rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/kodi_bindfs
+  rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
+  # rm -f /etc/s6-overlay/s6-rc.d/jellyfin/dependencies.d/bindfs
   service ssh stop
   mkdir -p /root/.ssh
   cp -R /root/devmode/* /root/.ssh/
   sed -i 's/^#Port 22/Port 23/' /etc/ssh/sshd_config
   # echo "AuthorizedKeysFile /root/.ssh/authorized_keys" >> /etc/ssh/sshd_config
   service ssh start
-  # dev-context services
+  # ---dev-context services
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/remote_realdebrid
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_remote_realdebrid
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive1
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive2
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/bindfs
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/cache_check_bindfs
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-config
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-initdb
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-upgrade
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-mariadb
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive1
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/rar2fs_local_drive2
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/bindfs
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/cache_check_bindfs
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-config
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-initdb
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/init-mariadb-upgrade
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/svc-mariadb
   # touch /etc/s6-overlay/s6-rc.d/user/contents.d/kodi_addons
-  touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
-  # disrupt normal execution
-  cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/main.py
+  # touch /etc/s6-overlay/s6-rc.d/user/contents.d/nginx
+  touch /etc/s6-overlay/s6-rc.d/user/contents.d/specificmounts
+  # disrupt normal python execution
+  cp -f /usr/local/bin/grail_jelly/devmode.py /usr/local/bin/grail_jelly/newmain.py
   mkdir -p /root/dev
   # end dev-context services
   git config --global user.email "xxxxxxxx@gmail.com"
 fi
-# the above part triggers only if /root/devmode folder is found, it's for devleopment purposes only
-
-# Now we're good: s6-overlay-suexec is accessible via PATH, as are
-# all our binaries.
-# Run preinit as root, then run stage0 as the container's user (can be
-# root, can be a normal user).
-
-exec s6-overlay-suexec \
-  ' /package/admin/s6-overlay-3.1.5.0/libexec/preinit' \
-  '' \
-  /package/admin/s6-overlay-3.1.5.0/libexec/stage0 \
-  "$@"

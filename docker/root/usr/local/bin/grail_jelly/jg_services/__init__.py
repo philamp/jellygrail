@@ -8,34 +8,40 @@ RD = None
 # plug to same logging instance as main
 #logger = logging.getLogger('jellygrail')
 
-
-
 # one shot token
 oneshot_token = None
 rs_working = False
 lastrddump = 0
 
-# rd remote location
-REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
-DEFAULT_INCR = os.getenv('DEFAULT_INCR')
-WHOLE_CONTENT = os.getenv('ALL_FILES_INCLUDING_STRUCTURE') != "no"
+fiveothree = 0
 
+ptl = "0"
+
+# rd remote location:
+#REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
+
+# now hardcoded:
+DEFAULT_INCR = 0
+WHOLE_CONTENT = True
+
+def get_premium_time_left():
+    global ptl
+    return ptl
 
 def premium_timeleft():
     global RD
+    global ptl
     RD = RDE()
     try:
         udata = RD.user.get().json()
-
         expseconds = udata.get('premium')
         
-        
-
     except Exception as e:
         logger.error(f"!! Error accessing RD: {e}")
         # return "Server running but RD test has failed (DNS or Network failure)"
         return 0
     else:
+        ptl = str(expseconds/86400)[:4]
         return expseconds
 
 
@@ -131,6 +137,7 @@ def just_select(returnid):
 # great !
 def push_and_select(hash):
     returned = RD.torrents.add_magnet(hash).json()
+    
     if returnid := returned.get('id'):
         just_select(returnid)
     else:
@@ -256,8 +263,9 @@ def restoreitem(filename, token):
 
 # ----------------------------------
         
-def remoteScan():
+def remoteScan(stopEvent):
     global rs_working
+    global fiveothree
     # take data from remote RD account
     # if no local data, take it (we have to compare later on)
 
@@ -274,7 +282,12 @@ def remoteScan():
 
         cur_key = read_data_from_file(REMOTE_PILE_KEY_FILE)
 
-        remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{cur_incr}"
+        remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/app/getrdincrement/{cur_incr}"
+
+        if stopEvent.is_set():
+            rs_working = False
+            return
+
 
         try:
             response = requests.get(remote_loc, timeout=10)
@@ -283,12 +296,11 @@ def remoteScan():
         except Exception as e:
             logger.warning(f" REMOTE-JG| Remote JellyGrail Instance is simply not running or other error: {e}")
             rs_working = False
-            return None
+            return
 
         if server_data.get('pilekey') != cur_key or cur_incr > server_data.get('lastid'):
             logger.warning(f" REMOTE-JG| New Remote pile (identifier changed) or impossible increment (higher thant remote), reset with increment found in settings.env")
             cur_incr = int(DEFAULT_INCR)
-            remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/getrdincrement/{cur_incr}"
             try:
                 response = requests.get(remote_loc, timeout=10)
                 response.raise_for_status()
@@ -296,7 +308,7 @@ def remoteScan():
             except Exception as e:
                 logger.warning(f" REMOTE-JG| Remote JellyGrail Instance is simply not running or other error:  {e}")
                 rs_working = False
-                return None
+                return
             save_data_to_file(REMOTE_PILE_KEY_FILE, server_data.get('pilekey'))
 
         if server_data:
@@ -305,26 +317,36 @@ def remoteScan():
             else:
                 logger.info(f" REMOTE-JG| No new RD hashes, incr is still: {cur_incr}")
                 rs_working = False
-                return None     
+                return     
         else:
             logger.critical(f" REMOTE-JG| Data was fetched but not usable. Theorically already handled by generic exception catcher")
             rs_working = False
-            return None
+            return
         
         if(local_data := rdump_backup(including_backup = False, returning_data = True)):
             local_data_hashes = [iteml.get('hash') for iteml in local_data]
 
             # base for incr is remote
+            
             for remote_hash in server_data['hashes']:
+                if stopEvent.is_set():
+                    rs_working = False
+                    return
                 if remote_hash not in local_data_hashes:
                     try:
                         push_and_select(remote_hash)
                     except requests.exceptions.HTTPError as http_err:
-                        if http_err.response.status_code == 403:
-                            logger.warning(f"    RD-API| Hash {remote_hash} is not accepted by RD")
+                        if http_err.response.status_code in (403, 451):
+                            logger.warning(f"    RD-API| Hash {remote_hash} is not accepted by RD (403 or 451 error).")
 
                             discarded_hashes.append(remote_hash)
                             #cur_incr += 1 # we can increment
+                        elif http_err.response.status_code == 503: # service unavailable on some torrents ?, skip them
+                            logger.error(f"    RD-API| 503 error on this torrent, skipped, curincr is : {cur_incr}, remotehash : {remote_hash}, error details : {http_err}")
+                            fiveothree += 1
+                            discarded_hashes.append(remote_hash)
+                            if fiveothree > 10:
+                                logger.critical(f"    RD-API| 503 errors : More than 10 skipped push torrents")
                         else:
                             # this is not OK : we don't increment further and stop the batch
                             logger.error(f"    RD-API| JOB stopped: An HTTP Error has occured on pushing backup hash to RD (job stopped but resumed next time): {http_err}")
@@ -460,15 +482,14 @@ def restoreList():
         return "</br>".join(backupList)
 
 
-# ----------------------------------
-# rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
-# getrdincrement
         
 def getrdincrement(incr):
     if (os.path.exists(PILE_FILE)):
         # gets full array 
         pile_key, cur_pile = file_to_array(PILE_FILE)
-        return json.dumps({'hashes': cur_pile[incr:], 'lastid': len(cur_pile), 'pilekey': int(pile_key)}).encode()
+        #return json.dumps({'hashes': cur_pile[incr:], 'lastid': len(cur_pile), 'pilekey': int(pile_key)}).encode()
+        # return dict object, not dumped json
+        return {'hashes': cur_pile[incr:], 'lastid': len(cur_pile), 'pilekey': int(pile_key)}
     else:
         rd_progress()
         # it forces this sever to call rd_progress at least once
@@ -478,7 +499,7 @@ def getrdincrement(incr):
             # logger.info("periodic trigger is working")
             # we are forced to consume output from this funciton to avoid disjoined calls to output queue
             # logger.warning(f"> force rd_progress (should happen once) [getrdincrement]")
-        return ""
+        return {}
 
 # now only overwrite current dump if done more than 4 hours ago or backup is requested
 def rdump_backup(including_backup = True, returning_data = False):
@@ -496,7 +517,7 @@ def rdump_backup(including_backup = True, returning_data = False):
         #ipage=1
         ipage=1 
         while nbelements == inbelements:
-            idata = RD.torrents.get(limit=inbelements, page=ipage).json() # does RD return no json if out of index ? TODO verify
+            idata = RD.torrents.get(limit=inbelements, page=ipage).json() # does RD return no json if out of index ? toimprove ?
             data += idata
             ipage += 1
             nbelements = len(idata)
@@ -524,7 +545,7 @@ def rdump_backup(including_backup = True, returning_data = False):
 
     if not stopthere:
         # Store the data in a file if not exists or last time was more than 4 hours ago
-        if not os.path.exists(RDUMP_FILE) or (time.time() - lastrddump) > 3600*4 or including_backup:
+        if not os.path.exists(RDUMP_FILE) or (time.time() - lastrddump) > RDUMP_STORE_INTERVAL or including_backup:
             lastrddump = time.time()
             with open(RDUMP_FILE, 'w') as f:
                 json.dump(data, f)

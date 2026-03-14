@@ -1,116 +1,37 @@
 from base import *
 from base.littles import *
+from jgscan.scanClasses import jgScan
 import pycountry
 # for similarity
 # from thefuzz import fuzz
 from thefuzz import process
 from base.constants import *
 
+'''
+INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
 
+codes = set(INTERESTED_LANGUAGES.split())
+USED_LANGS = set(codes) # the result
+for code in codes:
+    if code in SUB_LANG_EQUIVALENTS:
+        USED_LANGS.add(SUB_LANG_EQUIVALENTS[code])
+USED_LANGS.add("und")
+'''
 
-# Preprocess: Create a set of all language names for quick lookup
-
-languages = [
-    "Afrikaans",
-    "Arabic",
-    "Bengali",
-    "Bulgarian",
-    "Catalan",
-    "Cantonese",
-    "Croatian",
-    "Czech",
-    "Danish",
-    "Dutch",
-    "Lithuanian",
-    "Malay",
-    "Malayalam",
-    "Panjabi",
-    "Tamil",
-    "English",
-    "Finnish",
-    "French",
-    "German",
-    "Greek",
-    "Hebrew",
-    "Hindi",
-    "Hungarian",
-    "Indonesian",
-    "Italian",
-    "Japanese",
-    "Javanese",
-    "Korean",
-    "Norwegian",
-    "Polish",
-    "Portuguese",
-    "Romanian",
-    "Russian",
-    "Serbian",
-    "Slovak",
-    "Slovene",
-    "Spanish",
-    "Swedish",
-    "Telugu",
-    "Thai",
-    "Turkish",
-    "Ukrainian",
-    "Vietnamese",
-    "Welsh",
-    "Sign language",
-    "Algerian",
-    "Aramaic",
-    "Armenian",
-    "Berber",
-    "Burmese",
-    "Bosnian",
-    "Brazilian",
-    "Bulgarian",
-    "Cypriot",
-    "Corsica",
-    "Creole",
-    "Scottish",
-    "Egyptian",
-    "Esperanto",
-    "Estonian",
-    "Finn",
-    "Flemish",
-    "Georgian",
-    "Hawaiian",
-    "Indonesian",
-    "Inuit",
-    "Irish",
-    "Icelandic",
-    "Latin",
-    "Mandarin",
-    "Nepalese",
-    "Sanskrit",
-    "Tagalog",
-    "Tahitian",
-    "Tibetan",
-    "Gypsy",
-]
-
-
-
-language_names = [lang.lower() for lang in languages] # under 3 chars, it would be too common
-
-
-# Create a single regex pattern to match any language name
-# language_pattern = re.compile(r'\b(' + '|'.join(re.escape(name) for name in language_names) + r')\b', re.IGNORECASE)
-
+# Create a single regex pattern to match any language name in similarly named tv shows
 def find_language_in_string(input_string):
     instrlower = input_string.lower()
-    #logger.info(f"---{language_names}")
-    for language in language_names:
-        if re.search(rf'[ \._\-(\[]{language}[ \._\-)\]]', instrlower):
-            return f" {{{language}}}"
+    for language in KNOWN_LANGUAGES:
+        if re.search(rf'[ \._\-(\[]{language.lower()}[ \._\-)\]]', instrlower):
+            return f" ({language})"
     return ""
 
-    # Search for any language in the input string
-    #match = language_pattern.search(input_string)
-    #if match:
-    #    return f" {match.group(0).capitalize()}"  # Return the matched language
-    #return ""
-
+def safe_getsize(path):
+    try:
+        return os.path.getsize(path)
+    except Exception as e:
+        logger.warning(f"File not found: {path} : {e}")
+        return None
 
 def show_find_most_similar(show, present_virtual_folders_shows):
 
@@ -146,13 +67,14 @@ def show_find_most_similar(show, present_virtual_folders_shows):
             will_idx_check = True
 
         else:
-            present_virtual_folders_shows.append(show)
+            jgScan.add_to_pvs(show)
     else:
-        present_virtual_folders_shows.append(show)
+        jgScan.add_to_pvs(show)
 
     return (show, will_idx_check)
 
-#todo, not used, maybe to remove
+
+'''
 def find_lang_code(bibliographic_code):
     # Loop through all languages in pycountry
     for language in pycountry.languages:
@@ -161,23 +83,57 @@ def find_lang_code(bibliographic_code):
             # Return the terminological (T) code, which is 'alpha_3'
             return language.alpha_3
     return bibliographic_code  # Return None if no match is found
-
+'''
 
 def get_bit_depth(pix_fmt):
-    bit_depth_map = {
-        'yuv420p': '8',
-        'yuv422p': '8',
-        'yuv444p': '8',
-        'yuv420p10le': '10',
-        'yuv422p10le': '10',
-        'yuv444p10le': '10',
-        'yuv420p12le': '12',
-        'yuv422p12le': '12',
-        'yuv444p12le': '12',
-        # Add other mappings as needed
-    }
-    
-    return bit_depth_map.get(pix_fmt, 'Unknown')
+
+    if 'p10' in pix_fmt:
+        return '10'
+    elif 'p12' in pix_fmt:
+        return '12'
+    else:
+        return '8'
+    # Define a mapping of pixel formats to bit depths
+    '''     
+    'yuv420p': '8',
+    'yuv422p': '8',
+    'yuv444p': '8',
+    'yuv420p10le': '10',
+    'yuv422p10le': '10',
+    'yuv444p10le': '10',
+    'yuv420p12le': '12',
+    'yuv422p12le': '12',
+    'yuv444p12le': '12',
+    '''
+
+def has_atmos(stream: dict) -> bool:
+    codec = (stream.get("codec_name") or "").lower()
+    profile = (stream.get("profile") or "").lower()
+    title = ((stream.get("tags") or {}).get("title") or "").lower()
+
+    # side_data_list (si présent)
+    side = stream.get("side_data_list") or []
+    side_types = " ".join((d.get("side_data_type","") or "").lower() for d in side)
+
+    # Atmos porté par E-AC-3 (DD+) ou TrueHD
+    if codec in ("eac3", "truehd", "mlp"):
+        if "atmos" in title or "atmos" in profile or "atmos" in side_types:
+            return True
+
+    return False
+
+
+def has_dtsx(stream: dict) -> bool:
+    codec = (stream.get("codec_name") or "").lower()
+    profile = (stream.get("profile") or "").lower()
+    title = ((stream.get("tags") or {}).get("title") or "").lower()
+
+    if codec == "dts":
+        # DTS:X est souvent dans profile ou title
+        if "dts:x" in profile or "dts:x" in title or "dtsx" in profile or "dtsx" in title:
+            return True
+
+    return False
 
 def parse_ffprobe(stdout, filepathnotice):
 
@@ -217,22 +173,34 @@ def parse_ffprobe(stdout, filepathnotice):
                             if(_dvprofile := sideinfo[0].get('dv_profile')):
                                 hdrtpl = f" DVp{_dvprofile}"
     
-                        if resx := stream.get('width'):
-                            if resy := stream.get('height'):
-                                if resx/resy >= 16/9:
-                                    resolutiontpl = f" {str(round(resx * 9/16))}p"
-                                else:
-                                    resolutiontpl = f" {str(resy)}p"
+                        if (resx := stream.get('width')) and (resy := stream.get('height')):
+                            if resx/resy >= 16/9:
+                                vertR = round(resx * 9/16)
+                                #resolutiontpl = f" {str(round(resx * 9/16))}p"
+                            else:
+                                vertR = resy
+                                #resolutiontpl = f" {str(resy)}p"
                         
+                            if vertR >= 2155:
+                                resolutiontpl = " UHD"
+                            elif vertR >= 1435:
+                                resolutiontpl = " QHD"
+                            elif vertR >= 1075:
+                                resolutiontpl = " FHD"
+                            elif vertR >= 710:
+                                resolutiontpl = " HD"
+                            else:
+                                resolutiontpl = f" SD"
+
                     ####
                     elif stream.get('codec_type') == "audio":
                         if alang := (stream.get('tags') or {}).get('language', '').lower():
-                            if alang in INTERESTED_LANGUAGES: #toimprove : pur here the prefered languages of the user +eng
-                                alang_arr.append(f"{alang[:3].capitalize()}")
+                            if alang in USED_LANGS: #toimprove : pur here the prefered languages of the user +eng
+                                alang_arr.append(f"{normalize_to_iso639_2b(alang[:3]).capitalize()}")
                             #if first_audio == "":
                                 #first_audio = f" {{{alang[:3].capitalize()}}}"
 
-
+                        ''' Check for Atmos or DTSx in audio streams - DEPRECATED
                         if codec_name in ['eac3', 'mlp']:
                             channel_layout = stream.get('channel_layout', "")
                         # eac3 (Enhanced AC-3) is often used for Atmos
@@ -245,12 +213,17 @@ def parse_ffprobe(stdout, filepathnotice):
                         # Additional check in the 'title' metadata if available
                             if 'dts:x' in dtitle or 'dtsx' in dtitle:
                                 audiotplb = " DTSx"
+                        '''
+                        if has_atmos(stream):
+                            audiotpla = " Atmos"
+                        elif has_dtsx(stream):
+                            audiotplb = " DTSx"
 
                     ####
                     elif stream.get('codec_type') == "subtitle":
                         if slang := (stream.get('tags') or {}).get('language', '').lower():
-                            if slang in INTERESTED_LANGUAGES: 
-                                slang_arr.append(f"{slang[:3].capitalize()}")
+                            if slang in USED_LANGS: 
+                                slang_arr.append(f"{normalize_to_iso639_2b(slang[:3]).capitalize()}")
     
     
     
@@ -337,7 +310,7 @@ def subtitle_extension(file_name):
                     if lang_code:
                         _attribs.append(lang_code.lower())
 
-    # if there is really nothing return the only last split found #todo : if len < 8
+    # if there is really nothing return the only last split found  : if len < 8
     #if(len(_attribs) < 1):
     #    _attribs.append(parts[-1])
 

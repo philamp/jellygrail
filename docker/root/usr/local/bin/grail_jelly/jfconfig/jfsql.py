@@ -1,4 +1,10 @@
 
+
+
+# this SHIT is DEPRECATED
+
+
+
 from base import *
 import sqlite3
 # logger = logging.getLogger('jellygrail')

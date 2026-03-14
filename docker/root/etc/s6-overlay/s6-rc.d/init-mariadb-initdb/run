@@ -40,7 +40,6 @@ EOSQL
     # Make sure all user and database settings are set and pass is more than 4 characters
     # At the end change to default database created with environment variables to run init and remote scripts there
     if [[ "${MYSQL_USER+x}" ]] &&
-        [[ "${MYSQL_DATABASE+x}" ]] &&
         [[ "${MYSQL_PASSWORD+x}" ]] &&
         [[ "${#MYSQL_PASSWORD}" -gt "3" ]]; then
         read -r -d '' MYSQL_DB_SETUP <<-EOM

@@ -5,7 +5,10 @@ parse-torrent-title
 rapidfuzz
 thefuzz
 colorlog
-pyinotify
 python-dotenv
 websocket-client
 mysql-connector-python
+msgspec
+starlette
+asyncinotify
+uvicorn[standard]

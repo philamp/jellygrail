@@ -3,23 +3,28 @@ from base import *
 from base.littles import *
 from base.constants import *
 from datetime import datetime
-from jfconfig.jfsql import *
-from nfo_generator.xmlnfo import *
+# from jfconfig.jfsql import *
+import jfapi
+from nfo_generator.xmlnfo import Item, build_jg_nfo_video, jf_xml_create
+from kodi_services.kodiInstances import kodiDBRegistry
 from pathlib import Path
-
-# Name of librairies
-# LIB_NAMES = ("Movies", "Shows")
+import msgspec
 
 # Jellyfin.Plugin.KodiSyncQueue/1197e3fbeaee4d1e905a5b3ef7f5380c/GetItems?lastUpdateDt=2024-06-12T00:00:00.0000000Z
 # {{baseUrl}}/Items?ParentId=f137a2dd21bbc1b99aa5c0f6bf02a805&Fields=MediaSources,ProviderIds,Overview
 
-# Webdav ip + port specified for local network (as seen by a local network device)
-# is it still useful if it's decided on nginx side ? maybe if later its not nginx anymore
-# WEBDAV_LAN_HOST = os.getenv('WEBDAV_LAN_HOST')
 
+# --- msgspec structs ---
+class User(msgspec.Struct):
+    Id: str
 
-# for fetch_nfo()
-NFO_FALLBACK = "/mounts/filedefaultnfo_readme_p.txt" # put a default path
+class SyncQueue(msgspec.Struct, omit_defaults=True):
+    ItemsAdded: list[str] = []
+    ItemsUpdated: list[str] = []
+
+class ItemsResponse(msgspec.Struct):
+    Items: list[Item]
+
 
 
 def fetch_nfo(nfopath):
@@ -81,213 +86,171 @@ def fetch_nfo(nfopath):
         return NFO_FALLBACK
 
 
-def nfo_loop_service():
-
+def nfo_loop_service(stopEvent) -> bool:
     nbofmovieorepisode = 0
     nbofmovie = 0
     nbofepisode = 0
     nboftvshow = 0
 
-    # stops if any dump fails as result won't be consistent anyway
-    #logger.debug("Scan thread selected is nfo generator")
-    # jf_json_dump to store whole response
-    whole_jf_json_dump = None
+    whole_jf_json_dump: list[Item] | None = None
 
-    # get first user, needed to request syncqueue
-    try:
-        users = jfapi.jellyfin('Users').json()
-    except Exception as e:
-        logger.error(f"    JF-API| Getting JF users failed. Open jellyfin on your browser to create the primary user. error is: {e}")
-        #jfclose_ro()
+    # --- get first user ---
+
+    if users_raw := jfapi.jellyfin("Users").content:
+        users = msgspec.json.decode(users_raw, type=list[User])
+    else:
+        logger.error(f"   NFO-GEN| ...so nfo generation failed immediately at getting JF users")
         return False
-    
-    logger.info("         4| Generate Jellyfin NFOs *if any new items*...")
 
-    users_name_mapping = [user.get('Id') for user in users]
-    user_id = users_name_mapping[0]
+    user_id = users[0].Id
 
+    # --- syncqueue ---
 
-    # get Movies and shows perent lib ID
-    # libraries = jellyfin(f'Items', params = dict(userId = user_id)).json()['Items']
-    # libids = [lib.get('Id') for lib in libraries if libraries in LIB_NAMES]
-
-    # while loop can start here !!!!!!!!!!!!!!!!!!!!!!!!
-
-    # currentqueue
-    try:
-        #logger.debug("goes through kodisync queue")
-        syncqueue = jfapi.jellyfin(f'Jellyfin.Plugin.KodiSyncQueue/{user_id}/GetItems', params = dict(lastUpdateDt=read_jfsqdate_from_file())).json()
-    except Exception as e:
-        logger.critical(f"Get JF sync queue failed [nfo_loop_service] error: {e}")
-        #jfclose_ro()
+    if syncqueue_raw := jfapi.jellyfin(
+        f"Jellyfin.Plugin.KodiSyncQueue/{user_id}/GetItems",
+        params=dict(lastUpdateDt=read_jfsqdate_from_file())
+    ).content:
+        syncqueue = msgspec.json.decode(syncqueue_raw, type=SyncQueue)
+    else:
+        logger.critical(f"   NFO-GEN| ...so nfo generation failed only at getting Jellyfin.Plugin.KodiSyncQueue")
         return False
 
     nowdate = datetime.now().isoformat()
 
-    # lists
-    # items_added_and_updated = syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated')
+    items_added_and_updated_pre = syncqueue.ItemsAdded + syncqueue.ItemsUpdated
+    if not items_added_and_updated_pre:
+        #save_jfsqdate_to_file(nowdate) # write only if changes to avoid multiple writes
+        return False
+    
+    # new nfo batch generation
+    batchId = kodiDBRegistry.newNfoBatch()
 
+    logger.info("   NFO-GEN| ...New NFOs: metadata JSON dump (can take a while)...")
 
-    # loop added and updated
-    if items_added_and_updated_pre := syncqueue.get('ItemsAdded') + syncqueue.get('ItemsUpdated'):
-        logger.info("    JF-API| ...New NFOs: metadata JSON dump (can take a while)...")
-        # 1st deduplication here
-        items_added_and_updated_pre = list(set(items_added_and_updated_pre))
+    # --- deduplication ---
+    items_added_and_updated_pre = list(set(items_added_and_updated_pre))
+    items_added_and_updated: list[tuple[str, bool]] = [
+        (iid, iid in syncqueue.ItemsUpdated) for iid in items_added_and_updated_pre
+    ]
 
-        items_added_and_updated = [(item_id, item_id in syncqueue.get('ItemsUpdated')) for item_id in items_added_and_updated_pre]
-        s_data = {}
-        #t_data = {}
-        #pre_t_data = {}
+    s_data: dict[str, list[dict]] = {}
 
-        try:
-            whole_jf_json_dump = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Season,Movie,Episode', Fields = 'MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path,People,ProductionLocations')).json()['Items']
-        except Exception as e:
-            logger.critical(f"!!! Get JF lib json dump failed [nfo_loop_service] error: {e}")
-            #jfclose_ro()
-            return False
-        
+    # --- full dump (movies + episodes + seasons) ---
 
-        #loop through episodes
-        for item in whole_jf_json_dump:
+    if stopEvent.is_set():
+        return False
 
-            # tvshow paths fix
-            # toimprove : not sure this way the tvshow.nfo get alwasy written if new episode that don't trigger syncqueue for season type
-            if(item.get('Type') == 'Episode'):
-                # get all possible tvshow parent paths and store it in { season_parent_id : paths_array[]}
-                # tvshow path by season uid (to associate later)
-                #sname = item.get('SeriesName')
-                #pre_t_data.setdefault(sname, [])
-                #pre_t_data[pid].append(item.get('Id'))
-
-                for item_id, is_updated in items_added_and_updated:
-                    if item.get('Id') == item_id:
-                        pid = item.get('ParentId')
-                        if pid not in items_added_and_updated_pre:
-                            items_added_and_updated.append((pid, is_updated))
-
-                for mediasource in item.get('MediaSources'):
-                    path = Path(mediasource.get('Path'))
-                    #trimmedPath = str(Path(*path.parts[:5]))
-                    #toremove
-                    #logger.info(f"----- URL {trimmedPath}")
-                    #pre_t_data[sname+re.search(r'\{.*?\}', trimmedPath).group(0)].append(trimmedPath)
-
-        
-        for item in whole_jf_json_dump:
-            # get tvshows UID to update them
-            if(item.get('Type') == 'Season'):
-                for item_id, is_updated in items_added_and_updated:
-                    if item.get('Id') == item_id:
-                        pid = item.get('ParentId')
-                        if pid not in items_added_and_updated_pre:
-                            items_added_and_updated.append((pid, is_updated))
-
-
-                #elif(item.get('Type') in "Movie Episode"): -> done beneath after all dumps calls to avoid any inconsistencies
-                    #jf_xml_create(item)
-
-
-
-        for item in whole_jf_json_dump:
-            #loop the neigboors seasons so that tvshow data is complete
-            if(item.get('Type') == 'Season'):
-                if any(pid == item.get('ParentId') for pid, _ in items_added_and_updated):
-                    pid = item.get('ParentId')
-                    #sname = item.get('SeriesName') # bind by series name to merge different folders in one
-                    sidx = item.get('IndexNumber')
-                    suid = item.get('Id')
-                    s_data.setdefault(pid, [])
-                    s_data[pid].append({'sidx': sidx, 'suid': suid})
-                    # append t_data[tvshowid] with pre_t_data indexed by season uids
-                    #t_data.setdefault(sname, []) # bind by series name to merge different folders in one
-                    #t_data[sname].extend(pre_t_data[sname])
-
-        # deduplicate pre_t_data
-        #for key, _ in pre_t_data.items():
-            #pre_t_data[key] = list(set(pre_t_data[key]))
-
-        #logger.info(f"#### {t_data}")
-
-        try:
-            whole_jf_json_dump_s = jfapi.jellyfin(f'Items', params = dict(userId = user_id, Recursive = True, includeItemTypes='Series', Fields = 'ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path')).json()['Items']
-        except Exception as e:
-            logger.critical(f"!!! Get JF lib json TVSHOW dump failed [nfo_loop_service] error: {e}")
-            #jfclose_ro()
-            whole_jf_json_dump = None # to free memory
-            return False
-        
-
-
-        # if everything went well, it will be consistent so we can continue in xml creation
-        #already_seen = []
-        for item in whole_jf_json_dump:
-            for item_id, is_updated in items_added_and_updated:
-                #if item_id not in already_seen:
-                if item.get('Id') == item_id:
-                    if(item.get('Type') in "Movie Episode"):
-                        jf_xml_create(item, is_updated)
-                        nbofmovieorepisode += 1
-                        if item.get('Type') == "Movie":
-                            nbofmovie += 1
-                        else:
-                            nbofepisode += 1
-                        
-                        if nbofmovieorepisode % 5 == 0:
-                            logger.info(f"    JF-API| NFOs generating... Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
-        #logger.info(f"    JF-API| ...NFOs generated : Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
-
-                    #already_seen.append(item_id)
-
-        '''
-        s_ids = []
-        for item in whole_jf_json_dump_s:
-            s_ids.append(item.get('Id'))
-        orphans = [key for key in t_data if key not in s_ids]
-        '''
-
-
-
-        for item in whole_jf_json_dump_s:
-            for item_id, is_updated in items_added_and_updated:
-                #if item_id not in already_seen:
-                if item.get('Id') == item_id:
-                    if(item.get('Type') == 'Series'):
-                        jf_xml_create(item, is_updated, sdata = s_data)   
-                        nboftvshow += 1
-                        if nboftvshow % 5 == 0:
-                            logger.info(f"    JF-API| NFOs generating... Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
-        logger.info(f"    JF-API| ...NFOs generated: Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}] ...completed")
-                    #already_seen.append(item_id)         
-
-        # toremove : already_seen complete remove
-
-                    # ---- end movie case
-
-
-        # print(whole_jf_json_dump)
-        # loop added
-        # for item in items_added:
-
-
-        whole_jf_json_dump = None # to free memory
-        whole_jf_json_dump_s = None
-        #logger.info("    JF-API| ...metadata generation completed")
-
-        #jfclose_ro()
-        save_jfsqdate_to_file(nowdate)
+    if dump_raw := jfapi.jellyfin(
+        "Items",
+        params=dict(
+            userId=user_id,
+            Recursive=True,
+            includeItemTypes="Season,Movie,Episode",
+            Fields="MediaSources,ProviderIds,Overview,OriginalTitle,RemoteTrailers,"
+                    "Taglines,Genres,Tags,ParentId,Path,People,ProductionLocations"
+        )
+    ).content:
+        whole_jf_json_dump = msgspec.json.decode(dump_raw, type=ItemsResponse).Items
     else:
-        #logger.info("    JF-API| ...no metadata to generate")
-        return True
-    return True
-    # ---- if finished correctly
+        logger.critical(f"   NFO-GEN| ...so nfo generation failed only at getting at /Items")
+        return False
 
+    # --- enrich sync list with parent episodes/seasons ---
+    for item in whole_jf_json_dump:
+        if item.Type == "Episode":
+            for item_id, is_updated in items_added_and_updated:
+                if item.Id == item_id and item.ParentId and item.ParentId not in items_added_and_updated_pre:
+                    items_added_and_updated.append((item.ParentId, is_updated))
+
+            # for mediasource in item.MediaSources:
+                # if mediasource.Path:
+                    # path = Path(mediasource.Path)
+                    # logger.debug(f"Episode media path: {path}")
+
+        elif item.Type == "Season":
+            for item_id, is_updated in items_added_and_updated:
+                if item.Id == item_id and item.ParentId and item.ParentId not in items_added_and_updated_pre:
+                    items_added_and_updated.append((item.ParentId, is_updated))
+
+    # --- collect season info per tvshow ---
+    for item in whole_jf_json_dump:
+        if item.Type == "Season" and item.ParentId:
+            if any(pid == item.ParentId for pid, _ in items_added_and_updated):
+                s_data.setdefault(item.ParentId, [])
+                s_data[item.ParentId].append({"sidx": item.IndexNumber, "suid": item.Id})
+
+    # --- fetch TV shows ---
+
+    if stopEvent.is_set():
+        return False
+
+    if dump_s_raw := jfapi.jellyfin(
+        "Items",
+        params=dict(
+            userId=user_id,
+            Recursive=True,
+            includeItemTypes="Series",
+            Fields="ProviderIds,Overview,OriginalTitle,RemoteTrailers,Taglines,Genres,Tags,ParentId,Path"
+        )
+    ).content:
+        whole_jf_json_dump_s = msgspec.json.decode(dump_s_raw, type=ItemsResponse).Items
+    else:
+        logger.critical(f"   NFO-GEN| ...so nfo generation failed only at getting at /Items (bis)")
+        whole_jf_json_dump = None
+        return False
+
+    if stopEvent.is_set():
+        return False
+
+    # --- XML creation for movies & episodes ---
+    for item in whole_jf_json_dump:
+        for item_id, is_updated in items_added_and_updated:
+            if item.Id == item_id and item.Type in ("Movie", "Episode"):
+                if jf_xml_create(item, is_updated, sdata=None, batchUid=batchId):
+                    nbofmovieorepisode += 1
+                    if item.Type == "Movie":
+                        nbofmovie += 1
+                    else:
+                        nbofepisode += 1
+                    if nbofmovieorepisode % 10 == 0:
+                        logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[0]")
+
+    if stopEvent.is_set():
+        return False
+
+    # --- XML creation for TV shows ---
+    for item in whole_jf_json_dump_s:
+        for item_id, is_updated in items_added_and_updated:
+            if item.Id == item_id and item.Type == "Series":
+                if jf_xml_create(item, is_updated, sdata=s_data, batchUid=batchId):
+                    nboftvshow += 1
+                    if nboftvshow % 10 == 0:
+                        logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}]")
+
+    logger.info(f"   NFO-GEN| Movie[{nbofmovie}], Episode[{nbofepisode}], TvShow[{nboftvshow}] ...completed")
+
+    whole_jf_json_dump = None
+    whole_jf_json_dump_s = None
+    
+    if nbofepisode + nbofmovie + nboftvshow == 0:
+        kodiDBRegistry.remove_nfo_batch(batchId)
+        save_jfsqdate_to_file(nowdate) # write only if changes to avoid multiple writes
+        return False
+        
+
+    # else
+    save_jfsqdate_to_file(nowdate) # write only if changes to avoid multiple writes
+    kodiDBRegistry.commitNfoBatchAndSave(batchId) #save only if new nfos were generated
+    logger.info(f"   NFO-GEN| Batch #{batchId} COMPLETED")
+    
+    return True
 
 def read_jfsqdate_from_file():
     try:
         with open(JFSQ_LAST_REQUEST, 'r') as file:
             strincr = file.read().strip()
     except FileNotFoundError:
-        logger.warning(f"Nfo generator sync queue last sync date not exists yet (taking default then)")
+        logger.warning(f"   NFO-GEN|No last sync queue date file found because first Jellyfin scan not happened yet")
         return "2024-06-16T00:00:00.0000000Z"
     else:
         return strincr

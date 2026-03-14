@@ -1,0 +1,10 @@
+#!/command/execlineb -P
+redirfd -w 1 /dev/null
+redirfd -w 2 /dev/null
+s6-setuidgid www-data
+export IMGPROXY_BIND 127.0.0.1:9090
+export IMGPROXY_QUALITY 78
+export IMGPROXY_LOCAL_FILESYSTEM_ROOT /jellygrail/jellyfin/config/metadata
+export IMGPROXY_ENABLE_FS_ADAPTER true
+imgproxy
+

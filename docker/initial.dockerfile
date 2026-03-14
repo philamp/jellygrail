@@ -1,4 +1,4 @@
-FROM jellyfin/jellyfin:10.10.7 AS imgproxbuilder
+FROM ubuntu:24.04 AS imgproxbuilder
 
 # CONSTANTS
 ENV GO_VERSION=1.25.0
@@ -6,7 +6,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV VIPS_VERSION=8.17.1
 ENV IMGPROXY_VERSION=3.29.1
 
-# update + CA certs
+# APT tools + PPA for cgif
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates
 
@@ -17,24 +17,42 @@ RUN apt-get install -y --no-install-recommends \
 
 # LIBVIPS Deps
 RUN apt-get install -y --no-install-recommends \
-    build-essential pkg-config meson ninja-build libcgif-dev\
-    libglib2.0-dev libexpat1-dev libexif-dev libpng-dev libjpeg62-turbo-dev \
-    libtiff-dev libwebp-dev libgif-dev libopenjp2-7-dev libheif-dev \
-    liborc-0.4-dev libpango1.0-dev librsvg2-dev \
-    libopenexr-dev libmatio-dev libgsf-1-dev libraw-dev libcfitsio-dev \
-    liblcms2-dev libimagequant-dev libfftw3-dev
+    libcgif-dev \
+    libfftw3-dev \
+    libopenexr-dev \
+    libgsf-1-dev \
+    libglib2.0-dev \
+    liborc-dev \
+    libopenslide-dev \
+    libmatio-dev \
+    libwebp-dev \
+    libjpeg-turbo8-dev \
+    libexpat1-dev \
+    libexif-dev \
+    libtiff5-dev \
+    libcfitsio-dev \
+    libpoppler-glib-dev \
+    librsvg2-dev \
+    libpango1.0-dev \
+    libopenjp2-7-dev \
+    liblcms2-dev \
+    libimagequant-dev \
+    libpng-dev \
+    libgif-dev \
+    libheif-dev \
+    libraw-dev
 
 # LIBVIPS build (with meson)
 RUN set -eux; \
     workdir="$(mktemp -d)" && cd "$workdir" && \
-    wget -q "https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz" && \
-    tar xf "vips-${VIPS_VERSION}.tar.xz" && \
+    wget -q "https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.gz" && \
+    tar xf "vips-${VIPS_VERSION}.tar.gz" && \
     cd "vips-${VIPS_VERSION}" && \
     meson setup build \
       --prefix=/usr/local \
       --libdir=lib \
       --buildtype=release \
-      -Dintrospection=disabled && \
+      -Dintrospection=false && \
     meson compile -C build && \
     meson test -C build && \
     meson install -C build && \
@@ -57,7 +75,7 @@ ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 RUN set -eux; \
     WORKDIR=`mktemp -d` && \
     cd $WORKDIR && \
-    curl -Ls https://github.com/imgproxy/imgproxy/archive/v${IMGPROXY_VERSION}.tar.gz \
+    curl -Ls https://github.com/imgproxy/imgproxy/archive/v{IMGPROXY_VERSION}.tar.gz \
     | tar -xz --strip-components 1 -C . && \
     CGO_LDFLAGS_ALLOW="-s|-w" \
     go build -o /usr/local/bin/imgproxy && \
@@ -69,7 +87,7 @@ RUN set -eux; \
     mkdir -p /opt/ldd-libs && \
     ldd /usr/local/bin/imgproxy \
     | awk '/=> \// {print $3} /ld-linux/ {print $1}' \
-#    | grep -vE '(^|/)ld-linux.*|(^|/)libc\.so|(^|/)libstdc\+\+\.so' \
+    | grep -vE '(^|/)ld-linux.*|(^|/)libc\.so|(^|/)libstdc\+\+\.so' \
     | sort -u \
     | xargs -I{} cp -v --parents {} /opt/ldd-libs/
 
@@ -109,11 +127,11 @@ RUN ./rclone version
 
 FROM jellyfin/jellyfin:10.10.7
 
-# Docker build runtime vars
+# Docker build runtime vars (ARG) and env vars
 ENV DEBIAN_FRONTEND=noninteractive
 ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
 ENV v_unrar=${UNRAR_VERSION:-6.1.3}
-ENV S6_OVERLAY_VERSION="3.2.1.0"
+ENV S6_OVERLAY_VERSION="3.1.5.0"
 ENV S6_OVERLAY_ARCH="x86_64"
 
 # apt get stuff (add jmalloc to improve Jellyfin memory usage)
@@ -126,21 +144,9 @@ COPY --from=builder /go/src/github.com/rclone/rclone/rclone /usr/bin/rclone-linu
 # -- IMGPROXY + LIBVIPS IMPORT ---
 COPY --from=imgproxbuilder /usr/local/bin/imgproxy /usr/local/bin/imgproxy
 COPY --from=imgproxbuilder /usr/local/lib /usr/local/lib
-# imgprox deps copy
-COPY --from=imgproxbuilder /opt/ldd-libs /opt/ldd-libs
-RUN set -eux; \
-    mkdir -p /usr/lib /usr/lib64 || true; \ 
-    if [ -d /opt/ldd-libs/usr ]; then cp -a /opt/ldd-libs/usr/* /usr/; fi; \
-    if [ -d /opt/ldd-libs/lib ]; then cp -a /opt/ldd-libs/lib/* /usr/lib/; fi; \
-    if [ -d /opt/ldd-libs/lib64 ]; then cp -a /opt/ldd-libs/lib64/* /usr/lib64/; fi; \
-    rm -rf /opt/ldd-libs
-
+COPY --from=imgproxbuilder /opt/ldd-libs/ /
 ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
 RUN ldconfig
-
-# verif its allright
-RUN ldd /usr/local/bin/imgproxy | awk '/not found/ {nf=1} END {exit nf}'
-
 
 # --- Python ---
 # python3-venv and co. is fix of https://github.com/philamp/jellygrail/issues/2
@@ -189,7 +195,16 @@ RUN cd /tmp && \
     tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz
 
 # set JG folders and permissions
-RUN chmod ugo+rx /usr/bin/rclone-linux
+RUN chmod ugo+rx /usr/bin/rclone-linux && \
+    mkdir -p /Video_Library && \
+    mkdir -p /Cache_Check_Video_Library && \
+    mkdir -p /Kodi_Video_Library && \
+    mkdir -p /mounts/kodi/software && \
+    mkdir -p /mounts/kodi/backups
+
+# kodi addons script copy into container
+COPY root/kodi_addons.sh /kodi_addons.sh
+RUN chmod +x /kodi_addons.sh
 
 # nginx
 RUN apt-get -y install nginx nginx-extras unzip
@@ -225,26 +240,18 @@ RUN WORKDIR=`mktemp -d` && \
 # Mariadb package install
 RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server netcat-openbsd
     
-# copy the rest and set executable to scripts
+# copy the rest
 COPY root/ /
-RUN chmod u+x /init && \
-    chmod -R +x /etc/s6-overlay/s6-rc.d && \
-    chmod +x /kodi_addons.sh && \
-    chmod +x /early_init.sh && \
-    chmod +x /mountspecific.sh && \
-    chmod +x /unmountspecific.sh && \
-    chmod +x /usr/local/bin/grail_jelly/newmain.py
+RUN chmod u+x /init
+RUN chmod -R +x /etc/s6-overlay/s6-rc.d
 
-# insert source to early_init.sh in s6-overlay /init
-RUN sed -i '1a\
-. /early_init.sh' /init
-
-# ffprobew build with gcc
+# ffprobew build
 RUN cd /usr/local/bin/ffprobe_wrapper && \
     gcc -o ffprobew ffprobew.c
 
-# ffprobe becomes ffprober via mv and ffprobew becomes ffprobe via cp
+# ffprobe becomes ffprober
 RUN mv /usr/lib/jellyfin-ffmpeg/ffprobe /usr/lib/jellyfin-ffmpeg/ffprober
+# ffprobew becomes ffprobe via cp
 RUN cp /usr/local/bin/ffprobe_wrapper/ffprobew /usr/lib/jellyfin-ffmpeg/ffprobe
 
 # ffprober and ffprobe(w) are available system wide
@@ -259,14 +266,14 @@ RUN cd /usr/local/bin && \
 ENV MYSQL_DIR="/jellygrail/data/mariadb"
 ENV DATADIR=$MYSQL_DIR/databases
 
-# Expose service ports (nginx, ssh, grail_jelly, mariadb)
+# Expose service ports (nginx, ssh, mariadb, grail_jelly)
 EXPOSE 8085
 #EXPOSE 23
 EXPOSE 6502
 EXPOSE 6503
 
-# overwrite run jellyfin main original process as s6 service instead of entrypoint
-# and run python grail_jelly as default cmd
+# overwrite run jellyfin main original process as CMD instead of entrypoint
 ENTRYPOINT ["/init"]
-CMD ["python3", "/usr/local/bin/grail_jelly/newmain.py"]
+CMD ["python3", "/usr/local/bin/grail_jelly/main.py"]
 
+# CMD ["/bin/bash"]
