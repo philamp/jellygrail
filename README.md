@@ -3,7 +3,7 @@
 </p>
 <p align="center">
 <strong>One compatibility layer to rule them all.</strong></p>
-<p align="center"><i>Enhanced Jellyfin Docker image unifying local and cloud media sources + Kodi backend emulation and Plex compatibility.</i>
+<p align="center"><i>Enhanced Jellyfin Docker image unifying local and cloud media sources + Kodi server emulation and Plex compatibility.</i>
 </p>
 <p align="center">WARNING: This project is still experimental !</p>
 
@@ -21,23 +21,25 @@
 ---
 
 - Merging multiple media sources into one virtualized filesystem - https://github.com/philamp/bindfs_jelly :
-
   - On-the-fly unraring - https://github.com/hasse69/rar2fs.
-  - Virtual moving/renaming + Write new files via fallback storage.
+  - Virtual moving/renaming + Write new files (locally stored).
   - Deleting virtual files deletes underlying actual files.
   - Native Real-Debrid integration + rclone optimization (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly.
   - ffprobe wrapper to avoid redundant ffprobe requests (except with Plex).
   - Keep movie extras and subtitles.
-  - Folders structure and naming pattern following opinionated conventions.
-- Kodi backend emulation with multiple Kodi players support :
-  - Based on MariaDB + Nginx WebDAV server (with new files write support).
-  - Kodi add-on with exclusive funcionnalities - https://github.com/philamp/grail_kodi
-  - Seamless local server detection and setup.
-  - Update triggering + metadata synced from Jellyfin.
-  - Auto-merging of movies variants.
-- Multiple media librairies support with update triggering:
+  - Comprehensive folders structure and naming pattern to maximize compatibility and readability.
+  - Merging similarly named medias in same folder _(weak point as sometimes it can merge different medias, would be better fetching metadata from *arrs)_.
+- Multiple media libraries compatibility:
   - Jellyfin included with zero-click setup.
+  - Kodi server emulation with multiple Kodi players support :
+    - Based on MariaDB + Nginx WebDAV server (with new files write support).
+    - Kodi add-on with exclusive funcionnalities - https://github.com/philamp/grail_kodi
+    - Seamless local server detection and setup.
+    - Update triggering + metadata synced from Jellyfin.
+    - Auto-merging of movies variants.
   - External Plex support.
+  - Basic WebDAV server.
+
 
 ## Prerequisites
 
