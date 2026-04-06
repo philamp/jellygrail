@@ -269,6 +269,7 @@ If you have different types of storage, you can override `jellygrail` specific s
 - 💡Other folders could be created in virtal FS but they must start with 'movies' or 'shows' (make jellfin conf and kodi conf accordingly)
 - 💡 When multiple Kodi players are connected and use same DB, refresh UIs of players that did not own the refresh.
 - ⚠️When detected as extras, videos are moved into extras subfolder but without their corresponding subtitles if any.
+- ⚠️On tablet/mobile android OS, a background Kodi instance will disconnect from network thus add on believes server is down, to fix.
 - ⚠️Episode files not inside a directory are currently ignored.
 - ⚠️if the Video_Library folder is then accessed through a SMB protocol, renaming/moving does not seem to work (an error pops up) but it's actually working, just refresh the content of the folder and you'll see the renaming is effective. (fix that in bindfs_jelly if possible).
 - ⚠️RD Torrents that becomes unavailable (despite rclone fork trying to re-download them) are not fully detected by JellyGrail: corresponding virtual files are not displayed and Jellyfin will thus remove them from library but corresponding parent folders will stay
