@@ -45,7 +45,7 @@ WARNING: This project is still experimental !
 
 | Feature                              | JellyGrail | Decypharr | Zurg |
 |--------------------------------------|------------|-----------|------|
-| On-the-fly RAR extraction           | ✅         | ❌        | ❌   |
+| On-the-fly RAR access           | ✅         | ❌        | ❌   |
 | Persistent RAR/ISO structure cache           | ✅         | ❌        | ❌   |
 | Write fallback (subtitles)   | ✅         | ❌        | ❌   |
 | Kodi library sync (native mode)           | ✅         | ❌        | ❌   |
