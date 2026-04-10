@@ -1,11 +1,11 @@
 <p align="center">
 <img alt="jg" src="jg.png" />
-</p>
+<h1 align="center">JellyGrail</h1>
 <p align="center">
-<strong>One compatibility layer to rule them all.</strong></p>
-<p align="center"><i>Enhanced Jellyfin Docker image unifying local and cloud media sources + Kodi server emulation and Plex compatibility.</i>
+<strong>One compatibility layer to rule them all.</strong><br/>
+<i>Enhanced Jellyfin Docker image unifying local and cloud media sources + Kodi server emulation and Plex compatibility.</i><br/>
+WARNING: This project is still experimental !
 </p>
-<p align="center">WARNING: This project is still experimental !</p>
 
 <p align="center">
   <a href="#prerequisites">Prerequisites</a> &bull;
@@ -31,14 +31,28 @@
   - Merging similarly named medias in same folder _(weak point as sometimes it can merge different medias, would be better fetching metadata from *arrs)_.
 - Multiple media libraries compatibility:
   - Jellyfin included with zero-click setup.
-  - Kodi server emulation with multiple Kodi players support :
+  - Kodi (v20 and v21) server emulation with multiple Kodi players support :
     - Based on MariaDB + Nginx WebDAV server (with new files write support).
-    - Kodi add-on with exclusive funcionnalities - https://github.com/philamp/grail_kodi
+    - Kodi add-on with exclusive functionalities - https://github.com/philamp/grail_kodi
     - Seamless local server detection and setup.
     - Update triggering + metadata synced from Jellyfin.
     - Auto-merging of movies variants.
   - External Plex support.
   - Basic WebDAV server.
+
+
+## ⚔️ JellyGrail vs Decypharr / Zurg
+
+| Feature                              | JellyGrail | Decypharr | Zurg |
+|--------------------------------------|------------|-----------|------|
+| RAR Archive support            | ✅         | ❌        | ❌   |
+| Persistent RAR/ISO structure cache           | ✅         | ❌        | ❌   |
+| Write fallback (subtitles)   | ✅         | ❌        | ❌   |
+| Kodi library sync (native mode)           | ✅         | ❌        | ❌   |
+| Kodi add-on (exclusive features)           | ✅         | ❌        | ❌   |
+| ffprobe proxy (reduced reads)        | ✅         | ❌        | ❌   |
+| Remote + local seamless merge        | ✅         | ❌        | ❌   |
+| Multi-provider support               | ⚠️ (via WebDAV rclone mount) | ✅ | ❌ |
 
 
 ## Prerequisites
@@ -49,9 +63,9 @@
 - Bypass media import from your Radarr / Sonarr instances: 
   - Uncheck `Automatically import completed downloads from download client`.
 - Local torrent download config:
-  - Check `Append .!qB extension to incomplete files` (example for `qBittorrent`, but other clients have similar functionnality).
+  - Check `Append .!qB extension to incomplete files` (example for `qBittorrent`, but other clients have similar functionality).
 - Remote torrent download config:
-  - `Post Torrent Download Action` > `Don't download any files to host` (example for `RealDebrid Client`, but other clients have similar functionnality).
+  - `Post Torrent Download Action` > `Don't download any files to host` (example for `RealDebrid Client`, but other clients have similar functionality).
 
 > [!CAUTION]
 > - I'm not responsible of any data loss / I'm not responsible of any illegal use / Use at your own risks.
@@ -129,7 +143,7 @@ Real-Debrid support is included, but if you have another rclone compatible cloud
 ## Kodi Add-on
 
 <img alt="jg" width="200" src="kodi.png" />\
-A Kodi add-on is now provided to ease the Kodi Webdav/SQL configuration process and provide new functionnalities.
+A Kodi add-on is now provided to ease the Kodi Webdav/SQL configuration process and provide new functionalities.
 
 ### Add-on installation
 Before installing the add-on, please do the following:
@@ -165,7 +179,7 @@ At installation, the add-on auto detects the Jellygrail server and let you choos
 
 <img width="300" src="https://github.com/user-attachments/assets/aae497cf-3153-4e24-8c7c-32f8ac05a1c2" />
 
-- Functionnalities:
+- Functionalities:
   - keep medias
   - check their current local or remote availability
   - Admin actions
@@ -180,7 +194,7 @@ At installation, the add-on auto detects the Jellygrail server and let you choos
     - WebDAV : http://your_system_ip:8085.
     - Jellyfin : http://your_system_ip:8096.
     - or Kodi (see Add-on paragraph above).
-5. For Plex you can point your librairies to ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders. If you don't need the virtual filesystem functionnality, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
+5. For Plex you can point your librairies to ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders. If you don't need the virtual filesystem functionality, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
 6. Beware that JellyGrail restarts by itself at 5.00am 🕡 every wednesday to improve stability.
 
 ### Folder naming pattern
