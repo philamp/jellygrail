@@ -48,7 +48,7 @@ WARNING: This project is still experimental !
 | On-the-fly RAR access           | ✅         | ❌        | ❌   |
 | Persistent RAR/ISO structure cache           | ✅         | ❌        | ❌   |
 | Write fallback (subtitles)   | ✅         | ❌        | ❌   |
-| Kodi library sync (native mode)           | ✅         | ❌        | ❌   |
+| Included Jellyfin + Kodi library sync (native mode)           | ✅         | ❌        | ❌   |
 | Kodi add-on (exclusive features)           | ✅         | ❌        | ❌   |
 | ffprobe proxy (reduced reads)        | ✅         | ❌        | ❌   |
 | Remote + local seamless merge        | ✅         | ❌        | ❌   |
