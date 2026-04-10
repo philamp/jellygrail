@@ -45,14 +45,15 @@ WARNING: This project is still experimental !
 
 | Feature                              | JellyGrail | Decypharr | Zurg |
 |--------------------------------------|------------|-----------|------|
-| RAR Archive support            | ✅         | ❌        | ❌   |
+| On-the-fly RAR extraction           | ✅         | ❌        | ❌   |
 | Persistent RAR/ISO structure cache           | ✅         | ❌        | ❌   |
 | Write fallback (subtitles)   | ✅         | ❌        | ❌   |
 | Kodi library sync (native mode)           | ✅         | ❌        | ❌   |
 | Kodi add-on (exclusive features)           | ✅         | ❌        | ❌   |
 | ffprobe proxy (reduced reads)        | ✅         | ❌        | ❌   |
 | Remote + local seamless merge        | ✅         | ❌        | ❌   |
-| Multi-provider support               | ⚠️ (via WebDAV rclone mount) | ✅ | ❌ |
+| Multi-provider support               | ⚠️ via WebDAV rclone mount | ✅ | ❌ |
+| Included Qbittorrent compatible client | ⚠️ external | ✅ | ❌ |
 
 
 ## Prerequisites
