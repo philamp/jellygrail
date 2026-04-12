@@ -4,7 +4,7 @@ cd /mounts/kodi/software
 # Define URLs and filenames
 urls=(
     "https://a4k-openproject.github.io/a4kSubtitles/packages/a4kSubtitles-repository.zip"
-    "https://github.com/philamp/grail_kodi/releases/download/20260309/context.kodi_grail-20260309.zip"
+    "https://github.com/philamp/grail_kodi/releases/download/20260412/context.kodi_grail-20260412.zip"
 )
 
 # Loop through URLs
