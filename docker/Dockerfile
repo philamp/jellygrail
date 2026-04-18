@@ -1,272 +1,381 @@
-FROM jellyfin/jellyfin:10.10.7 AS imgproxbuilder
+# syntax=docker/dockerfile:1.7
 
-# CONSTANTS
-ENV GO_VERSION=1.25.0
-ENV DEBIAN_FRONTEND=noninteractive
-ENV VIPS_VERSION=8.17.1
-ENV IMGPROXY_VERSION=3.29.1
+ARG JELLYFIN_VERSION=10.10.7
+ARG UBUNTU_VERSION=24.04
 
-# update + CA certs
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates
+ARG GO_VERSION=1.25.0
+ARG RCLONE_GO_VERSION=1.22.12
+ARG VIPS_VERSION=8.17.1
+ARG IMGPROXY_VERSION=3.29.1
+ARG RAR2FS_VERSION=1.29.6
+ARG UNRAR_VERSION=6.1.3
+ARG S6_OVERLAY_VERSION=3.2.1.0
 
-# Build tools
-RUN apt-get install -y --no-install-recommends \
-    build-essential pkg-config ninja-build python3 meson \
-    bc wget curl git
+############################
+# GO TOOLCHAIN
+############################
+FROM --platform=$BUILDPLATFORM golang:${GO_VERSION}-bookworm AS go-toolchain
 
-# LIBVIPS Deps
-RUN apt-get install -y --no-install-recommends \
-    build-essential pkg-config meson ninja-build libcgif-dev\
-    libglib2.0-dev libexpat1-dev libexif-dev libpng-dev libjpeg62-turbo-dev \
-    libtiff-dev libwebp-dev libgif-dev libopenjp2-7-dev libheif-dev \
-    liborc-0.4-dev libpango1.0-dev librsvg2-dev \
-    libopenexr-dev libmatio-dev libgsf-1-dev libraw-dev libcfitsio-dev \
-    liblcms2-dev libimagequant-dev libfftw3-dev
+############################
+# IMGPROXY + LIBVIPS BUILDER
+############################
+FROM --platform=$TARGETPLATFORM jellyfin/jellyfin:${JELLYFIN_VERSION} AS imgproxy-builder
 
-# LIBVIPS build (with meson)
+ARG DEBIAN_FRONTEND=noninteractive
+ARG VIPS_VERSION
+ARG IMGPROXY_VERSION
+ARG TARGETOS
+ARG TARGETARCH
+
+ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig:/usr/lib/pkgconfig
+ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV PATH=/usr/local/go/bin:$PATH
+ENV CGO_ENABLED=1
+
+COPY --from=go-toolchain /usr/local/go /usr/local/go
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        build-essential \
+        pkg-config \
+        ninja-build \
+        python3 \
+        meson \
+        bc \
+        wget \
+        curl \
+        git \
+        libcgif-dev \
+        libglib2.0-dev \
+        libexpat1-dev \
+        libexif-dev \
+        libpng-dev \
+        libjpeg62-turbo-dev \
+        libtiff-dev \
+        libwebp-dev \
+        libgif-dev \
+        libopenjp2-7-dev \
+        libheif-dev \
+        liborc-0.4-dev \
+        libpango1.0-dev \
+        librsvg2-dev \
+        libopenexr-dev \
+        libmatio-dev \
+        libgsf-1-dev \
+        libraw-dev \
+        libcfitsio-dev \
+        liblcms2-dev \
+        libimagequant-dev \
+        libfftw3-dev; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+
 RUN set -eux; \
-    workdir="$(mktemp -d)" && cd "$workdir" && \
-    wget -q "https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz" && \
-    tar xf "vips-${VIPS_VERSION}.tar.xz" && \
-    cd "vips-${VIPS_VERSION}" && \
+    workdir="$(mktemp -d)"; \
+    cd "$workdir"; \
+    wget -q "https://github.com/libvips/libvips/releases/download/v${VIPS_VERSION}/vips-${VIPS_VERSION}.tar.xz"; \
+    tar xf "vips-${VIPS_VERSION}.tar.xz"; \
+    cd "vips-${VIPS_VERSION}"; \
     meson setup build \
       --prefix=/usr/local \
       --libdir=lib \
       --buildtype=release \
-      -Dintrospection=disabled && \
-    meson compile -C build && \
-    meson test -C build && \
-    meson install -C build && \
-    ldconfig && \
+      -Dintrospection=disabled; \
+    meson compile -C build; \
+    meson test -C build; \
+    meson install -C build; \
+    ldconfig; \
     rm -rf "$workdir"
 
-# GO install
 RUN set -eux; \
-    workdir="$(mktemp -d)" && cd "$workdir" && \
-    wget -q "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" && \
-    tar -C /usr/local -xzf "go${GO_VERSION}.linux-amd64.tar.gz" && \
+    go version; \
+    pkg-config --cflags glib-2.0; \
+    pkg-config --cflags vips; \
+    pkg-config --modversion glib-2.0; \
+    pkg-config --modversion vips
+
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
+    --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
+    set -eux; \
+    rm -rf /src/*; \
+    git clone --branch "v${IMGPROXY_VERSION}" --depth 1 https://github.com/imgproxy/imgproxy.git .; \
+    GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
+    go build -trimpath -ldflags="-s -w" -o /out/imgproxy .
+
+ENV LD_LIBRARY_PATH=/usr/local/lib
+
+RUN set -eux; \
+    ldconfig; \
+    mkdir -p /opt/ldd-libs; \
+    { \
+      ldd /out/imgproxy; \
+      ldd /usr/local/lib/libvips.so; \
+      ldd /usr/local/lib/libvips.so.42; \
+      ldd /usr/local/lib/libvips.so.42.19.1; \
+    } \
+      | awk '/=> \// {print $3} /ld-linux/ {print $1}' \
+      | sort -u \
+      | xargs -r -I{} cp -v --parents "{}" /opt/ldd-libs/
+
+############################
+# IMGPROXY PACKAGER
+############################
+FROM --platform=$TARGETPLATFORM jellyfin/jellyfin:${JELLYFIN_VERSION} AS imgproxy-packager
+
+COPY --from=imgproxy-builder /usr/local /usr/local
+COPY --from=imgproxy-builder /out/imgproxy /usr/local/bin/imgproxy
+COPY --from=imgproxy-builder /opt/ldd-libs /opt/ldd-libs
+
+
+############################
+# RCLONE BUILDER
+############################
+FROM --platform=$BUILDPLATFORM golang:${RCLONE_GO_VERSION}-bookworm AS rclone-builder
+
+ARG TARGETOS
+ARG TARGETARCH
+
+WORKDIR /src
+
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
+    --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
+    git clone --branch master --depth 1 https://github.com/philamp/rclone_jelly.git .
+
+RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
+    --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
+    set -eux; \
+    CGO_ENABLED=0 GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} make; \
+    ./rclone version; \
+    install -Dm755 ./rclone /out/rclone-linux
+
+############################
+# RAR2FS / UNRAR BUILDER
+############################
+FROM --platform=$TARGETPLATFORM jellyfin/jellyfin:${JELLYFIN_VERSION} AS rar2fs-builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG RAR2FS_VERSION
+ARG UNRAR_VERSION
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        wget \
+        make \
+        g++ \
+        fuse \
+        libfuse-dev; \
+    rm -rf /var/lib/apt/lists/*
+
+RUN set -eux; \
+    workdir="$(mktemp -d)"; \
+    cd "$workdir"; \
+    wget "https://www.rarlab.com/rar/unrarsrc-${UNRAR_VERSION}.tar.gz"; \
+    tar zxf "unrarsrc-${UNRAR_VERSION}.tar.gz"; \
+    cd unrar; \
+    make -j"$(nproc)"; \
+    make install; \
+    make lib; \
+    make install-lib; \
+    cd "$workdir"; \
+    wget "https://github.com/hasse69/rar2fs/releases/download/v${RAR2FS_VERSION}/rar2fs-${RAR2FS_VERSION}.tar.gz" -O rar2fs.tar.gz; \
+    tar zxf rar2fs.tar.gz; \
+    cd "rar2fs-${RAR2FS_VERSION}"; \
+    ./configure --with-unrar=../unrar --with-unrar-lib=/usr/lib/; \
+    make -j"$(nproc)"; \
+    make install; \
+    mkdir -p /out/bin /out/lib; \
+    cp -av /usr/local/bin/rar2fs /out/bin/; \
+    cp -av /usr/bin/unrar /out/bin/ || cp -av /usr/local/bin/unrar /out/bin/; \
+    ldd /usr/local/bin/rar2fs | awk '/=> \// {print $3}' | sort -u | xargs -r -I{} cp -v --parents "{}" /out/lib/; \
     rm -rf "$workdir"
-ENV PATH="/usr/local/go/bin:${PATH}"
 
-# Ensure LIBVIPS is found later by imgproxy through pkgconfig
-ENV PKG_CONFIG_PATH="/usr/local/lib/pkgconfig:/usr/lib/pkgconfig"
-ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
+############################
+# BINDFS BUILDER
+############################
+FROM jellyfin/jellyfin:${JELLYFIN_VERSION} AS bindfs-builder
 
-# IMGPROXY build
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        build-essential \
+        pkg-config \
+        git \
+        autoconf \
+        libtool \
+        libfuse3-dev \
+        libsqlite3-dev \
+        cmake; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+RUN git clone --branch master --depth 1 https://github.com/philamp/bindfs_jelly.git .
+
 RUN set -eux; \
-    WORKDIR=`mktemp -d` && \
-    cd $WORKDIR && \
-    curl -Ls https://github.com/imgproxy/imgproxy/archive/v${IMGPROXY_VERSION}.tar.gz \
-    | tar -xz --strip-components 1 -C . && \
-    CGO_LDFLAGS_ALLOW="-s|-w" \
-    go build -o /usr/local/bin/imgproxy && \
-    ldconfig && \
-    rm -rf $WORKDIR
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release; \
+    cmake --build build -j"$(nproc)"; \
+    DESTDIR=/out cmake --install build
 
-# .so libs collecting to copy later in runtime image (imgproxy + libvips)
+############################
+# FFPROBE WRAPPER BUILDER
+############################
+FROM --platform=$TARGETPLATFORM ubuntu:${UBUNTU_VERSION} AS ffprobe-wrapper-builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends gcc libc6-dev; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+COPY root/usr/local/bin/ffprobe_wrapper/ffprobew.c /src/ffprobew.c
+
 RUN set -eux; \
-    mkdir -p /opt/ldd-libs && \
-    ldd /usr/local/bin/imgproxy \
-    | awk '/=> \// {print $3} /ld-linux/ {print $1}' \
-#    | grep -vE '(^|/)ld-linux.*|(^|/)libc\.so|(^|/)libstdc\+\+\.so' \
-    | sort -u \
-    | xargs -I{} cp -v --parents {} /opt/ldd-libs/
+    mkdir -p /out; \
+    gcc -O2 -o /out/ffprobew ffprobew.c
 
-FROM ubuntu AS builder
+############################
+# PYTHON VENV BUILDER
+############################
+FROM --platform=$TARGETPLATFORM jellyfin/jellyfin:${JELLYFIN_VERSION} AS python-builder
 
-# RUN apt update && apt install golang libfuse
-ENV DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        python3 python3-pip python3-venv; \
+    rm -rf /var/lib/apt/lists/*
+
+COPY root/requirements.txt /requirements.txt
+
 RUN set -eux; \
-	apt-get update; \
-	apt-get install -y --no-install-recommends \
-		g++ \
-        	golang \
-        	libfuse-dev \
-		gcc \
-		libc6-dev \
-		make \
-		pkg-config
+    python3 -m venv /opt/venv; \
+    /opt/venv/bin/pip install --upgrade pip; \
+    /opt/venv/bin/pip install --no-cache-dir -r /requirements.txt
 
+############################
+# FINAL RUNTIME
+############################
+FROM --platform=$TARGETPLATFORM jellyfin/jellyfin:${JELLYFIN_VERSION}
 
+ARG DEBIAN_FRONTEND=noninteractive
+ARG S6_OVERLAY_VERSION
+ARG TARGETARCH
 
-RUN apt-get update && apt-get install git -y
+ENV MYSQL_DIR=/jellygrail/data/mariadb
+ENV DATADIR=/jellygrail/data/mariadb/databases
+ENV PATH=/opt/venv/bin:$PATH
+ENV LD_LIBRARY_PATH=/usr/local/lib
+ENV S6_OVERLAY_VERSION=${S6_OVERLAY_VERSION}
 
-ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/master rclone_jelly_version.json
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        xz-utils \
+        libjemalloc2 \
+        python3 \
+        python3-venv \
+        fuse \
+        libfuse-dev \
+        libfuse3-dev \
+        nginx \
+        nginx-extras \
+        unzip \
+        mariadb-server \
+        netcat-openbsd \
+        wget \
+        ca-certificates; \
+    rm -rf /var/lib/apt/lists/*
 
-RUN rm -rf /go/src/github.com/rclone/rclone/
+# rclone
+COPY --from=rclone-builder /out/rclone-linux /usr/bin/rclone-linux
 
-RUN mkdir -p /go/src/github.com/rclone/rclone/
+# imgproxy + libvips
+COPY --from=imgproxy-packager /usr/local /usr/local
+COPY --from=imgproxy-packager /opt/ldd-libs /opt/ldd-libs
 
-WORKDIR /go/src/github.com/rclone/rclone/
-
-RUN git clone -b master https://github.com/philamp/rclone_jelly.git --single-branch .
-
-RUN CGO_ENABLED=0 make
-RUN ./rclone version
-
-# ---RCLONE EXPORT END----
-
-FROM jellyfin/jellyfin:10.10.7
-
-# Docker build runtime vars
-ENV DEBIAN_FRONTEND=noninteractive
-ENV v_rar2fs=${RAR2FS_VERSION:-1.29.6}
-ENV v_unrar=${UNRAR_VERSION:-6.1.3}
-ENV S6_OVERLAY_VERSION="3.2.1.0"
-ENV S6_OVERLAY_ARCH="x86_64"
-
-# apt get stuff (add jmalloc to improve Jellyfin memory usage)
-RUN apt-get update && \
-    apt-get -y install xz-utils libjemalloc2 
-
-# ---RCLONE IMPORT----
-COPY --from=builder /go/src/github.com/rclone/rclone/rclone /usr/bin/rclone-linux
-
-# -- IMGPROXY + LIBVIPS IMPORT ---
-COPY --from=imgproxbuilder /usr/local/bin/imgproxy /usr/local/bin/imgproxy
-COPY --from=imgproxbuilder /usr/local/lib /usr/local/lib
-# imgprox deps copy
-COPY --from=imgproxbuilder /opt/ldd-libs /opt/ldd-libs
 RUN set -eux; \
-    mkdir -p /usr/lib /usr/lib64 || true; \ 
+    mkdir -p /usr/lib /usr/lib64 /lib /lib64; \
     if [ -d /opt/ldd-libs/usr ]; then cp -a /opt/ldd-libs/usr/* /usr/; fi; \
-    if [ -d /opt/ldd-libs/lib ]; then cp -a /opt/ldd-libs/lib/* /usr/lib/; fi; \
-    if [ -d /opt/ldd-libs/lib64 ]; then cp -a /opt/ldd-libs/lib64/* /usr/lib64/; fi; \
+    if [ -d /opt/ldd-libs/lib ]; then cp -a /opt/ldd-libs/lib/* /lib/; fi; \
+    if [ -d /opt/ldd-libs/lib64 ]; then cp -a /opt/ldd-libs/lib64/* /lib64/; fi; \
+    ldconfig; \
     rm -rf /opt/ldd-libs
 
-ENV LD_LIBRARY_PATH="/usr/local/lib:${LD_LIBRARY_PATH}"
-RUN ldconfig
+# python venv
+COPY --from=python-builder /opt/venv /opt/venv
 
-# verif its allright
-RUN ldd /usr/local/bin/imgproxy | awk '/not found/ {nf=1} END {exit nf}'
+# rar2fs
+COPY --from=rar2fs-builder /out/bin/rar2fs /usr/local/bin/rar2fs
+COPY --from=rar2fs-builder /out/bin/unrar /usr/local/bin/unrar
+COPY --from=rar2fs-builder /out/lib /tmp/rar2fs-lib
 
+RUN set -eux; \
+    if [ -d /tmp/rar2fs-lib/lib ]; then cp -a /tmp/rar2fs-lib/lib/* /lib/; fi; \
+    if [ -d /tmp/rar2fs-lib/usr ]; then cp -a /tmp/rar2fs-lib/usr/* /usr/; fi; \
+    if [ -d /tmp/rar2fs-lib/lib64 ]; then cp -a /tmp/rar2fs-lib/lib64/* /lib64/; fi; \
+    rm -rf /tmp/rar2fs-lib; \
+    ldconfig
 
-# --- Python ---
-# python3-venv and co. is fix of https://github.com/philamp/jellygrail/issues/2
-RUN apt-get -y install python3 python3-pip python3-venv
-COPY root/requirements.txt /requirements.txt
-RUN python3 -m venv /opt/venv
-RUN /opt/venv/bin/pip install --upgrade pip
-RUN /opt/venv/bin/pip install -r /requirements.txt
-ENV PATH="/opt/venv/bin:$PATH"
+# bindfs
+COPY --from=bindfs-builder /out/ /
 
-# RAR2FS build
-RUN WORKDIR=`mktemp -d` && \
-    cd $WORKDIR && \
-    # Get deps
-    apt-get update && \
-    apt-get -y install \
-    fuse \
-    g++ \
-    libfuse-dev \
-    make \
-    wget && \
-    # Get, make and install unrar
-    wget http://www.rarlab.com/rar/unrarsrc-${v_unrar}.tar.gz && \
-    tar zxvf unrarsrc-${v_unrar}.tar.gz && \
-    cd unrar && \
-    make && \
-    make install && \
-    make lib && \
-    make install-lib && \
-    cd .. && \
-    # Get, make and install rar2fs
-    wget https://github.com/hasse69/rar2fs/releases/download/v${v_rar2fs}/rar2fs-${v_rar2fs}.tar.gz -O rar2fs-${v_rar2fs}.tar.gz && \
-    tar zxvf rar2fs-${v_rar2fs}.tar.gz && \
-    cd rar2fs-${v_rar2fs} && \
-    ./configure --with-unrar=../unrar --with-unrar-lib=/usr/lib/ && \
-    make && \
-    make install && \
-    # Cleanup
-    rm -rf $WORKDIR
+# ffprobe wrapper
+COPY --from=ffprobe-wrapper-builder /out/ffprobew /usr/local/bin/ffprobew
 
-# add s6 overlay
-RUN cd /tmp && \
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz && \
-    tar -C / -Jxpf /tmp/s6-overlay-noarch.tar.xz && \
-    wget https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz && \
-    tar -C / -Jxpf /tmp/s6-overlay-${S6_OVERLAY_ARCH}.tar.xz
+# s6 overlay multi-arch
+RUN set -eux; \
+    case "${TARGETARCH}" in \
+      amd64) s6_arch="x86_64" ;; \
+      arm64) s6_arch="aarch64" ;; \
+      arm/v7|arm) s6_arch="arm" ;; \
+      *) echo "Unsupported TARGETARCH=${TARGETARCH}"; exit 1 ;; \
+    esac; \
+    cd /tmp; \
+    wget -q "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-noarch.tar.xz"; \
+    tar -C / -Jxpf s6-overlay-noarch.tar.xz; \
+    wget -q "https://github.com/just-containers/s6-overlay/releases/download/v${S6_OVERLAY_VERSION}/s6-overlay-${s6_arch}.tar.xz"; \
+    tar -C / -Jxpf "s6-overlay-${s6_arch}.tar.xz"; \
+    rm -f /tmp/s6-overlay-*.tar.xz
 
-# set JG folders and permissions
-RUN chmod ugo+rx /usr/bin/rclone-linux
-
-# nginx
-RUN apt-get -y install nginx nginx-extras unzip
-    
-# COPY webdav.conf /etc/nginx/conf.d/default.conf -- now done in init
-RUN rm /etc/nginx/sites-enabled/*
-
-# --- BINDFS
-# Get deps for bindfs build
-RUN apt-get update && \
-    apt-get -y install \
-    build-essential \
-    pkg-config \
-    git \
-    autoconf \
-    libtool \
-    libfuse3-dev \
-    libsqlite3-dev \
-    cmake
-
-ADD https://api.github.com/repos/philamp/bindfs_jelly/git/refs/heads/master bindfs_jelly_version.json
-
-# bindfs build 
-RUN WORKDIR=`mktemp -d` && \
-    cd $WORKDIR && \
-    git clone -b master https://github.com/philamp/bindfs_jelly.git --single-branch . && \
-    mkdir build && \
-    cd build && \
-    cmake .. && \
-    make clean all install && \
-    rm -rf $WORKDIR
-
-# Mariadb package install
-RUN env DEBIAN_FRONTEND=noninteractive apt-get install -y mariadb-server netcat-openbsd
-    
-# copy the rest and set executable to scripts
 COPY root/ /
-RUN chmod u+x /init && \
-    chmod -R +x /etc/s6-overlay/s6-rc.d && \
-    chmod +x /kodi_addons.sh && \
-    chmod +x /early_init.sh && \
-    chmod +x /mountspecific.sh && \
-    chmod +x /unmountspecific.sh && \
-    chmod +x /usr/local/bin/grail_jelly/newmain.py
 
-# insert source to early_init.sh in s6-overlay /init
-RUN sed -i '1a\
-. /early_init.sh' /init
+RUN set -eux; \
+    chmod ugo+rx /usr/bin/rclone-linux; \
+    chmod +x /init /kodi_addons.sh /early_init.sh /mountspecific.sh /unmountspecific.sh; \
+    chmod -R +x /etc/s6-overlay/s6-rc.d; \
+    chmod +x /usr/local/bin/grail_jelly/newmain.py; \
+    sed -i '1a\
+. /early_init.sh' /init; \
+    mv /usr/lib/jellyfin-ffmpeg/ffprobe /usr/lib/jellyfin-ffmpeg/ffprober; \
+    cp /usr/local/bin/ffprobew /usr/lib/jellyfin-ffmpeg/ffprobe; \
+    ln -sf /usr/lib/jellyfin-ffmpeg/ffprober /usr/local/bin/ffprober; \
+    ln -sf /usr/lib/jellyfin-ffmpeg/ffprobe /usr/local/bin/ffprobe; \
+    rm -f /etc/nginx/sites-enabled/*; \
+    ldconfig
 
-# ffprobew build with gcc
-RUN cd /usr/local/bin/ffprobe_wrapper && \
-    gcc -o ffprobew ffprobew.c
+EXPOSE 8085 6502 6503 8089
 
-# ffprobe becomes ffprober via mv and ffprobew becomes ffprobe via cp
-RUN mv /usr/lib/jellyfin-ffmpeg/ffprobe /usr/lib/jellyfin-ffmpeg/ffprober
-RUN cp /usr/local/bin/ffprobe_wrapper/ffprobew /usr/lib/jellyfin-ffmpeg/ffprobe
-
-# ffprober and ffprobe(w) are available system wide
-RUN cd /usr/local/bin && \
-    ln -s /usr/lib/jellyfin-ffmpeg/ffprober ffprober && \
-    ln -s /usr/lib/jellyfin-ffmpeg/ffprobe ffprobe
-
-# Reduce image size
-# not in dev !! RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# mysql
-ENV MYSQL_DIR="/jellygrail/data/mariadb"
-ENV DATADIR=$MYSQL_DIR/databases
-
-# Expose service ports (nginx, ssh, grail_jelly, mariadb)
-EXPOSE 8085
-#EXPOSE 23
-EXPOSE 6502
-EXPOSE 6503
-
-# overwrite run jellyfin main original process as s6 service instead of entrypoint
-# and run python grail_jelly as default cmd
 ENTRYPOINT ["/init"]
 CMD ["python3", "/usr/local/bin/grail_jelly/newmain.py"]
-

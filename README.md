@@ -1,3 +1,6 @@
+> [!CAUTION]
+> 18-04-2026: I can't ensure yet a flawless build due to recent changes in starlette python lib used by this project. I'm working on it as well as a multi-arch precompiled image.
+
 <p align="center">
 <img alt="jg" src="jg.png" />
 <h1 align="center">JellyGrail</h1>
@@ -56,8 +59,8 @@ WARNING: This project is still experimental !
 
 ## Prerequisites
 
-- Linux x86 system 🐧 with Bash shell.
-- Docker 🐳.
+- Linux system 🐧 with Bash shell.
+- Docker 🐳 *with Buildx* (https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
 - Git client to clone this repo.
 - Bypass media import from your Radarr / Sonarr instances: 
   - Uncheck `Automatically import completed downloads from download client`.
@@ -78,7 +81,7 @@ WARNING: This project is still experimental !
 ````
 git clone https://github.com/philamp/jellygrail.git
 cd jellygrail/docker
-sudo docker build -t philamp/jellygrail .
+sudo docker buildx build -t philamp/jellygrail --load .
 ````
 
 > [!TIP]
@@ -89,7 +92,7 @@ sudo docker build -t philamp/jellygrail .
 While compilation takes place, run the config wizard:
 ````
 cd ..
-sudo chmod u+x jf-config.sh _MOUNT.SH
+sudo chmod +x jf-config.sh _MOUNT.SH
 ./jg-config.sh
 ````
 
@@ -277,6 +280,7 @@ If you have different types of storage, you can override `jellygrail` specific s
 - 💡Fix versions sync progress if set to unwatched in kodi
 - 💡Update jellyfin version
 - 💡Update rclone version
+- 💡Update starlette version
 - 💡Sync to *arr metadata + additional virtual FS point dedicated to plex compatible naming pattern
 - 💡Native Integration of other cloud services
 - 💡Preselect audio/subtitles languages in Kodi DB

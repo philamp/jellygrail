@@ -9,6 +9,6 @@ python-dotenv
 websocket-client
 mysql-connector-python
 msgspec
-starlette
+starlette<1.0
 asyncinotify
 uvicorn[standard]

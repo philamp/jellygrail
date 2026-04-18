@@ -151,10 +151,10 @@ int main(int argc, char *argv[]) {
 
     // Print stdout and stderr
     // adjusted temporarily for debug
-    printf(stdout_data);
+    printf("%s", stdout_data);
     //printf("-----"); ------------- debug here
     //printf("error code: %d\n", return_code); ------------- debug here
-    fprintf(stderr, stderr_data);
+    fprintf(stderr, "%s", stderr_data);
 
     // Clean up
     free(stdout_data);
