@@ -41,8 +41,6 @@ WARNING: This project is still experimental !
   - Basic WebDAV server.
 
 
-## ⚔️ JellyGrail vs Decypharr / Zurg
-
 | Feature                              | JellyGrail | Decypharr | Zurg |
 |--------------------------------------|------------|-----------|------|
 | On-the-fly RAR access           | ✅         | ❌        | ❌   |
@@ -108,15 +106,15 @@ sudo docker run -d --privileged --security-opt apparmor=unconfined \
 --device /dev/fuse \
 --device /dev/dri \
 --network host \
---memory="8g"                                                 # Increase if you have a very big library \
+--memory="8g"                                                 # Increase to improve scanning if big library \
 --log-driver json-file \
 --log-opt max-size=10m \
 --log-opt max-file=7 \
 -e S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000                    # Avoid s6 failing when services are taking time \
 -v ${PWD}/jellygrail:/jellygrail                              # Stores config and runtime data \
 -v ${PWD}/Video_Library:/Video_Library:rshared                # The resulting virtualized folder \
--v ${PWD}/fallbackdata:/mounts/fallback                       # where extra files are really stored \
--v /path/to/local-video-imports:/mounts/local_import          # this is where "click-to-keep" medias will be stored \
+-v ${PWD}/fallbackdata:/mounts/fallback                       # Where virtually written files are really stored \
+-v /path/to/local-video-imports:/mounts/local_import          # This is where medias will be stored using KEEP add-on feature \
 -v /path/to/a-local-video-folder:/mounts/local_drive1         # the '/mounts/local_' pattern should be used \
 -v /path/to/another-local-video-folder:/mounts/local_drive2   # the '/mounts/local_' pattern should be used \
 -v /path/remote_yourservice:/mounts/remote_yourservice        # the '/mounts/remote_' pattern should be used, see below \
@@ -157,7 +155,7 @@ Before installing the add-on, please do the following:
   * Disable `Extract chapter thumbnails`.
   * Disable `Extract thumnails from video files`.
 
-Make sur Webdav is available on your local network : `http://your-server-ip:8085`:
+Make sure Webdav is available on your local network : `http://your-server-ip:8085`:
 - Go to `Settings` > `File mananager` > `Add source` > `Browse` > `Add network location` > `webdav`.
 - `Protocol` : `WebDAV (HTTP)`.
 - `Server address` : Your server local ip.
@@ -203,6 +201,8 @@ At installation, the add-on auto detects the Jellygrail server and let you choos
 #### inside the given mounted sources:
 
 Level 1 folders containing 'movi', 'conc', 'show', or 'disc' will be scanned.
+> [!TIP] So if you can't rename your local download folder, you can mount it like that:
+> - `-v /path/to/downloads:/mounts/local_whatever/movie_shows_downloads`
 
 #### inside the ./Video_Library virtual folder:
 
