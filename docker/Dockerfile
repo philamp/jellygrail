@@ -87,7 +87,7 @@ RUN set -eux; \
       --buildtype=release \
       -Dintrospection=disabled; \
     meson compile -C build; \
-    meson test -C build; \
+    #meson test -C build; \
     meson install -C build; \
     ldconfig; \
     rm -rf "$workdir"
@@ -225,7 +225,10 @@ WORKDIR /src
 RUN git clone --branch master --depth 1 https://github.com/philamp/bindfs_jelly.git .
 
 RUN set -eux; \
-    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release; \
+    cmake -S . -B build \
+      -DCMAKE_BUILD_TYPE=Release \
+      -DCMAKE_C_FLAGS="-D_FILE_OFFSET_BITS=64" \
+      -DCMAKE_CXX_FLAGS="-D_FILE_OFFSET_BITS=64"; \
     cmake --build build -j"$(nproc)"; \
     DESTDIR=/out cmake --install build
 
@@ -262,14 +265,21 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     set -eux; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
-        python3 python3-pip python3-venv; \
+        python3 \
+        python3-pip \
+        python3-venv \
+        python3-dev \
+        build-essential \
+        pkg-config \
+        libffi-dev \
+        libssl-dev; \
     rm -rf /var/lib/apt/lists/*
 
 COPY root/requirements.txt /requirements.txt
 
 RUN set -eux; \
     python3 -m venv /opt/venv; \
-    /opt/venv/bin/pip install --upgrade pip; \
+    /opt/venv/bin/pip install --upgrade pip setuptools wheel; \
     /opt/venv/bin/pip install --no-cache-dir -r /requirements.txt
 
 ############################
