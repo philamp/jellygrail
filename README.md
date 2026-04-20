@@ -1,6 +1,6 @@
 > [!CAUTION]
 > 18-04-2026: I can't ensure yet a flawless build due to recent changes in starlette python lib used by this project. I'm working on it as well as a multi-arch precompiled image.
-
+> In case of any failure, please [submit an issue ](https://github.com/philamp/jellygrail/issues).
 <p align="center">
 <img alt="jg" src="jg.png" />
 <h1 align="center">JellyGrail</h1>
@@ -40,6 +40,7 @@ WARNING: This project is still experimental !
     - Seamless local server detection and setup.
     - Update triggering + metadata synced from Jellyfin.
     - Auto-merging of movies variants.
+    - Efficient server side posters resize to improve Kodi experience on cheap devices (imgproxy)
   - External Plex support.
   - Basic WebDAV server.
 
