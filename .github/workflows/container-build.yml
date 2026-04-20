@@ -31,7 +31,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: docker.io/${{ vars.DOCKER_USERNAME }}/jellygrail
+          images: docker.io/${{ secrets.DOCKER_USERNAME }}/jellygrail
           flavor: |
             latest=true
           tags: |
