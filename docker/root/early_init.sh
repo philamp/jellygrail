@@ -1,5 +1,5 @@
 #!/bin/sh -e
-YVERSION="2026"
+YVERSION="v1.2026"
 # - Jellygrail figlet:
 cat << "EOF"
 
