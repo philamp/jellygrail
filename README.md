@@ -1,6 +1,7 @@
 > [!CAUTION]
-> 18-04-2026: I can't ensure yet a flawless build due to recent changes in starlette python lib used by this project. I'm working on it as well as a multi-arch precompiled image.
-> In case of any failure, please [submit an issue ](https://github.com/philamp/jellygrail/issues).
+> 18-04-2026: I can't ensure yet a flawless build/run due to recent changes in some libs used by this project. I'm working on it (fixing versions and updating them on-demand) as well as a multi-arch precompiled image.
+> For now, in case of any failure, please [submit an issue ](https://github.com/philamp/jellygrail/issues).
+
 <p align="center">
 <img alt="jg" src="jg.png" />
 <h1 align="center">JellyGrail</h1>
@@ -12,9 +13,7 @@ WARNING: This project is still experimental !
 
 <p align="center">
   <a href="#prerequisites">Prerequisites</a> &bull;
-  <a href="#build">Build</a> &bull;
-  <a href="#configuration">Configuration</a> &bull;
-  <a href="#run">Run</a> &bull;
+  <a href="#install">Install</a> &bull;
   <a href="#kodi-add-on">Kodi add-on</a> &bull;
   <a href="#usage">Usage</a> &bull;
   <a href="#troubleshooting">Troubleshooting</a> &bull;
@@ -40,7 +39,7 @@ WARNING: This project is still experimental !
     - Seamless local server detection and setup.
     - Update triggering + metadata synced from Jellyfin.
     - Auto-merging of movies variants.
-    - Efficient server side posters resize to improve Kodi experience on cheap devices (imgproxy)
+    - Image resampling to reduce Kodi’s memory usage ([imgproxy](https://github.com/imgproxy/imgproxy))
   - External Plex support.
   - Basic WebDAV server.
 
@@ -77,10 +76,16 @@ WARNING: This project is still experimental !
 > - ⚠️⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s)⚠️⚠️.
 > - Jellygrail is still experimental/BETA : you should not submit any issues to the XBMC team (Kodi backend emulation disrupts the way Kodi works by modifying the database directly !).
 
-## Build
+## Install
+
+### Get
 
 ````
-git clone https://github.com/philamp/jellygrail.git
+git clone https://github.com/philamp/jellygrail.git 
+````
+
+From now on, this part is optional (image is published on docker Hub):
+````
 cd jellygrail/docker
 sudo docker buildx build -t philamp/jellygrail --load .
 ````
@@ -88,17 +93,18 @@ sudo docker buildx build -t philamp/jellygrail --load .
 > [!TIP]
 > To update, replace the git clone command by `git pull`
 
-## Configuration
+### Configure
 
-While compilation takes place, run the config wizard:
+Run the config wizard:
 ````
 cd ..
 sudo chmod +x jf-config.sh _MOUNT.SH
 ./jg-config.sh
 ````
 
-## Run
-Once compilation is done, launch your adapted variant of this docker run command, still inside the root folder of the projet.
+### Run
+
+Launch your adapted variant of this docker run command, still inside the root folder of the projet.
 
 > [!TIP]
 > Beware that by default this working folder will store `jellygrail` subfolder with config and runtime data such as the rclone ISO/RAR structure cache _(0.5%~ of your real-debrid storage size)_.
