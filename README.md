@@ -59,8 +59,8 @@ WARNING: This project is still experimental !
 
 ## Prerequisites
 
-- Linux system 🐧 with Bash shell.
-- Docker 🐳 *with Buildx* (https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)
+- ARM64 or x86_64 Linux system 🐧 with Bash shell.
+- ~~Docker 🐳 *with Buildx* (https://docs.docker.com/engine/install/ubuntu/#install-using-the-repository)~~ (optional)
 - Git client to clone this repo.
 - Bypass media import from your Radarr / Sonarr instances: 
   - Uncheck `Automatically import completed downloads from download client`.
@@ -104,7 +104,7 @@ sudo chmod +x jf-config.sh _MOUNT.SH
 
 ### Run
 
-Launch your adapted variant of this docker run command, still inside the root folder of the projet.
+Launch your adapted variant of this docker run command, still inside the root folder of the project.
 
 > [!TIP]
 > Beware that by default this working folder will store `jellygrail` subfolder with config and runtime data such as the rclone ISO/RAR structure cache _(0.5%~ of your real-debrid storage size)_.
