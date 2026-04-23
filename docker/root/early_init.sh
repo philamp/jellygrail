@@ -32,6 +32,8 @@ chown -R www-data:root /jellygrail/jellyfin
 
 # every folder that can't be created on build time (they would be overwritten by empty runtime mounted folders.
 
+
+
 # JG CUSTOM FUNCTIONS
 create_service() {
   template_path=$1

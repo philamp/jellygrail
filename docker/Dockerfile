@@ -293,6 +293,7 @@ ARG TARGETARCH
 
 ENV MYSQL_DIR=/jellygrail/data/mariadb
 ENV DATADIR=/jellygrail/data/mariadb/databases
+ENV S6_KEEP_ENV=1
 ENV PATH=/opt/venv/bin:$PATH
 ENV LD_LIBRARY_PATH=/usr/local/lib
 ENV S6_OVERLAY_VERSION=${S6_OVERLAY_VERSION}

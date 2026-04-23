@@ -1,14 +1,14 @@
 > [!CAUTION]
-> 18-04-2026: I can't ensure yet a flawless build/run due to recent changes in some libs used by this project. I'm working on it (fixing versions and updating them on-demand) as well as a multi-arch precompiled image.
-> For now, in case of any failure, please [submit an issue ](https://github.com/philamp/jellygrail/issues).
+> 23-04-2026: Right now working on stabilizing build whenever dependencies upgrades happen...
+> For now, in case of any failure, please [submit an issue ](https://github.com/philamp/jellygrail/issues), I will fix it ASAP.
 
 <p align="center">
 <img alt="jg" src="jg.png" />
 <h1 align="center">JellyGrail</h1>
 <p align="center">
 <strong>One compatibility layer to rule them all.</strong><br/>
-<i>Enhanced Jellyfin Docker image unifying local and cloud media sources + Kodi server emulation and Plex compatibility.</i><br/>
-WARNING: This project is still experimental !
+<i>Enhanced Jellyfin Docker image that bridges local, cloud and Debrid media sources to players like Kodi, Jellyfin, and Plex through unified virtual filesystem (JGFS) and easy synchronisation.</i><br/>
+<strong>WARNING: This project is still experimental !</strong>
 </p>
 
 <p align="center">
@@ -22,19 +22,20 @@ WARNING: This project is still experimental !
 
 ---
 
-- Merging multiple media sources into one virtualized filesystem - https://github.com/philamp/bindfs_jelly :
+- Merging multiple media sources into one virtualized filesystem (JGFS) - https://github.com/philamp/bindfs_jelly :
   - On-the-fly unraring - https://github.com/hasse69/rar2fs.
-  - Virtual moving/renaming + Write new files (locally stored).
+  - Virtual moving/renaming.
+  - Writing new files goes into local fallback storage.
   - Deleting virtual files deletes underlying actual files.
   - Native Real-Debrid integration + rclone optimization (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly.
   - ffprobe wrapper to avoid redundant ffprobe requests (except with Plex).
   - Keep movie extras and subtitles.
   - Comprehensive folders structure and naming pattern to maximize compatibility and readability.
   - Merging similarly named medias in same folder _(weak point as sometimes it can merge different medias, would be better fetching metadata from *arrs)_.
-- Multiple media libraries compatibility:
+- Multiple media libraries sync:
   - Jellyfin included with zero-click setup.
-  - Kodi (v20 and v21) server emulation with multiple Kodi players support :
-    - Based on MariaDB + Nginx WebDAV server (with new files write support).
+  - Kodi (v20 and v21) native sync with multiple Kodi players support :
+    - Based on MariaDB + Nginx WebDAV server (with local storage fallback).
     - Kodi add-on with exclusive functionalities - https://github.com/philamp/grail_kodi
     - Seamless local server detection and setup.
     - Update triggering + metadata synced from Jellyfin.
@@ -53,7 +54,8 @@ WARNING: This project is still experimental !
 | Kodi add-on (exclusive features)           | ✅         | ❌        | ❌   |
 | ffprobe proxy (reduced reads)        | ✅         | ❌        | ❌   |
 | Remote + local seamless merge        | ✅         | ❌        | ❌   |
-| Multi-provider support               | ⚠️ via WebDAV rclone mount | ✅ | ❌ |
+| Multi debrid provider support               | ⚠️ via WebDAV rclone mount | ✅ | ❌ |
+| Works with any rclone compatible cloud service               | ✅ | ❌ | ❌ |
 | Included Qbittorrent compatible client | ⚠️ external | ✅ | ❌ |
 
 
