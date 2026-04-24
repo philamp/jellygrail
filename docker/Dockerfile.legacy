@@ -92,7 +92,7 @@ RUN set -eux; \
 
 RUN apt-get update && apt-get install git -y
 
-ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/master rclone_jelly_version.json
+ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/master /tmp/rclone_jelly_version.json
 
 RUN rm -rf /go/src/github.com/rclone/rclone/
 
@@ -210,7 +210,7 @@ RUN apt-get update && \
     libsqlite3-dev \
     cmake
 
-ADD https://api.github.com/repos/philamp/bindfs_jelly/git/refs/heads/master bindfs_jelly_version.json
+ADD https://api.github.com/repos/philamp/bindfs_jelly/git/refs/heads/master /tmp/bindfs_jelly_version.json
 
 # bindfs build 
 RUN WORKDIR=`mktemp -d` && \

@@ -1,9 +1,9 @@
 # syntax=docker/dockerfile:1.7
 
-ARG JELLYFIN_VERSION=10.10.7
+ARG JELLYFIN_VERSION=10.11.8
 ARG UBUNTU_VERSION=24.04
 
-ARG GO_VERSION=1.25.0
+ARG GO_VERSION=1.26.2
 ARG RCLONE_GO_VERSION=1.22.12
 ARG VIPS_VERSION=8.17.1
 ARG IMGPROXY_VERSION=3.29.1
@@ -142,6 +142,8 @@ ARG TARGETARCH
 
 WORKDIR /src
 
+ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/master /tmp/rclone_jelly_version.json
+
 RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
     --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
     git clone --branch master --depth 1 https://github.com/philamp/rclone_jelly.git .
@@ -204,6 +206,8 @@ RUN set -eux; \
 FROM jellyfin/jellyfin:${JELLYFIN_VERSION} AS bindfs-builder
 
 ARG DEBIAN_FRONTEND=noninteractive
+
+ADD https://api.github.com/repos/philamp/bindfs_jelly/git/refs/heads/master /tmp/bindfs_jelly_version.json
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
@@ -297,6 +301,10 @@ ENV S6_KEEP_ENV=1
 ENV PATH=/opt/venv/bin:$PATH
 ENV LD_LIBRARY_PATH=/usr/local/lib
 ENV S6_OVERLAY_VERSION=${S6_OVERLAY_VERSION}
+
+ENV MYSQL_ROOT_PASSWORD=nopassword
+ENV MYSQL_USER=kodi
+ENV MYSQL_PASSWORD=kodi
 
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \

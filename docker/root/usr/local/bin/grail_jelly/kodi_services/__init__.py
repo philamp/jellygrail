@@ -2,33 +2,9 @@ from base import *
 from base.littles import *
 from base.constants import *
 from kodi_services.sqlkodi import sqlKodiDB
-import requests
 import urllib.parse
-import websocket
-import threading
-from datetime import datetime
 from jg_services import get_premium_time_left
 from kodi_services.kodiInstances import kodiDBRegistry
-
-
-
-KODI_MAIN_URL = "172.22.2.28" # TODO remove, to be deprecated
-
-kodi_url = f"http://{KODI_MAIN_URL}:8080/jsonrpc"
-kodi_ws_url = f"ws://{KODI_MAIN_URL}:9090/jsonrpc"
-kodi_username = "kodi"
-kodi_password = "kodi"
-
-last_clean = 0
-
-
-headers = {
-    'Content-Type': 'application/json',
-}
-
-is_scanning = False
-is_cleaning = False
-refresh_is_safe = False
 
 def lowersArray(array):
     return [m.lower() for m in array]
@@ -169,34 +145,6 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
         "avail_dbs": available_instances
     }
 
-'''
-def set_nfo_done(puid, pid, ptable):
-
-
-    sqlmatch = {
-        "movie": "idMovie",
-        "tvshow": "idShow",
-        "episode": "idEpisode"
-    }
-
-
-    if thiskodi := kodiDBRegistry.get(puid):
-        try:
-            db = sqlKodiDB(thiskodi.get('dbname'))
-
-
-        except ValueError as e:
-            return False
-
-        else:
-            for (strPath,) in db.fetch_media_str_with_id(pid, ptable, sqlmatch.get(ptable)):
-                # rename NFO to done TODO
-                pass
-
-        finally:
-            db.close()
-'''
-
 def clean_all_consumed_nfo_batches():
 
     for bid in list(kodiDBRegistry.get_all_batches_pointer().keys()):
@@ -292,60 +240,6 @@ def append_batch_to_kodi_instance(kid, batchid):
     clean_all_consumed_nfo_batches()
     return True
 
-# ----------------------------------
-# rd_progress Fill the pile chronologically each time it's called in server and new stuff arrives
-# getrdincrement
-
-def kodi_ui_refresh():
-    fake_folder_path = 'dummy/path/just/to/refresh'
-
-    # Create the JSON-RPC request
-    payload = {
-        "jsonrpc": "2.0",
-        "method": "VideoLibrary.Scan",
-        "params": {"directory": fake_folder_path},
-        "id": "1"
-    }
-
-    # Send the request
-    try:
-        response = requests.post(kodi_url, data=json.dumps(payload), auth=(kodi_username, kodi_password))
-        response.raise_for_status()
-
-    except Exception as e:
-        logger.warning(f"  KODI-API| UI Refresh failed (please verify Kodi services settings); error is: {e}")
-        return False
-
-    return True
-
-
-def notify_kodi(title, message, display_time):
-
-    notification_payload = json.dumps({
-        "jsonrpc": "2.0",
-        "method": "GUI.ShowNotification",
-        "params": {
-            "title": title,
-            "message": message,
-            "displaytime": display_time  # millisecondes
-        },
-        "id": "2"
-    })
-
-    try:
-        notification_response = requests.post(
-            kodi_url,
-            headers=headers,
-            data=notification_payload,
-            auth=(kodi_username, kodi_password),
-            timeout=5
-        )
-        notification_response.raise_for_status()
-    except Exception as e:
-        logger.warning(f"  KODI-API| Notification failed (please verify Kodi services settings); error is: {e}")
-        return False
-
-    return True
 
 
 def delta_nfo_refresh_call(kid, kdb):

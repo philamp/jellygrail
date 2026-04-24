@@ -27,6 +27,7 @@ mkdir -p /Cache_Check_Video_Library
 mkdir -p /Kodi_Video_Library
 mkdir -p /mounts/kodi/software
 mkdir -p /mounts/kodi/backups
+mkdir -p /mounts/local_import
 mkdir -p /localremounts
 chown -R www-data:root /jellygrail/jellyfin
 

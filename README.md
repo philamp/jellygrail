@@ -8,7 +8,8 @@
 <p align="center">
 <strong>One compatibility layer to rule them all.</strong><br/>
 <i>Enhanced Jellyfin Docker image that bridges local, cloud and Debrid media sources to players like Kodi, Jellyfin, and Plex through unified virtual filesystem (JGFS) and easy synchronisation.</i><br/>
-<strong>WARNING: This project is still experimental !</strong>
+<strong>WARNING: This project is still experimental !</strong><br/>
+[![Docker Pulls](https://img.shields.io/docker/pulls/philamp/jellygrail)](https://hub.docker.com/r/philamp/jellygrail) ![Build](https://github.com/philamp/jellygrail/actions/workflows/container-build.yml/badge.svg)
 </p>
 
 <p align="center">
@@ -112,13 +113,13 @@ Launch your adapted variant of this docker run command, still inside the root fo
 > Beware that by default this working folder will store `jellygrail` subfolder with config and runtime data such as the rclone ISO/RAR structure cache _(0.5%~ of your real-debrid storage size)_.
 
 ````
-sudo docker run -d --privileged --security-opt apparmor=unconfined \
---cap-add MKNOD \
---cap-add SYS_ADMIN \
---device /dev/fuse \
+sudo docker run -d \
+--security-opt apparmor=unconfined \                          # mandatory for fuse
+--cap-add SYS_ADMIN \                                         # mandatory for fuse
+--device /dev/fuse \                                          # mandatory for fuse
 --device /dev/dri \
 --network host \
---memory="8g"                                                 # Increase to improve scanning if big library \
+--memory="8g"                                                 # Increase only if too tight for Jellyfin \
 --log-driver json-file \
 --log-opt max-size=10m \
 --log-opt max-file=7 \
