@@ -9,7 +9,9 @@
 <strong>One compatibility layer to rule them all.</strong><br/>
 <i>Enhanced Jellyfin Docker image that bridges local, cloud and Debrid media sources to players like Kodi, Jellyfin, and Plex through unified virtual filesystem (JGFS) and easy synchronisation.</i><br/>
 <strong>WARNING: This project is still experimental !</strong><br/>
-[![Docker Pulls](https://img.shields.io/docker/pulls/philamp/jellygrail)](https://hub.docker.com/r/philamp/jellygrail) ![Build](https://github.com/philamp/jellygrail/actions/workflows/container-build.yml/badge.svg)
+
+<img alt="jg" src="https://img.shields.io/docker/pulls/philamp/jellygrail" />
+<img alt="jg" src="https://github.com/philamp/jellygrail/actions/workflows/container-build.yml/badge.svg" />
 </p>
 
 <p align="center">
