@@ -8,4 +8,5 @@ mysql-connector-python<10.0
 msgspec<1.0
 starlette<1.0
 asyncinotify<5.0
+pycdlib
 uvicorn[standard]
