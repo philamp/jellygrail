@@ -116,23 +116,24 @@ Launch your adapted variant of this docker run command, still inside the root fo
 
 ````
 sudo docker run -d \
+--privileged \                                                # If caching ISOs is needed (it uses kernel moounting capabilities)
 --security-opt apparmor=unconfined \                          # mandatory for fuse
 --cap-add SYS_ADMIN \                                         # mandatory for fuse
 --device /dev/fuse \                                          # mandatory for fuse
 --device /dev/dri \
 --network host \
---memory="8g"                                                 # Increase only if too tight for Jellyfin \
+--memory="8g" \                                                # Increase only if too tight for Jellyfin
 --log-driver json-file \
 --log-opt max-size=10m \
 --log-opt max-file=7 \
--e S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000                    # Avoid s6 failing when services are taking time \
--v ${PWD}/jellygrail:/jellygrail                              # Stores config and runtime data \
--v ${PWD}/Video_Library:/Video_Library:rshared                # The resulting virtualized folder \
--v ${PWD}/fallbackdata:/mounts/fallback                       # Where virtually written files are really stored \
--v /path/to/local-video-imports:/mounts/local_import          # This is where medias will be stored using KEEP add-on feature \
--v /path/to/a-local-video-folder:/mounts/local_drive1         # the '/mounts/local_' pattern should be used \
--v /path/to/another-local-video-folder:/mounts/local_drive2   # the '/mounts/local_' pattern should be used \
--v /path/remote_yourservice:/mounts/remote_yourservice        # the '/mounts/remote_' pattern should be used, see below \
+-e S6_CMD_WAIT_FOR_SERVICES_MAXTIME=120000 \                    # Avoid s6 failing when services are taking time
+-v ${PWD}/jellygrail:/jellygrail \                              # Stores config and runtime data
+-v ${PWD}/Video_Library:/Video_Library:rshared \                # The resulting virtualized folder
+-v ${PWD}/fallbackdata:/mounts/fallback \                       # Where virtually written files are really stored
+-v /path/to/local-video-imports:/mounts/local_import \          # This is where medias will be stored using KEEP add-on feature
+-v /path/to/a-local-video-folder:/mounts/local_drive1 \         # the '/mounts/local_' pattern should be used
+-v /path/to/another-local-video-folder:/mounts/local_drive2 \   # the '/mounts/local_' pattern should be used
+-v /path/remote_yourservice:/mounts/remote_yourservice \        # the '/mounts/remote_' pattern should be used, see below
 --restart unless-stopped \
 --name jellygrail \
 philamp/jellygrail:latest
