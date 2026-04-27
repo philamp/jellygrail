@@ -186,6 +186,8 @@ RUN set -eux; \
     make -j"$(nproc)"; \
     make install; \
     make lib; \
+    mkdir -p /out/bin /out/lib; \
+    cp -av libunrar.so /out/lib/; \
     make install-lib; \
     cd "$workdir"; \
     wget "https://github.com/hasse69/rar2fs/releases/download/v${RAR2FS_VERSION}/rar2fs-${RAR2FS_VERSION}.tar.gz" -O rar2fs.tar.gz; \
@@ -194,7 +196,6 @@ RUN set -eux; \
     ./configure --with-unrar=../unrar --with-unrar-lib=/usr/lib/; \
     make -j"$(nproc)"; \
     make install; \
-    mkdir -p /out/bin /out/lib; \
     cp -av /usr/local/bin/rar2fs /out/bin/; \
     cp -av /usr/bin/unrar /out/bin/ || cp -av /usr/local/bin/unrar /out/bin/; \
     ldd /usr/local/bin/rar2fs | awk '/=> \// {print $3}' | sort -u | xargs -r -I{} cp -v --parents "{}" /out/lib/; \
@@ -324,6 +325,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         mariadb-server \
         netcat-openbsd \
         wget \
+        libudfread0 libudfread-dev libarchive13 \
         ca-certificates; \
     rm -rf /var/lib/apt/lists/*
 
@@ -349,6 +351,7 @@ COPY --from=python-builder /opt/venv /opt/venv
 COPY --from=rar2fs-builder /out/bin/rar2fs /usr/local/bin/rar2fs
 COPY --from=rar2fs-builder /out/bin/unrar /usr/local/bin/unrar
 COPY --from=rar2fs-builder /out/lib /tmp/rar2fs-lib
+COPY --from=rar2fs-builder /out/lib/libunrar.so /usr/local/lib/libunrar.so
 
 RUN set -eux; \
     if [ -d /tmp/rar2fs-lib/lib ]; then cp -a /tmp/rar2fs-lib/lib/* /lib/; fi; \

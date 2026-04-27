@@ -4,6 +4,9 @@ from base import *
 from jgscan.jgsql import jellyDB, staticDB
 from jgscan.caching import *
 from jgscan.scanClasses import jgScan
+from jgscan.isoreading import UdfImage
+from jgscan.rarreading import heat_rar_with_libarchive
+
 #import requests
 from jgscan.arena import *
 import PTN
@@ -252,25 +255,29 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                     bdmv_present = True
                     dive_e_['mediatype'] = '_bdmv'
 
-                    nomergetype = " - JGxISO"
-
                     # cache-heater 0bis for all iso files if storing is remote
                     # done here because a RAR can store an ISO
                     # if storetype == 'remote': # change : read them even if not remote to know if its a dvd or bluray
                     nomergetype = " - JGxBluRay"
+
+
                     iso_file_path = os.path.join(root, filename)
+
                     try:
-                        mount_iso(iso_file_path, mountemp)
-                        if read_small_files(mountemp):
-                            nomergetype = " - JGxDVD"
+                        with UdfImage(iso_file_path) as udf:
+                            for path in udf.iter_file_paths():
+                                result = udf.read_head(path, max_bytes=30 * 1024 * 1024)
+                                if path.lower().endswith(".vob"):
+                                    nomergetype = " - JGxDVD"
+                                    
+                                logger.info(f"      SCAN| ISO-CACHING| - {path} |totalsize:{result.file_size} |cachedsize:{result.bytes_read}")
+
                     except Exception as e:
                         stopthere = True
                         stopreason += ' >> Pre-reading ISO failed'
-                        logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
-                    finally:
-                        if os.path.ismount(mountemp):
-                            unmount_iso(mountemp)
-                    stdout = None
+                        logger.error(f"  ISO-SCAN| ISO read failed on: {iso_file_path}")
+
+
                     if not stopthere:
                         prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
                         (stdout, _, fferr) = get_plain_ffprobe(prefix+iso_file_path)
@@ -279,6 +286,8 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         
 
                         dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : stdout})
+                    
+
 
                 # EF non-video files only (BDMV)
                 elif ('BDMV' in os.path.normpath(root).split(os.sep) or 'VIDEO_TS' in os.path.normpath(root).split(os.sep)) and not season_present:
@@ -737,8 +746,20 @@ def scanThread(pnt, present_folders, stopEvent):
                                 endpoint2browse = src2
                                 logger.info(f"      SCAN| with a .RAR file: {g.name}")
                                 if storetype == "remote":
+
+
+                                    try:
+                                        for result in heat_rar_with_libarchive(rar_item):
+                                            logger.info(f"      SCAN| RAR-CACHING| {result['path']} |totalsize:{result['file_size']} |cachedsize:{result['bytes_read']}")
+                                    except Exception:
+                                        logger.exception(f"      SCAN| RAR-CACHING| libarchive read failed on: {rar_item}")
+
+                                    '''
                                     for i in range(2):
                                         # cache-heater 0 for RAR files and rar2fs
+
+
+                                        
                                         unrar_result = unrar_to_void(g.path)
                                         if not unrar_result == "OK":
                                             if unrar_result == "ERROR_IO":
@@ -757,8 +778,10 @@ def scanThread(pnt, present_folders, stopEvent):
                                                 logger.error(f" - FAILURE_unrar : unknown on {g.path}")
                                                 browse = False
                                                 break
+                                        
                                         else:
                                             break
+                                    '''
                     except FileNotFoundError as e:
                         logger.warning(f"      SCAN| Folder disapeared during scan, will be probably back later: {f.path}")
                         browse = False
@@ -849,12 +872,27 @@ def scanThread(pnt, present_folders, stopEvent):
                         nomergetype = " - JGxBluRay"
                         iso_file_path = f.path
 
+                        '''
                         try:
                             mount_iso(iso_file_path, mountemp)
                             if read_small_files(mountemp):
                                 nomergetype = " - JGxDVD"
                         except Exception as e:
                             logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
+                        '''
+
+                        try:
+                            with UdfImage(iso_file_path) as udf:
+                                for path in udf.iter_file_paths():
+                                    result = udf.read_head(path, max_bytes=30 * 1024 * 1024)
+                                    if path.lower().endswith(".vob"):
+                                        nomergetype = " - JGxDVD"
+                                        
+                                    logger.info(f"      SCAN| ISO-CACHING| - {path} |totalsize:{result.file_size} |cachedsize:{result.bytes_read}")
+
+                        except Exception as e:
+                            logger.error(f"      SCAN| ISO-CACHING| ISO read failed on: {iso_file_path}")
+
                         else:
                             stdout = None
                             prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
