@@ -5,7 +5,7 @@ from jgscan.jgsql import jellyDB, staticDB
 from jgscan.caching import *
 from jgscan.scanClasses import jgScan
 from jgscan.isoreading import UdfImage
-from jgscan.rarreading import heat_rar_with_libarchive
+from jgscan.rarreading import scan_rar_stored_files
 
 #import requests
 from jgscan.arena import *
@@ -733,6 +733,11 @@ def scanThread(pnt, present_folders, stopEvent):
             break
         logger.info(f" SCANPOINT| /{pnt[0]} | /{sdname} ...")
         for f in os.scandir(src1):
+
+            # temp toremove
+            if os.path.basename(f.path) not in ('Battlestar Galactica Complete Mp4 1080p','Agatha.Christies.Poirot.S10.1080p.BluRay.x264-YELLOWBiRD[rartv]','Ballerina.2025.Hybrid.2160p.WEB-DL.DV.HDR.DDP5.1.Atmos.H265-AOC','Good.Fortune.2025.Hybrid.2160p.WEB-DL.DV.HDR.DDP5.1.Atmos.H265-AOC','Deadpool Wolverine (2024) [REPACK] [1080p] [BluRay] [5.1] [YTS.MX]','Goat (2026) [1080p] [BluRay] [5.1] [YTS.BZ]'):
+                continue
+
             if os.path.basename(f.path) not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
                     logger.info(f"      SCAN| >< {f.name}")
@@ -747,20 +752,21 @@ def scanThread(pnt, present_folders, stopEvent):
                                 logger.info(f"      SCAN| with a .RAR file: {g.name}")
                                 if storetype == "remote":
 
-
+                                    '''
                                     try:
                                         for result in heat_rar_with_libarchive(rar_item):
                                             logger.info(f"      SCAN| RAR-CACHING| {result['path']} |totalsize:{result['file_size']} |cachedsize:{result['bytes_read']}")
                                     except Exception:
                                         logger.exception(f"      SCAN| RAR-CACHING| libarchive read failed on: {rar_item}")
-
+                                    '''
+                                    
                                     '''
                                     for i in range(2):
                                         # cache-heater 0 for RAR files and rar2fs
 
 
                                         
-                                        unrar_result = unrar_to_void(g.path)
+                                        unrar_result = unrar_to_void_new(g.path)
                                         if not unrar_result == "OK":
                                             if unrar_result == "ERROR_IO":
                                                 logger.error(f" - IO Error on first try, waits 5s and retry ... {g.path}")
@@ -782,6 +788,10 @@ def scanThread(pnt, present_folders, stopEvent):
                                         else:
                                             break
                                     '''
+
+                                    _ = scan_rar_stored_files(rar_item)
+                                    
+                                    
                     except FileNotFoundError as e:
                         logger.warning(f"      SCAN| Folder disapeared during scan, will be probably back later: {f.path}")
                         browse = False

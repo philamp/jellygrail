@@ -82,6 +82,47 @@ def get_ffprobe(file_path):
 '''
 
 # RARs
+
+def unrar_to_void_new(rar_file_path):
+    logger.debug("      > Unrar it to cache ...")
+
+    output_lines = []
+
+    try:
+        process = subprocess.Popen(
+            ['unrar', 't', "-sl34000000", "-y", "-ierr", rar_file_path],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,   # merge stderr into stdout
+            text=True,
+            bufsize=1,
+        )
+
+        for line in process.stdout:
+            line = line.rstrip()
+            output_lines.append(line)
+            logger.info("unrar: %s", line)
+
+        return_code = process.wait()
+
+        output = "\n".join(output_lines)
+
+        if return_code != 0:
+            if "Input/output error" in output:
+                return "ERROR_IO"
+            elif "No files to extract" in output:
+                return "ERROR_NOFILES"
+            elif "Unexpected end of archive" in output:
+                return "ERROR_IO"
+            else:
+                logger.error("      - The unrar command failed for unknown reason")
+                return "ERROR"
+
+    except Exception:
+        logger.exception("      - The unrar command failed for unknown reason")
+        return "ERROR"
+
+    return "OK"
+
 def unrar_to_void(rar_file_path):
 
     try:
@@ -132,7 +173,7 @@ def read_file_with_timeout(file_path, timeout = 604):
     def worker():
         try:
             with open(file_path, 'rb') as f:
-                _ = f.read(34000000)  # Tente de lire les 34 000 000 premiers octets
+                _ = f.read(15000000)  # Tente de lire les 15 000 000 premiers octets
         except Exception as e:
             logger.error(f" - FAILURE_read : An error occurred on direct read {file_path}: {e}.")
             nonlocal success  # Pour modifier la variable `success` en dehors de cette sous-fonction
