@@ -4,7 +4,7 @@ ARG JELLYFIN_VERSION=10.11.8
 ARG UBUNTU_VERSION=24.04
 
 ARG GO_VERSION=1.26.2
-ARG RCLONE_GO_VERSION=1.22.12
+ARG RCLONE_GO_VERSION=1.26.2
 ARG VIPS_VERSION=8.17.1
 ARG IMGPROXY_VERSION=3.29.1
 ARG RAR2FS_VERSION=1.29.6
@@ -142,11 +142,11 @@ ARG TARGETARCH
 
 WORKDIR /src
 
-ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/master /tmp/rclone_jelly_version.json
+ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/develop /tmp/rclone_jelly_version.json
 
 RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
     --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
-    git clone --branch master --depth 1 https://github.com/philamp/rclone_jelly.git .
+    git clone --branch develop --depth 1 https://github.com/philamp/rclone_jelly.git .
 
 RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
     --mount=type=cache,target=/root/.cache/go-build,sharing=locked \

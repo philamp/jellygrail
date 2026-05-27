@@ -416,7 +416,7 @@ echo -e "${NC}"
 if [[ "$FIRST_INSTALL" == true ]]; then
     echo -e "${GREEN}✅ First installation detected, please fill the config.${NC}"
 elif [[ "$DIFFERS" == true ]]; then
-    echo -e "${YELLOW}⚠️  New config version detected (v${CONFIG_VERSION}) from running version (v${RUNNING_VERSION}).${NC}"
+    echo -e "${YELLOW}⚠️  New config version detected (${CONFIG_VERSION}) from running version (${RUNNING_VERSION}).${NC}"
 fi
 
 if [[ "$FIRST_INSTALL" != true ]] && [[ "$DIFFERS" == true ]]; then
