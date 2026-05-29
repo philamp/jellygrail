@@ -121,7 +121,7 @@ DEFAULT_JF_COUNTRY = "CH"
 
 DEFAULT_JF_LANGUAGE = "fr"
 
-SUB_FOLDER_SELECTIVITY = ('movi', 'conc', 'show', 'disc', 'down', 'defa', 'torr', 'news', 'musi', 'docu') # if a subfolder contains one of these words (case insensitive) it will be scanned, else ignored
+SUB_FOLDER_SELECTIVITY = ('movi', 'conc', 'show', 'disc', 'down', 'defa', 'torr', 'news', 'musi', 'docu', 'usen') # if a subfolder contains one of these words (case insensitive) it will be scanned, else ignored
 
 # for fetch_nfo()
 NFO_FALLBACK = "/mounts/filedefaultnfo_readme_p.txt" # put a default path
