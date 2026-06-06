@@ -735,8 +735,8 @@ def scanThread(pnt, present_folders, stopEvent):
         for f in os.scandir(src1):
 
             # temp toremove
-            if os.path.basename(f.path) not in ('Battlestar Galactica Complete Mp4 1080p','Agatha.Christies.Poirot.S10.1080p.BluRay.x264-YELLOWBiRD[rartv]','Ballerina.2025.Hybrid.2160p.WEB-DL.DV.HDR.DDP5.1.Atmos.H265-AOC','Good.Fortune.2025.Hybrid.2160p.WEB-DL.DV.HDR.DDP5.1.Atmos.H265-AOC','Deadpool Wolverine (2024) [REPACK] [1080p] [BluRay] [5.1] [YTS.MX]','Goat (2026) [1080p] [BluRay] [5.1] [YTS.BZ]'):
-                continue
+            # if os.path.basename(f.path) not in ('Battlestar Galactica Complete Mp4 1080p','Agatha.Christies.Poirot.S10.1080p.BluRay.x264-YELLOWBiRD[rartv]','Ballerina.2025.Hybrid.2160p.WEB-DL.DV.HDR.DDP5.1.Atmos.H265-AOC','Good.Fortune.2025.Hybrid.2160p.WEB-DL.DV.HDR.DDP5.1.Atmos.H265-AOC','Deadpool Wolverine (2024) [REPACK] [1080p] [BluRay] [5.1] [YTS.MX]','Goat (2026) [1080p] [BluRay] [5.1] [YTS.BZ]'):
+                # continue
 
             if os.path.basename(f.path) not in present_folders:
                 if f.is_dir() and not '@eaDir' in f.name:
