@@ -142,11 +142,11 @@ ARG TARGETARCH
 
 WORKDIR /src
 
-ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/develop /tmp/rclone_jelly_version.json
+ADD https://api.github.com/repos/philamp/rclone_jelly/git/refs/heads/master /tmp/rclone_jelly_version.json
 
 RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
     --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
-    git clone --branch develop --depth 1 https://github.com/philamp/rclone_jelly.git .
+    git clone --branch master --depth 1 https://github.com/philamp/rclone_jelly.git .
 
 RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
     --mount=type=cache,target=/root/.cache/go-build,sharing=locked \
