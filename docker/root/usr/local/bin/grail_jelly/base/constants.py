@@ -90,6 +90,7 @@ CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of em
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION') or ""
 USE_REMOTE_RDUMP_ACTUALLY = True if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234" else False
+REMOTE_SCAN_TARGET_PROVIDER = (os.getenv('REMOTE_SCAN_TARGET_PROVIDER') or "realdebrid").strip().lower()
 
 REMOTE_WED_DAV_LOCATION = os.getenv('REMOTE_WED_DAV_LOCATION') or ""
 USE_REMOTE_WED_DAV_ACTUALLY = True if REMOTE_WED_DAV_LOCATION.startswith('http') and REMOTE_WED_DAV_LOCATION != "http://hostname-or-ip:8089" else False
@@ -291,6 +292,9 @@ RDUMP_FILE = '/jellygrail/data/rd_dump.json'
 # pile file
 PILE_FILE = '/jellygrail/data/rd_pile.json'
 
+# torbox local dump location
+TBDUMP_FILE = '/jellygrail/data/tb_dump.json'
+
 # rd last date of import file
 RDINCR_FILE = '/jellygrail/data/rd_incr.txt'
 
@@ -301,6 +305,9 @@ REMOTE_PILE_KEY_FILE = '/jellygrail/data/remote_pile_key.txt'
 
 RD_APITOKEN = os.getenv('RD_APITOKEN') or ""
 RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" and RD_APITOKEN != ""
+
+TORBOX_APITOKEN = os.getenv('TORBOX_APITOKEN') or ""
+TORBOX_API_SET = TORBOX_APITOKEN != "PASTE-YOUR-KEY-HERE" and TORBOX_APITOKEN != ""
 
 INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
 

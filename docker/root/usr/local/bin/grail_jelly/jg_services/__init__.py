@@ -12,6 +12,7 @@ RD = None
 oneshot_token = None
 rs_working = False
 lastrddump = 0
+lasttbdump = 0
 
 fiveothree = 0
 
@@ -23,6 +24,7 @@ ptl = "0"
 # now hardcoded:
 DEFAULT_INCR = 0
 WHOLE_CONTENT = True
+TORBOX_API_BASE_URL = "https://api.torbox.app/v1/api"
 
 def get_premium_time_left():
     global ptl
@@ -80,6 +82,11 @@ def file_to_array(filename):
             return first_line, rest_of_lines  # Return a tuple with the first line and the list of the rest
     except FileNotFoundError:
         return "", [] 
+
+
+def normalized_hash(hash):
+    return str(hash or "").strip().lower()
+
 
 def array_to_file(filename, array, initialize_with_unique_key=False):
     try:
@@ -262,15 +269,112 @@ def restoreitem(filename, token):
 
 
 # ----------------------------------
+
+def remote_scan_target_provider():
+    if REMOTE_SCAN_TARGET_PROVIDER in ("rd", "realdebrid", "real-debrid"):
+        return "realdebrid"
+    if REMOTE_SCAN_TARGET_PROVIDER in ("tb", "torbox"):
+        return "torbox"
+    logger.critical(f" REMOTE-JG| Unsupported REMOTE_SCAN_TARGET_PROVIDER={REMOTE_SCAN_TARGET_PROVIDER}. Use realdebrid or torbox.")
+    return None
+
+
+def remote_scan_provider_label(provider):
+    if provider == "torbox":
+        return "TB-API"
+    return "RD-API"
+
+
+def remote_scan_provider_ready(provider):
+    if provider == "torbox":
+        if TORBOX_API_SET:
+            return True
+        logger.critical(" REMOTE-JG| Remote scan target is TorBox but TORBOX_APITOKEN is not set")
+        return False
+    if provider == "realdebrid":
+        if RD_API_SET:
+            return True
+        logger.critical(" REMOTE-JG| Remote scan target is Real-Debrid but RD_APITOKEN is not set")
+        return False
+    return False
+
+
+def magnet_from_hash(hash):
+    if str(hash).startswith("magnet:"):
+        return hash
+    return f"magnet:?xt=urn:btih:{hash}"
+
+
+def push_to_torbox(hash):
+    response = requests.post(
+        TORBOX_API_BASE_URL + "/torrents/createtorrent",
+        headers={"Authorization": f"Bearer {TORBOX_APITOKEN}"},
+        files={
+            "magnet": (None, magnet_from_hash(hash)),
+            "seed": (None, "1"),
+        },
+        timeout=30
+    )
+    response.raise_for_status()
+
+    payload = response.json()
+    if isinstance(payload, dict) and payload.get("success") is False:
+        raise RuntimeError(f"TorBox API error {payload.get('error')}: {payload.get('detail')}")
+
+    return payload
+
+
+def remote_scan_local_hashes(provider):
+    if provider == "torbox":
+        data = tbdump_backup(including_backup = False, returning_data = True)
+    else:
+        data = rdump_backup(including_backup = False, returning_data = True)
+
+    if data is None:
+        return None
+
+    return [normalized_hash(item.get('hash')) for item in data if item.get('hash')]
+
+
+def remote_scan_push(provider, hash):
+    if provider == "torbox":
+        push_to_torbox(hash)
+    else:
+        push_and_select(hash)
+
+
+def remote_scan_discard_http_error(provider, status_code):
+    if provider == "torbox":
+        return status_code in (400, 409, 422)
+    return status_code in (403, 451)
+
+
+def remote_scan_post_hashes(provider):
+    if provider == "torbox":
+        data = tbdump_backup(including_backup = False, returning_data = True)
+    else:
+        data = rdump_backup(including_backup = False, returning_data = True)
+
+    if data is None:
+        return None
+
+    return [normalized_hash(item.get('hash')) for item in data if item.get('hash')]
+
         
 def remoteScan(stopEvent):
     global rs_working
     global fiveothree
-    # take data from remote RD account
+    # take data from remote JellyGrail pile
     # if no local data, take it (we have to compare later on)
 
-    # compare with rdump not pile
+    provider = remote_scan_target_provider()
+    if not provider or not remote_scan_provider_ready(provider):
+        return
+    provider_label = remote_scan_provider_label(provider)
+
+    # compare with target provider dump, not pile
     discarded_hashes = []
+    accepted_hashes = []
     # toimprove : add wait until select files is available (mitigated by regular retry)
 
     if REMOTE_RDUMP_BASE_LOCATION.startswith('http'):
@@ -282,7 +386,7 @@ def remoteScan(stopEvent):
 
         cur_key = read_data_from_file(REMOTE_PILE_KEY_FILE)
 
-        remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/app/getrdincrement/{cur_incr}"
+        remote_loc = f"{REMOTE_RDUMP_BASE_LOCATION}/app/getincrement/{cur_incr}"
 
         if stopEvent.is_set():
             rs_working = False
@@ -313,9 +417,9 @@ def remoteScan(stopEvent):
 
         if server_data:
             if server_data['hashes']:
-                logger.info(f" REMOTE-JG| Has new hashes that your local JG will now try to push starting with incr: {cur_incr}...")
+                logger.info(f" REMOTE-JG| Has new hashes that your local JG will now try to push to {provider} starting with incr: {cur_incr}...")
             else:
-                logger.info(f" REMOTE-JG| No new RD hashes, incr is still: {cur_incr}")
+                logger.info(f" REMOTE-JG| No new remote hashes, incr is still: {cur_incr}")
                 rs_working = False
                 return     
         else:
@@ -323,8 +427,8 @@ def remoteScan(stopEvent):
             rs_working = False
             return
         
-        if(local_data := rdump_backup(including_backup = False, returning_data = True)):
-            local_data_hashes = [iteml.get('hash') for iteml in local_data]
+        local_data_hashes = remote_scan_local_hashes(provider)
+        if local_data_hashes is not None:
 
             # base for incr is remote
             
@@ -332,52 +436,56 @@ def remoteScan(stopEvent):
                 if stopEvent.is_set():
                     rs_working = False
                     return
-                if remote_hash not in local_data_hashes:
+                remote_hash_key = normalized_hash(remote_hash)
+                if remote_hash_key not in local_data_hashes:
                     try:
-                        push_and_select(remote_hash)
+                        remote_scan_push(provider, remote_hash)
                     except requests.exceptions.HTTPError as http_err:
-                        if http_err.response.status_code in (403, 451):
-                            logger.warning(f"    RD-API| Hash {remote_hash} is not accepted by RD (403 or 451 error).")
+                        if remote_scan_discard_http_error(provider, http_err.response.status_code):
+                            logger.warning(f"    {provider_label}| Hash {remote_hash} is not accepted by {provider} ({http_err.response.status_code} error).")
 
-                            discarded_hashes.append(remote_hash)
+                            discarded_hashes.append(remote_hash_key)
                             #cur_incr += 1 # we can increment
                         elif http_err.response.status_code == 503: # service unavailable on some torrents ?, skip them
-                            logger.error(f"    RD-API| 503 error on this torrent, skipped, curincr is : {cur_incr}, remotehash : {remote_hash}, error details : {http_err}")
+                            logger.error(f"    {provider_label}| 503 error on this torrent, skipped, curincr is : {cur_incr}, remotehash : {remote_hash}, error details : {http_err}")
                             fiveothree += 1
-                            discarded_hashes.append(remote_hash)
+                            discarded_hashes.append(remote_hash_key)
                             if fiveothree > 10:
-                                logger.critical(f"    RD-API| 503 errors : More than 10 skipped push torrents")
+                                logger.critical(f"    {provider_label}| 503 errors : More than 10 skipped push torrents")
                         else:
                             # this is not OK : we don't increment further and stop the batch
-                            logger.error(f"    RD-API| JOB stopped: An HTTP Error has occured on pushing backup hash to RD (job stopped but resumed next time): {http_err}")
+                            logger.error(f"    {provider_label}| JOB stopped: An HTTP Error has occured on pushing remote hash to {provider} (job stopped but resumed next time): {http_err}")
                             break
                     except noFilesReturned as e:
-                        logger.warning(f"    RD-API| {remote_hash} hash imported from remote JG to your RD account, but without file selection")
+                        logger.warning(f"    {provider_label}| {remote_hash} hash imported from remote JG to your {provider} account, but without file selection")
                     except noIdReturned as e:
-                        logger.error(f"    RD-API| JOB stopped: {e} (job stopped but resumed next time)")
+                        logger.error(f"    {provider_label}| JOB stopped: {e} (job stopped but resumed next time)")
                         break # not ok
                     except Exception as e:
-                        logger.error(f"    RD-API| JOB stopped: An unknown Error has occured on pushing hash to RD (job stopped but resumed next time) Error is: {e}")
+                        logger.error(f"    {provider_label}| JOB stopped: An unknown Error has occured on pushing hash to {provider} (job stopped but resumed next time) Error is: {e}")
                         # is select files fails, it will be retried later
                         break
                     else:
                         # if no other excaption, seems fine
-                        logger.info(f"    RD-API| {remote_hash} hash imported from remote JG to your RD account")
+                        logger.info(f"    {provider_label}| {remote_hash} hash imported from remote JG to your {provider} account")
+                        if provider == "torbox":
+                            accepted_hashes.append(remote_hash_key)
                         #cur_incr += 1
 
 
             # whatever the batch progression we test the progress of new hashes beeing really pushed or not
-            if(post_local_data := rdump_backup(including_backup = False, returning_data = True)):
-                post_local_data_hashes = [iteml.get('hash') for iteml in post_local_data]
+            post_local_data_hashes = remote_scan_post_hashes(provider)
+            if post_local_data_hashes is not None:
                 for remote_hash in server_data['hashes']:
-                    if remote_hash in post_local_data_hashes or remote_hash in discarded_hashes:
+                    remote_hash_key = normalized_hash(remote_hash)
+                    if remote_hash_key in post_local_data_hashes or remote_hash_key in discarded_hashes or remote_hash_key in accepted_hashes:
                         cur_incr += 1
                     else:
                         break # chain is broken here, we stop incrmeenting
             else:
-                logger.critical(f"    RD-API| An error occurred on getting post-batch local RD data [remoteScan]")
+                logger.critical(f"    {provider_label}| An error occurred on getting post-batch local {provider} data [remoteScan]")
 
-            logger.info(f" REMOTE-JG| The current increment after batch is now: {cur_incr} (local) / {server_data.get('lastid')} (remote JG cinrement)")
+            logger.info(f" REMOTE-JG| The current increment after batch is now: {cur_incr} (local) / {server_data.get('lastid')} (remote JG increment)")
             if cur_incr < server_data.get('lastid'):
                 logger.warning(" REMOTE-JG| So local incr. inferior to remote incr. Will be completed on next call ...")
 
@@ -388,7 +496,7 @@ def remoteScan(stopEvent):
 
 
         else:
-            logger.critical(f"    RD-API| An error occurred on getting local RD data [remoteScan]")
+            logger.critical(f"    {provider_label}| An error occurred on getting local {provider} data [remoteScan]")
 
         rs_working = False
 
@@ -436,8 +544,9 @@ def rd_progress():
 
         if (os.path.exists(PILE_FILE)):
             _, cur_pile = file_to_array(PILE_FILE)
+            cur_pile_hashes = {normalized_hash(item) for item in cur_pile}
             if len(dled_rd_hashes) > 0:
-                delta_elements = [item for item in dled_rd_hashes if item not in cur_pile] #ensure not in cur pile
+                delta_elements = [item for item in dled_rd_hashes if normalized_hash(item) not in cur_pile_hashes] #ensure not in cur pile
 
                 delta_elements = list(dict.fromkeys(reversed(delta_elements))) # ensure : reversed, , then unniqueness applies, then converted back to an array (after having ensure dled status and not in cur pile)
 
@@ -483,7 +592,7 @@ def restoreList():
 
 
         
-def getrdincrement(incr):
+def getincrement(incr):
     if (os.path.exists(PILE_FILE)):
         # gets full array 
         pile_key, cur_pile = file_to_array(PILE_FILE)
@@ -491,15 +600,19 @@ def getrdincrement(incr):
         # return dict object, not dumped json
         return {'hashes': cur_pile[incr:], 'lastid': len(cur_pile), 'pilekey': int(pile_key)}
     else:
-        rd_progress()
+        providers_progress()
         # it forces this sever to call rd_progress at least once
         # service_rdprog_instance = ScriptRunner.get(rd_progress)
         # service_rdprog_instance.run()
         # if(service_rdprog_instance.get_output() != 'phony'):
             # logger.info("periodic trigger is working")
             # we are forced to consume output from this funciton to avoid disjoined calls to output queue
-            # logger.warning(f"> force rd_progress (should happen once) [getrdincrement]")
+            # logger.warning(f"> force rd_progress (should happen once) [getincrement]")
         return {}
+
+
+def getrdincrement(incr):
+    return getincrement(incr)
 
 # now only overwrite current dump if done more than 4 hours ago or backup is requested
 def rdump_backup(including_backup = True, returning_data = False):
@@ -569,6 +682,127 @@ def rdump_backup(including_backup = True, returning_data = False):
             logger.critical(f"    RD-API| RD API workaround did not work, error is: {e}")
 
     return None
+
+
+def torbox_api_get(path, params=None):
+    if not TORBOX_API_SET:
+        logger.warning("    TB-API| TorBox API key not set, verify TORBOX_APITOKEN in settings.env and restart container")
+        return None
+
+    response = requests.get(
+        TORBOX_API_BASE_URL + path,
+        headers={"Authorization": f"Bearer {TORBOX_APITOKEN}"},
+        params=params or {},
+        timeout=20
+    )
+    response.raise_for_status()
+
+    payload = response.json()
+    if isinstance(payload, dict) and payload.get("success") is False:
+        raise RuntimeError(f"TorBox API error {payload.get('error')}: {payload.get('detail')}")
+
+    return payload.get("data", payload) if isinstance(payload, dict) else payload
+
+
+def torbox_item_downloaded(item):
+    return bool(item.get("download_present"))
+
+def tb_progress():
+    data = tbdump_backup(including_backup = False, returning_data = True)
+    if data is not None:
+        dled_tb_hashes = [
+            data_item.get("hash")
+            for data_item in data
+            if data_item.get("hash") and torbox_item_downloaded(data_item)
+        ]
+
+        if os.path.exists(PILE_FILE):
+            _, cur_pile = file_to_array(PILE_FILE)
+            cur_pile_hashes = {normalized_hash(item) for item in cur_pile}
+            if len(dled_tb_hashes) > 0:
+                delta_elements = [item for item in dled_tb_hashes if normalized_hash(item) not in cur_pile_hashes]
+                delta_elements = list(dict.fromkeys(reversed(delta_elements)))
+
+                array_to_file(PILE_FILE, delta_elements)
+
+                if len(delta_elements) > 0:
+                    logger.info("    TB-API| New downloaded torrent(s) >> Refresh triggered or queued")
+                    return "PLEASE_SCAN"
+                else:
+                    logger.debug("    TB-API| NO new downloaded torrent(s). No trigger.")
+                    return ""
+            else:
+                logger.warning("    TB-API| Zero downloaded torrent (normal if you just started using it)")
+                return ""
+
+        else:
+            array_to_file(PILE_FILE, dled_tb_hashes, initialize_with_unique_key=True)
+            return "PLEASE_SCAN"
+    else:
+        logger.critical("    TB-API| An error occurred on getting local TorBox data")
+        return ""
+
+
+def providers_progress():
+    rd_progress_result = rd_progress() if RD_API_SET else ""
+    tb_progress_result = tb_progress() if TORBOX_API_SET else ""
+    if rd_progress_result == "PLEASE_SCAN" or tb_progress_result == "PLEASE_SCAN":
+        return "PLEASE_SCAN"
+    return ""
+
+
+def tbdump_backup(including_backup = True, returning_data = False):
+    global lasttbdump
+
+    stopthere = False
+
+    try:
+        limit = 1000
+        offset = 0
+        data = []
+
+        while True:
+            idata = torbox_api_get("/torrents/mylist", {
+                "limit": limit,
+                "offset": offset,
+                "bypass_cache": "true",
+            })
+
+            if not isinstance(idata, list):
+                raise RuntimeError(f"TorBox API returned unexpected mylist payload: {type(idata).__name__}")
+
+            data += idata
+            if len(idata) < limit:
+                break
+            offset += limit
+
+    except requests.exceptions.HTTPError as http_err:
+        logger.error(f"    TB-API| Getting current TorBox status failed for HTTP reason! Error is: {http_err}")
+
+    except json.JSONDecodeError as json_err:
+        logger.error(f"    TB-API| Getting current TorBox status failed for JSON parsing reason! Error is: {json_err}")
+
+    except Exception as e:
+        logger.error(f"    TB-API| Getting current TorBox status failed for another reason than HTTP protocol error! Error is: {e}")
+
+    else:
+        if not os.path.exists(TBDUMP_FILE) or (time.time() - lasttbdump) > RDUMP_STORE_INTERVAL or including_backup:
+            lasttbdump = time.time()
+            with open(TBDUMP_FILE, 'w') as f:
+                json.dump(data, f)
+
+        if including_backup:
+            if os.path.exists(TBDUMP_FILE):
+                os.makedirs(RDUMP_BACKUP_FOLDER, exist_ok=True)
+                today = datetime.now()
+                file_backuped = "/tb_dump_"+today.strftime("%Y%m%d")+".json"
+                subprocess.call(['cp', TBDUMP_FILE, RDUMP_BACKUP_FOLDER+file_backuped])
+
+        if returning_data:
+            return data
+
+    return None
+
 
 def read_data_from_file(filepath):
     try:

@@ -59,10 +59,13 @@ def play_splash():
         print(f"|  - Kodi NFO Sync:                  {'Enabled' if JF_WANTED else 'Disabled, do not use Kodi NFO scrapper'}")                       
     if USE_REMOTE_RDUMP_ACTUALLY:
         print(f"|  - Remote JG WS URL:               {REMOTE_RDUMP_BASE_LOCATION}")
+        print(f"|  - Remote JG target provider:      {REMOTE_SCAN_TARGET_PROVIDER}")
     if USE_REMOTE_WED_DAV_ACTUALLY:
         print(f"|  - Remote JG WebDAV URL:           {REMOTE_WED_DAV_LOCATION}")
     if RD_API_SET:
         print(f"|  - Real-Debrid API:                Enabled (token set)")
+    if TORBOX_API_SET:
+        print(f"|  - TorBox API:                     Enabled (token set)")
     if USE_PLEX_ACTUALLY:
         print(f"|  - Plex refresh URL(s): {', '.join(PLEX_URLS_ARRAY)}")
     else:

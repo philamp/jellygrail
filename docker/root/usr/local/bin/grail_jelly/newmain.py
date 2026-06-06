@@ -111,12 +111,16 @@ async def homepage(request):
 
     if USE_REMOTE_RDUMP_ACTUALLY:
         items.append(f"Remote JG WS URL: {escape(REMOTE_RDUMP_BASE_LOCATION)}")
+        items.append(f"Remote JG target provider: {escape(REMOTE_SCAN_TARGET_PROVIDER)}")
 
     if USE_REMOTE_WED_DAV_ACTUALLY:
         items.append(f"Remote JG WebDAV URL: {escape(REMOTE_WED_DAV_LOCATION)}")
 
     if RD_API_SET:
         items.append("Real-Debrid API: Enabled (token set)")
+
+    if TORBOX_API_SET:
+        items.append("TorBox API: Enabled (token set)")
 
     if USE_PLEX_ACTUALLY:
         items.append(f"Plex refresh URL(s): {escape(', '.join(PLEX_URLS_ARRAY))}")
@@ -252,13 +256,12 @@ async def rd_test_api(request):
     result = await asyncio.get_running_loop().run_in_executor(None, jg_services.test)
     return HTMLResponse(result)
 
-async def rdIncrRoute(request):
+async def incrementRoute(request):
     arg = request.path_params["arg"]
-    if not (result := await asyncio.get_running_loop().run_in_executor(None, jg_services.getrdincrement, arg)):
+    if not (result := await asyncio.get_running_loop().run_in_executor(None, jg_services.getincrement, arg)):
         return JSONResponse({"status": 503}, status_code=503)
     #else
     return JSONResponse(result, status_code=200)
-
 
 
 async def getContextMenu(request):
@@ -481,7 +484,7 @@ api_routes = tokenize(
 # no / route here to let the user put a proxy in front of this and the webdav server # TODO remove bypass below to enable
 app = Starlette(
     routes=[
-            Route("/getrdincrement/{arg:int}", rdIncrRoute),
+            Route("/getincrement/{arg:int}", incrementRoute),
             Route("/status", homepage)
         ]
 )
@@ -493,7 +496,7 @@ app.mount("/app", Router(
         Route("/testallevents", all_events_ask),
         Route("/ask_jf_refresh", ask_jf_refresh),
         Route("/test", rd_test_api),
-        Route("/getrdincrement/{arg:int}", rdIncrRoute),
+        Route("/getincrement/{arg:int}", incrementRoute),
         Route("/set_verbose_log", setVerboseLogRoute)
     ]
 ))
@@ -621,7 +624,7 @@ def plexScanWrapper(ctx, stop):
 
 def trigger_rd_progress(ctx, stop):
     wfid = JobManager.get_new_wfid()
-    if jg_services.rd_progress() == "PLEASE_SCAN" or wfid == "wf1":
+    if jg_services.providers_progress() == "PLEASE_SCAN" or wfid == "wf1":
         JobManager.trigger("jgScanJob", wfid, ctx={"wfid": wfid, "later": False}) # the first job of the WF marks the wfid
 
 
