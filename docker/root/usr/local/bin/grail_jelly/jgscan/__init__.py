@@ -9,7 +9,7 @@ from jgscan.rarreading import scan_rar_stored_files
 
 #import requests
 from jgscan.arena import *
-import PTN
+from guessit import guessit
 #logger = logging.getLogger('jellygrail')
 
 from base.constants import *
@@ -31,6 +31,39 @@ pointNamesAndType = []
 pointNamesAndTypeLI = []
 
 items_scanned = 0
+
+
+def _first_guessit_value(value):
+    if isinstance(value, (list, tuple)):
+        return value[0] if value else None
+    return value
+
+
+def _guessit(name, options=None):
+    try:
+        return guessit(name, options or {})
+    except Exception as exc:
+        logger.warning(f"      SCAN| guessit failed on {name}: {exc}")
+        return {}
+
+
+def _guessit_movie_title_year(name):
+    guess = _guessit(name, {'type': 'movie'})
+    title = _first_guessit_value(guess.get('title')) or get_wo_ext(os.path.basename(name))
+    year = _first_guessit_value(guess.get('year'))
+    return title, year
+
+
+def _guessit_episode(name):
+    guess = _guessit(name, {'type': 'episode'})
+    title = _first_guessit_value(guess.get('title'))
+    episode = _first_guessit_value(guess.get('episode'))
+
+    if not title or episode is None:
+        return None
+
+    season = _first_guessit_value(guess.get('season')) or 1
+    return title, str(season).zfill(2), str(episode).zfill(2)
 
 
 def get_fastpass_ffprobe(file_path):
@@ -112,62 +145,42 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                 # S case with itegrated similar show/season/episode fetch (at file loop level):
                 if filename.lower().endswith(ALLOWED_EXTENSIONS):
-                    regexp_base = None
-                    if re.search(r's\d{1,2}\.?e\d{1,2}|\b\d{1,2}x\d{1,2}\b|s\d{1,2}\.\d{1,2}|[ .]e\d{1,2}', filename, re.IGNORECASE):
-                        regexp_base = get_wo_ext(filename)
-                    elif filename.lower().endswith(SUB_EXTS):
+                    parsed_episode = _guessit_episode(get_wo_ext(filename))
+                    if not parsed_episode and filename.lower().endswith(SUB_EXTS):
                         parent_srt_folder = os.path.basename(root)
                         #logger.info(f"----- releasefolder = {releasefolder} and parent_srt_folder = {parent_srt_folder}")
                         if (parent_srt_folder != releasefolder):
-                            if re.search(r's\d{1,2}\.?e\d{1,2}|\b\d{1,2}x\d{1,2}\b|s\d{1,2}\.\d{1,2}|[ .]e\d{1,2}', parent_srt_folder, re.IGNORECASE):
-                                regexp_base = parent_srt_folder
+                            parsed_episode = _guessit_episode(parent_srt_folder)
                     
 
                         
-                    if regexp_base:
+                    if parsed_episode:
                         season_present = True
                         # it's an episode file or sub
 
                         # if is a sub file that does not match a regexp but parent is, integrate it as well #TODO (see Subs subfolder in tvshow plain)
 
-                        match = re.search(r'(.+?)\s*((?:s\d{1,2}\.?e\d{1,2})|(?:\b\d{1,2}x\d{1,2}\b)|(?:s\d{1,2}\.\d{1,2})|(?:[ .]e\d{1,2}))\s*(.*?)', regexp_base, re.IGNORECASE)
-                        if match:
-                            #logger.info(f"")
-                            show, season_episode, episode_title = match.groups()
-                            #logger.info(f"show is : {show}")
-                            #logger.info(f"seaonsepisoide is : {season_episode}")
-                            if 'x' in season_episode.lower():  # it's the 02x03 format
-                                season, episode_num = map(str, season_episode.split('x'))
-                            elif not 'e' in season_episode.lower() : # it's the S02.03 format
-                                season_episode_match = re.search(r's(\d+)\.(\d+)', season_episode, re.IGNORECASE)
-                                season, episode_num = season_episode_match.groups()
-                            elif 's' in season_episode.lower():  # it's the S02E03 format
-                                season_episode_match = re.search(r's(\d+)\.?e(\d+)', season_episode, re.IGNORECASE)
-                                season, episode_num = season_episode_match.groups()
-                            else:
-                                season = "01"
-                                season_episode_match = re.search(r'[ .]e(\d+)', season_episode, re.IGNORECASE)
-                                (episode_num,) = season_episode_match.groups()
+                        #logger.info(f"")
+                        show, season, episode_num = parsed_episode
+                        #logger.info(f"show is : {show}")
+                        #logger.info(f"seaonsepisoide is : S{season}E{episode_num}")
+                        
+                        if lang_in_release_string == "NOLANGFOUNDYET": # do it once
+                            lang_in_release_string = find_language_in_string(releasefolder)
 
-                            season = season.zfill(2)
-                            episode_num = episode_num.zfill(2)
-                            
-                            if lang_in_release_string == "NOLANGFOUNDYET": # do it once
-                                lang_in_release_string = find_language_in_string(releasefolder)
+                        show = clean_string(show) + lang_in_release_string
 
-                            show = clean_string(show) + lang_in_release_string
+                        if previous_show_folder != show: # dont find most similar on every file, if it's same as previous file, don't bother redoing it
+                            previous_show_folder = show
+                            (show, will_idx_check) = show_find_most_similar(show, jgScan.present_virtual_folders_shows)
+                            previous_found_folder = show
+                        else:
+                            show = previous_found_folder
 
-                            if previous_show_folder != show: # dont find most similar on every file, if it's same as previous file, don't bother redoing it
-                                previous_show_folder = show
-                                (show, will_idx_check) = show_find_most_similar(show, jgScan.present_virtual_folders_shows)
-                                previous_found_folder = show
-                            else:
-                                show = previous_found_folder
-
-                            dive_s_.setdefault(show, {}).setdefault(season, {}).setdefault(episode_num, {'rootfilenames': [], 'mediatype_s' : None, 'premetas': '', 'ffprobed': None})
-                            dive_s_[show][season][episode_num]['rootfilenames'].append(os.path.join(root, filename)) # all files are here if filename or parent folder respect regexp....
-                            #dive_s_[show].setdefault('finalname', show + find_language_in_string(releasefolder)) # called once
-                            '''
+                        dive_s_.setdefault(show, {}).setdefault(season, {}).setdefault(episode_num, {'rootfilenames': [], 'mediatype_s' : None, 'premetas': '', 'ffprobed': None})
+                        dive_s_[show][season][episode_num]['rootfilenames'].append(os.path.join(root, filename)) # all files are here if filename or parent folder respect regexp....
+                        #dive_s_[show].setdefault('finalname', show + find_language_in_string(releasefolder)) # called once
+                        '''
                             # clean catpured data
                             show = clean_string(show)
 
@@ -423,10 +436,10 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         idxdup = 1
                         metas = episodeattribs['premetas']
                         if (will_idx_check):
-                        # LS the sim folder with no ext files (because we loop check at filename level, we want to list video only and not subs)
+                            # LS the sim folder with no ext files (because we loop check at filename level, we want to list video only and not subs)
                             ls_virtual_folder_a = []
                             threadDB.sqbegin()
-                            for itemv in threadDB.ls_virtual_folder("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"):
+                            for itemv in threadDB.ls_virtual_folder("/shows/"+keyshow+"/Season "+seasonkey):
                                 if os.path.basename(itemv[0]).lower().endswith(VIDEO_EXTENSIONS):
                                     ls_virtual_folder_a.append(get_wo_ext(os.path.basename(itemv[0])))
 
@@ -456,17 +469,16 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         # S FOLDERS INSERT 
                         threadDB.insert_data("/shows/"+keyshow, None, None, None, episodeattribs['mediatype_s'])
                         threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey, None, None, None, episodeattribs['mediatype_s'], None, 0)
-                        threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}", None, None, None, episodeattribs['mediatype_s'])
                         # S FILES INSERT
-                        threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}"+"/"+f"{keyshow} S{seasonkey}E{episodekey}{metas}{filename_ext}", rootfilename, release_folder_path, rd_cache_item, episodeattribs['mediatype_s'], ffprobed)
+                        threadDB.insert_data("/shows/"+keyshow+"/Season "+seasonkey+"/"+f"{keyshow} S{seasonkey}E{episodekey}{metas}{filename_ext}", rootfilename, release_folder_path, rd_cache_item, episodeattribs['mediatype_s'], ffprobed)
 
     if not season_present and not stopthere:
         
         if not (multiple_movie_or_disc_present):
             # A - prepare parse for single movie release
-            release_parse = PTN.parse(releasefolder)
+            (movie_title, movie_year) = _guessit_movie_title_year(releasefolder)
             # GENERIC META FOR Esingle case
-            title_year = clean_string(f"{release_parse['title']}{ytpl(release_parse.get('year'))}")
+            title_year = clean_string(f"{movie_title}{ytpl(movie_year)}")
             # ... fuzzy mathing to merge with similar releases
             result = find_most_similar(title_year, jgScan.present_virtual_folders)
 
@@ -514,9 +526,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                 ffprobed = item['ffprobed']
                 if not item['as_if_vroot'].endswith('extras') and dive_e_['mediatype'] != "_bdmv" and rootfilename.lower().endswith(VIDEO_EXTENSIONS):
-                    jgxmultiple_parse_res = PTN.parse(get_wo_ext(os.path.basename(rootfilename)))
+                    (movie_title, movie_year) = _guessit_movie_title_year(get_wo_ext(os.path.basename(rootfilename)))
                     # GENERIC META FOR EF case (new!)
-                    jgxmultiple_parse = clean_string(f"{jgxmultiple_parse_res['title']}{ytpl(jgxmultiple_parse_res.get('year'))}")+item['premetas']
+                    jgxmultiple_parse = clean_string(f"{movie_title}{ytpl(movie_year)}")+item['premetas']
 
                     for existing_file in jgxmultiple_parses:
                         if jgxmultiple_parse+str(idxdupmovset) in jgxmultiple_parses:
@@ -817,13 +829,13 @@ def scanThread(pnt, present_folders, stopEvent):
                     #file not in a release folder
 
                     # A - prepare parse for single movie release
-                    release_parse = PTN.parse(f.name)
+                    (movie_title, movie_year) = _guessit_movie_title_year(f.name)
 
                     # compute ext
                     filename_ext = get_ext(os.path.basename(f.path))
 
                     # GENERIC META FOR Esingle case
-                    title_year = clean_string(f"{release_parse['title']}{ytpl(release_parse.get('year'))}")
+                    title_year = clean_string(f"{movie_title}{ytpl(movie_year)}")
 
                     if f.name.lower().endswith(VIDEO_EXTENSIONS):
                         result = find_most_similar(title_year, jgScan.present_virtual_folders)
@@ -1005,13 +1017,13 @@ def scan():
                     #file not in a release folder
 
                     # A - prepare parse for single movie release
-                    release_parse = PTN.parse(f.name)
+                    (movie_title, movie_year) = _guessit_movie_title_year(f.name)
 
                     # compute ext
                     filename_ext = get_ext(os.path.basename(f.path))
 
                     # GENERIC META FOR Esingle case
-                    title_year = clean_string(f"{release_parse['title']}{ytpl(release_parse.get('year'))}")
+                    title_year = clean_string(f"{movie_title}{ytpl(movie_year)}")
 
                     if f.name.lower().endswith(VIDEO_EXTENSIONS):
                         result = find_most_similar(title_year, present_virtual_folders)
@@ -1092,4 +1104,3 @@ def scan():
     # Close the connection
     #sqclose()
 '''
-

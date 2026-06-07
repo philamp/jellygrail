@@ -1,6 +1,6 @@
 pycountry<27.0
 requests<3.0
-parse-torrent-title<3.0
+guessit<4.0
 thefuzz<1.0
 colorlog<7.0
 python-dotenv<2.0
