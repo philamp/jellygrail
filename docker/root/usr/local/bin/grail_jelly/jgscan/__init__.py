@@ -343,7 +343,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                 # S+E remaining mess
                 else:
                     # S+E all other files cache-heat
-                    if rar_item == None and storetype == 'remote':
+                    if rar_item == None and storetype == 'remote' and not filename.lower().endswith(('.jpg', '.jpeg', '.png', '.nfo', '.txt')):
                     # cache-heater 2 for all other files in S and E when in remote + when no rar_item (as unrar has already cache-heated those files)
                         if not read_file_with_timeout(os.path.join(root, filename)):
                             logger.error(f" - FAILURE_direct_read: IO or timeout on file: {os.path.join(root, filename)}")
