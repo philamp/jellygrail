@@ -89,7 +89,7 @@ sudo docker buildx build -t philamp/jellygrail --load .
 Run the config wizard:
 ````
 cd ..
-sudo chmod +x jf-config.sh _MOUNT.SH
+sudo chmod +x jg-config.sh _MOUNT.SH
 ./jg-config.sh
 ````
 
@@ -102,7 +102,6 @@ Launch your adapted variant of this docker run command, still inside the root fo
 
 ````
 sudo docker run -d \
---privileged \                                                # If caching ISOs is needed (it uses kernel moounting capabilities)
 --security-opt apparmor=unconfined \                          # mandatory for fuse
 --cap-add SYS_ADMIN \                                         # mandatory for fuse
 --device /dev/fuse \                                          # mandatory for fuse
