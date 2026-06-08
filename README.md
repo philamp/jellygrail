@@ -89,7 +89,7 @@ sudo docker buildx build -t philamp/jellygrail --load .
 Run the config wizard:
 ````
 cd ..
-sudo chmod +x jf-config.sh _MOUNT.SH
+sudo chmod +x jg-config.sh _MOUNT.SH
 ./jg-config.sh
 ````
 
