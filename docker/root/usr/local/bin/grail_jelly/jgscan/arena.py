@@ -244,7 +244,13 @@ def parse_ffprobe(stdout, filepathnotice):
 
     return (f"{bitratetpl}{alang_tpl}{slang_tpl}{resolutiontpl}{hdrtpl}{codectpl}{audiotpla}{audiotplb}", _dvprofile)
 
-def find_most_similar(input_str, string_list):
+def find_most_similar(input_str, string_list, strict_year=None):
+    if strict_year is not None:
+        year_suffix = f" ({strict_year})"
+        string_list = [item for item in string_list if str(item).endswith(year_suffix)]
+        if not string_list:
+            return None
+
     # This returns the best match, its score and index
     best_match = process.extractOne(input_str, string_list)
     return best_match

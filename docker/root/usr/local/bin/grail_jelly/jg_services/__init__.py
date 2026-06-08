@@ -707,13 +707,23 @@ def torbox_api_get(path, params=None):
 def torbox_item_downloaded(item):
     return bool(item.get("download_present"))
 
+
+def torbox_file_is_pile_video(file_item):
+    filename = str(file_item.get("absolute_path") or "")
+    return filename.lower().endswith(VIDEO_EXTENSIONS)
+
+
+def torbox_item_has_pile_video(item):
+    return any(torbox_file_is_pile_video(file_item) for file_item in item.get("files", []))
+
+
 def tb_progress():
     data = tbdump_backup(including_backup = False, returning_data = True)
     if data is not None:
         dled_tb_hashes = [
             data_item.get("hash")
             for data_item in data
-            if data_item.get("hash") and torbox_item_downloaded(data_item)
+            if data_item.get("hash") and torbox_item_downloaded(data_item) and torbox_item_has_pile_video(data_item)
         ]
 
         if os.path.exists(PILE_FILE):

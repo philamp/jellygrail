@@ -480,7 +480,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
             # GENERIC META FOR Esingle case
             title_year = clean_string(f"{movie_title}{ytpl(movie_year)}")
             # ... fuzzy mathing to merge with similar releases
-            result = find_most_similar(title_year, jgScan.present_virtual_folders)
+            result = find_most_similar(title_year, jgScan.present_virtual_folders, movie_year)
 
             will_idx_check = False
             if result is not None:
@@ -838,7 +838,7 @@ def scanThread(pnt, present_folders, stopEvent):
                     title_year = clean_string(f"{movie_title}{ytpl(movie_year)}")
 
                     if f.name.lower().endswith(VIDEO_EXTENSIONS):
-                        result = find_most_similar(title_year, jgScan.present_virtual_folders)
+                        result = find_most_similar(title_year, jgScan.present_virtual_folders, movie_year)
 
                         will_idx_check = False
                         if result is not None:
@@ -1026,7 +1026,7 @@ def scan():
                     title_year = clean_string(f"{movie_title}{ytpl(movie_year)}")
 
                     if f.name.lower().endswith(VIDEO_EXTENSIONS):
-                        result = find_most_similar(title_year, present_virtual_folders)
+                        result = find_most_similar(title_year, present_virtual_folders, movie_year)
 
                         will_idx_check = False
                         if result is not None:
