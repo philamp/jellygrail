@@ -29,7 +29,7 @@ def play_config_check():
 def play_splash():
 
     print( """
-""" + YELLOW + " ________________________ github.com/philamp/" + f"""
+""" + YELLOW + " ________________________ github.com/philamp/" + rf"""
 |
 |       ___     _ _        ____          _ _
 |      |_  |___| | |_   _ / __/ _ ____ _(_) |

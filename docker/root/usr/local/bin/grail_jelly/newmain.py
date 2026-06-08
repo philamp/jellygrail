@@ -129,7 +129,7 @@ async def homepage(request):
 
     list_html = "".join(f"<li>{item}</li>" for item in items)
 
-    html = f"""<!DOCTYPE html>
+    html = rf"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
