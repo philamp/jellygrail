@@ -102,7 +102,6 @@ Launch your adapted variant of this docker run command, still inside the root fo
 
 ````
 sudo docker run -d \
---privileged \                                                # If caching ISOs is needed (it uses kernel moounting capabilities)
 --security-opt apparmor=unconfined \                          # mandatory for fuse
 --cap-add SYS_ADMIN \                                         # mandatory for fuse
 --device /dev/fuse \                                          # mandatory for fuse
