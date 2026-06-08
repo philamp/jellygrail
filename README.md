@@ -48,20 +48,6 @@
   - Basic WebDAV server.
 
 
-| Feature                              | JellyGrail | Decypharr | Zurg |
-|--------------------------------------|------------|-----------|------|
-| On-the-fly RAR access           | ✅         | ❌        | ❌   |
-| Persistent RAR/ISO structure cache           | ✅         | ❌        | ❌   |
-| Write fallback (subtitles)   | ✅         | ❌        | ❌   |
-| Included Jellyfin + Kodi library sync (native mode)           | ✅         | ❌        | ❌   |
-| Kodi add-on (exclusive features)           | ✅         | ❌        | ❌   |
-| ffprobe proxy (reduced reads)        | ✅         | ❌        | ❌   |
-| Remote + local seamless merge        | ✅         | ❌        | ❌   |
-| Multi debrid provider support               | ⚠️ via WebDAV rclone mount | ✅ | ❌ |
-| Works with any rclone compatible cloud service               | ✅ | ❌ | ❌ |
-| Included Qbittorrent compatible client | ⚠️ external | ✅ | ❌ |
-
-
 ## Prerequisites
 
 - ARM64 or x86_64 Linux system 🐧 with Bash shell.
