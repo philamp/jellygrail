@@ -37,7 +37,7 @@ def play_splash():
      / |_|   __/ |   |_|   |_| | |  (_| | | |    |
      \____/\___,_,_|\__, /\____,_| \__,_,_,_|    |
                      |__/                        |
-                                      {VERSION}    |
+                                      {VERSION}     |
  {CYAN}____________________{YELLOW}___{CYAN}___{YELLOW}______________________|""" + CYAN)
 
 
@@ -52,7 +52,7 @@ def play_splash():
         print(f"|  - Jellyfin:                       Disabled")
     print(f"|  - WebDAV serving JGFS:            http://{WEBDAV_HOST_PORT} (no auth, local access only! see README! don't expose it!)")
     print(f"|  - WebDAV serving local content:   http://{WEBDAV_REMOTE_HOST_PORT} (no auth, local access only! see README! don't expose it!)")
-    print(f"|  - JellyGrail WebService:          http://{LAN_IP}:{WEBSERVICE_INTERNAL_PORT} (no auth, local access only! see README! don't expose it!)")
+    print(f"|  - JellyGrail WebService:          http://{LAN_IP}:{WEBSERVICE_PUBLIC_PORT} (no auth, local access only! see README! don't expose it!)")
     print(f"|  - Multicast auto-discovery port:  {SSDP_PORT}")
     print(f"|  - MySQL Port:                     {KODI_MYSQL_CONFIG.get('port', 0)}")
     if USE_KODI_ACTUALLY:

@@ -63,7 +63,7 @@
 > [!CAUTION]
 > - I'm not responsible of any data loss / I'm not responsible of any illegal use / Use at your own risks.
 > - This solution does not include any torrent indexer search. 
-> - Do not open ports 8085, 8089 and 6502 to the internet.
+> - Do not open ports 8385 and 8389 to the internet.
 > - ⚠️⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s)⚠️⚠️.
 > - Jellygrail is still experimental/BETA : you should not submit any issues to the XBMC team (Kodi backend emulation disrupts the way Kodi works by modifying the database directly !).
 
@@ -131,7 +131,7 @@ philamp/jellygrail:latest
 
 > [!TIP]
 > - run `sudo docker logs -f jellygrail` to monitor the console output.
-> - Check http://your-server-ip:6502/status.
+> - Check http://your-server-ip:8085/status.
 
 ### Put your custom rclone.conf file
 Real-Debrid support is included, but if you have another rclone compatible cloud storage you can add it this way:
@@ -247,7 +247,7 @@ sudo docker logs -f jellygrail
 ### Python service HTTP test
 
 ````
-Browse to http://localhost:6502/status
+Browse to http://localhost:8085/status
 ````
 
 ## Performance

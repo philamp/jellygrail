@@ -108,7 +108,7 @@ if [ "$JF_WANTED" = "n" ]; then
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
 fi
 
-if [ "$REMOTE_WEB_DAV_LOCATION" != "http://hostname-or-ip:8089" ] && [ "$REMOTE_WEB_DAV_LOCATION" != "" ] ; then
+if [ "$REMOTE_WEB_DAV_LOCATION" != "http://hostname-or-ip:8385" ] && [ "$REMOTE_WEB_DAV_LOCATION" != "" ] ; then
   # Copy the example configuration file to the new configuration file
   mkdir -p "/mounts/remote_webdav"
   cp -f "/bash_templates/mounts/remote_webdav/rclone.conf.example" "/mounts/remote_webdav/rclone.conf"
@@ -135,16 +135,21 @@ fi
 # - Webdav conf according to settings.env
 # Webdav port 8085 is default
 if [ "$WEBDAV_INTERNAL_PORT" = "" ] ; then
-  WEBDAV_INTERNAL_PORT="8085"
+  WEBDAV_INTERNAL_PORT="8385"
 fi
 
 if [ "$WEBDAV_REMOTE_INTERNAL_PORT" = "" ] ; then
-  WEBDAV_REMOTE_INTERNAL_PORT="8089"
+  WEBDAV_REMOTE_INTERNAL_PORT="8389"
+fi
+
+if [ "$WEBSERVICE_INTERNAL_PORT" = "" ] ; then
+  WEBSERVICE_INTERNAL_PORT="16685"
 fi
 
 cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
 sed -i "s/#WDP#/$WEBDAV_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
 sed -i "s/#REMOTEWDP#/$WEBDAV_REMOTE_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
+sed -i "s/#WSP#/$WEBSERVICE_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
 
 # - JellyGrail services install
 for dir_path in /mounts/*; do

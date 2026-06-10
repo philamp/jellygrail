@@ -3,7 +3,7 @@ from base import *
 from base.constants import *
 import requests
 from jg_services.jelly_rdapi import RDE
-from datetime import datetime
+from datetime import datetime, timezone
 import threading
 import time
 RD = None
@@ -19,9 +19,7 @@ lasttbdump = 0
 fiveothree = 0
 
 ptl = "0"
-
-# rd remote location:
-#REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION')
+tbptl = "0"
 
 # now hardcoded:
 DEFAULT_INCR = 0
@@ -30,6 +28,10 @@ TORBOX_API_BASE_URL = "https://api.torbox.app/v1/api"
 TORBOX_API_PACER_INTERVAL = 0.250
 torbox_api_pacer_lock = threading.Lock()
 torbox_api_last_call = 0.0
+
+def get_tb_premium_time_left():
+    global tbptl
+    return tbptl
 
 def get_premium_time_left():
     global ptl
@@ -49,7 +51,33 @@ def premium_timeleft():
         return 0
     else:
         ptl = str(expseconds/86400)[:4]
-        return expseconds
+        return max(0, expseconds)
+
+
+def torboxgetpremiumtimeleft():
+    global tbptl
+    try:
+        udata = torbox_api_get("/user/me", {"settings": "false"})
+        if not isinstance(udata, dict):
+            raise RuntimeError(f"Unexpected user payload: {type(udata).__name__}")
+
+        premium_expires_at = udata.get("premium_expires_at")
+        if not premium_expires_at:
+            return 0
+
+        expires_at = datetime.fromisoformat(premium_expires_at.replace("Z", "+00:00"))
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        expseconds = int((expires_at - datetime.now(timezone.utc)).total_seconds())
+
+        tbptl = str(expseconds/86400)[:4]
+
+        return max(0, expseconds)
+
+    except Exception as e:
+        logger.error(f"    TB-API| Error accessing TorBox premium expiration: {e}")
+        return 0
 
 
 def test():
@@ -641,9 +669,6 @@ def getincrement(incr):
             # logger.warning(f"> force rd_progress (should happen once) [getincrement]")
         return {}
 
-
-def getrdincrement(incr):
-    return getincrement(incr)
 
 # now only overwrite current dump if done more than 4 hours ago or backup is requested
 def rdump_backup(including_backup = True, returning_data = False):

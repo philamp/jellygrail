@@ -99,7 +99,7 @@ async def homepage(request):
             f"Jellyfin host: http://{escape(LAN_IP)}:8096 (login: {escape(os.getenv('JF_LOGIN') or 'admin')})",
             f"Nginx WebDAV server for local: http://{escape(str(WEBDAV_HOST_PORT))} (no auth, local access only)",
             f"Nginx WebDAV server as remote: http://{escape(str(WEBDAV_REMOTE_HOST_PORT))} (no auth, local access only)",
-            f"JellyGrail WebService: http://{escape(LAN_IP)}:{escape(str(WEBSERVICE_INTERNAL_PORT))} (no auth, local access only)",
+            f"JellyGrail WebService: http://{escape(LAN_IP)}:{escape(str(WEBSERVICE_PUBLIC_PORT))} (no auth, local access only)",
             f"SSDP Multicast port: {escape(str(SSDP_PORT))}",
             f"MySQL port: {escape(str(KODI_MYSQL_CONFIG.get('port', 0)))}",
         ])
@@ -293,6 +293,7 @@ async def getContextMenu(request):
         'Trigger full NFO refresh': '#FULLNFOREFRESH',
         'Trigger delta NFO refresh': '#DELTANFOREFRESH',
         'Reset Add-on': '#RESETADDON',
+        'Remove JellyGrail DB settings': '#UNINSTALL',
         'Open Add-on settings': '#OPENSETTINGS'
     }
 
@@ -466,7 +467,6 @@ def tokenize(*routes):
 
 
 api_routes = tokenize(
-    Route("/health", homepage),
     Route("/get_compatible_kodiDBs", get_compatible_kodiDBs),
     Route("/set_db_for_this_kodi", create_or_update_kodi_instance),
     Route("/what_should_do", should_refresh),
@@ -484,7 +484,6 @@ api_routes = tokenize(
 # no / route here to let the user put a proxy in front of this and the webdav server # TODO remove bypass below to enable
 app = Starlette(
     routes=[
-            Route("/getincrement/{arg:int}", incrementRoute),
             Route("/status", homepage)
         ]
 )
@@ -519,6 +518,9 @@ async def startup_event():
     kodi_mysql_verify(logit = True)
     if RD_API_SET:
         logger.warning(f"REALDEBRID| Premium days remaining: {str(jg_services.premium_timeleft()/86400)[:4]}")
+    
+    if TORBOX_API_SET:
+        logger.warning(f"    TORBOX| Premium days remaining: {str(jg_services.torboxgetpremiumtimeleft()/86400)[:4]}")
 
     if JF_WANTED:
         jfconfig()
@@ -714,7 +716,7 @@ if __name__ == "__main__":
     JobManager.register_job("kodiScan", kodiScanWrapper, is_sync=False)
     # WARNING, nfoGenJob and jfscan must be registered AFTER jgscanjob because of the shared lock, if not they will never run because they will wait for a lock that is never released since jgScanJob is not registered
     JobManager.register_job("nfoGenJob", nfo_generatorWrapper, is_sync=True, cond=(USE_KODI_ACTUALLY and JF_WANTED_ACTUALLY), interval=20)
-    JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=60)
+    JobManager.register_job("remoteScan", remoteScanWrapper, is_sync=True, cond=USE_REMOTE_RDUMP_ACTUALLY, interval=240)
     JobManager.register_job("computePolicies", computePoliciesWrapper, is_sync=True, interval=750)
     JobManager.register_job("importMedias", importUncompletedWrapper, is_sync=True, interval=1600)
     JobManager.register_job("weeklyStopOnWednesday", weeklyStopOnWednesdayWrapper, is_sync=True, interval=weekly_stop_interval)
@@ -726,7 +728,7 @@ if __name__ == "__main__":
 
     # HTTP Server
     import uvicorn
-    config = uvicorn.Config(app, host="0.0.0.0", port=WEBSERVICE_INTERNAL_PORT, loop="asyncio", access_log=False)
+    config = uvicorn.Config(app, host="127.0.0.1", port=WEBSERVICE_INTERNAL_PORT, loop="asyncio", access_log=False)
     uvicorn_server = uvicorn.Server(config)
     uvicorn_server.run() #careful, loop.sock_sento is not implemented in uvloop
 

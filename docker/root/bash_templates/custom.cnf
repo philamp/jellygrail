@@ -14,7 +14,7 @@
 # It has been reported that passwords should be enclosed with ticks/quotes
 # especially if they contain "#" chars...
 [client]
-port            = 6503
+port            = 8306
 socket          = /var/run/mysqld/mysqld.sock
 
 default-character-set = utf8mb4
@@ -34,7 +34,7 @@ nice            = 0
 user            = mysql
 pid-file        = /var/run/mysqld/mysqld.pid
 socket          = /var/run/mysqld/mysqld.sock
-port            = 6503
+port            = 8306
 basedir         = /usr
 datadir         = /jellygrail/data/mariadb/databases
 tmpdir          = /tmp

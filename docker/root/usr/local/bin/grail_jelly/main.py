@@ -463,9 +463,9 @@ def ssdp_broadcast_daemon():
 
     # test in linux with nc -ul 6505
 
-    # struct is : JGx|VERSION|LAN_IP|WEBSERVICE_INTERNAL_PORT|KODI_MYSQL_PORT|WEBDAV_INTERNAL_PORT
+    # struct is : JGx|VERSION|LAN_IP|WEBSERVICE_PUBLIC_PORT|KODI_MYSQL_PORT|WEBDAV_INTERNAL_PORT
     #      0       1               2                  3                                     4                                              5                              6
-    msg = "JGx|" + VERSION + "|" + LAN_IP + "|" + str(WEBSERVICE_INTERNAL_PORT) + "|" + str(KODI_MYSQL_CONFIG.get('port', '0')) + "|" + str(WEBDAV_INTERNAL_PORT) + "|" + SSDP_TOKEN
+    msg = "JGx|" + VERSION + "|" + LAN_IP + "|" + str(WEBSERVICE_PUBLIC_PORT) + "|" + str(KODI_MYSQL_CONFIG.get('port', '0')) + "|" + str(WEBDAV_INTERNAL_PORT) + "|" + SSDP_TOKEN
 
     encmsg = msg.encode("ascii")
 
@@ -655,7 +655,7 @@ if __name__ == "__main__":
         logger.info(f"|                                    Language: {os.getenv('JF_LANGUAGE')}")
         logger.info(f"|  - Jellyfin host:                  http://localhost:8096 (login: {os.getenv('JF_LOGIN') or 'admin'})")
         logger.info(f"|  - Nginx WebDAV server:            http://{WEBDAV_HOST_PORT} (no auth, local access only! see README! don't expose it!)")
-        logger.info(f"|  - JellyGrail WebService:          http://{LAN_IP}:{WEBSERVICE_INTERNAL_PORT} (no auth, local access only! see README! don't expose it!)")
+        logger.info(f"|  - JellyGrail WebService:          http://{LAN_IP}:{WEBSERVICE_PUBLIC_PORT} (no auth, local access only! see README! don't expose it!)")
         logger.info(f"|  - SSDP Broadcasting on port:      {SSDP_PORT} (for Kodi auto-discovery)")
     if USE_KODI_ACTUALLY:
         logger.info(f"|  - Kodi host:                      {KODI_MAIN_URL}")

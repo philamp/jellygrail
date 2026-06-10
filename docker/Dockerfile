@@ -438,7 +438,7 @@ RUN set -eux; \
     rm -f /etc/nginx/sites-enabled/*; \
     ldconfig
 
-EXPOSE 8085 6502 6503 8089
+EXPOSE 8385 8306 8389
 
 ENTRYPOINT ["/init"]
 CMD ["python3", "/usr/local/bin/grail_jelly/newmain.py"]

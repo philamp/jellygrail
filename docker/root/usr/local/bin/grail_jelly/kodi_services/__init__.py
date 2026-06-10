@@ -3,7 +3,7 @@ from base.littles import *
 from base.constants import *
 from kodi_services.sqlkodi import sqlKodiDB
 import urllib.parse
-from jg_services import get_premium_time_left
+from jg_services import get_premium_time_left, get_tb_premium_time_left
 from kodi_services.kodiInstances import kodiDBRegistry
 
 def lowersArray(array):
@@ -109,6 +109,7 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
 
 
     jginfo = {
+        "tbpdays": get_tb_premium_time_left(),
         "pdays": get_premium_time_left(),
         "version": VERSION,
         "davport": WEBDAV_INTERNAL_PORT,

@@ -89,7 +89,7 @@ KODI_INSTANCES_JSON = "/jellygrail/data/kodi_instances.json"
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION') or ""
-USE_REMOTE_RDUMP_ACTUALLY = True if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:1234" else False
+USE_REMOTE_RDUMP_ACTUALLY = True if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:8385" else False
 REMOTE_SCAN_TARGET_PROVIDER = (os.getenv('REMOTE_SCAN_TARGET_PROVIDER') or "torbox").strip().lower()
 
 REMOTE_WED_DAV_LOCATION = os.getenv('REMOTE_WED_DAV_LOCATION') or ""
@@ -99,10 +99,12 @@ INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the de
 LAN_IP = guess_lan_ip() or "127.0.0.1" 
 INCR_KODI_REFR_MAX = 8
 
+PROXY_URL = os.getenv('PROXY_URL') if (os.getenv('PROXY_URL') != "https://hostname-or-ip:1234" and os.getenv('PROXY_URL') != "") else "0"
 #default that can be overriden in config/settings.env
-WEBDAV_INTERNAL_PORT = int(os.getenv('WEBDAV_INTERNAL_PORT') or "8085")
-WEBDAV_REMOTE_INTERNAL_PORT = int(os.getenv('WEBDAV_REMOTE_INTERNAL_PORT') or "8089") 
-WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT') or "6502")
+WEBDAV_INTERNAL_PORT = int(os.getenv('WEBDAV_INTERNAL_PORT') or "8385")
+WEBDAV_REMOTE_INTERNAL_PORT = int(os.getenv('WEBDAV_REMOTE_INTERNAL_PORT') or "8389") 
+WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT') or "16685")
+WEBSERVICE_PUBLIC_PORT = WEBDAV_INTERNAL_PORT
 SSDP_PORT = int(os.getenv('SSDP_PORT') or "1900")
 
 # kodi mysql config
@@ -112,7 +114,7 @@ KODI_MYSQL_CONFIG = {
     'user' : 'kodi',
     'password' : 'kodi',
     #'database' : 'kodi_video131',
-    'port' : int(os.getenv('MYSQL_INTERNAL_PORT') or "6503") # dont change this settiing in config, not implemented in s6 scripts TODO
+    'port' : int(os.getenv('MYSQL_INTERNAL_PORT') or "8306") # dont change this settiing in config, not implemented in s6 scripts TODO
 }
 
 # ip set in config:
@@ -339,9 +341,6 @@ if USED_LANGS_JF[1]:
     PREFLANG2 = USED_LANGS_JF[1].lower()
 else: 
     PREFLANG2 = 'eng' # lets face it, its the dominant language in the world today
-
-
-PROXY_URL = os.getenv('PROXY_URL') if (os.getenv('PROXY_URL') != "https://hostname-or-ip:1234" and os.getenv('PROXY_URL') != "") else "0"
 
 USE_KODI = (os.getenv('USE_KODI') or "y") != "n"
 USE_KODI_ACTUALLY = USE_KODI
