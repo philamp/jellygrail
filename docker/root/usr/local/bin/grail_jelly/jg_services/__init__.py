@@ -4,6 +4,8 @@ from base.constants import *
 import requests
 from jg_services.jelly_rdapi import RDE
 from datetime import datetime
+import threading
+import time
 RD = None
 # plug to same logging instance as main
 #logger = logging.getLogger('jellygrail')
@@ -25,6 +27,9 @@ ptl = "0"
 DEFAULT_INCR = 0
 WHOLE_CONTENT = True
 TORBOX_API_BASE_URL = "https://api.torbox.app/v1/api"
+TORBOX_API_PACER_INTERVAL = 0.250
+torbox_api_pacer_lock = threading.Lock()
+torbox_api_last_call = 0.0
 
 def get_premium_time_left():
     global ptl
@@ -305,16 +310,30 @@ def magnet_from_hash(hash):
     return f"magnet:?xt=urn:btih:{hash}"
 
 
-def push_to_torbox(hash):
-    response = requests.post(
-        TORBOX_API_BASE_URL + "/torrents/createtorrent",
-        headers={"Authorization": f"Bearer {TORBOX_APITOKEN}"},
-        files={
-            "magnet": (None, magnet_from_hash(hash)),
-            "seed": (None, "1"),
-        },
-        timeout=30
-    )
+def torbox_api_request(method, path, **kwargs):
+    global torbox_api_last_call
+
+    if not TORBOX_API_SET:
+        logger.warning("    TB-API| TorBox API key not set, verify TORBOX_APITOKEN in settings.env and restart container")
+        return None
+
+    headers = kwargs.pop("headers", {})
+    headers["Authorization"] = f"Bearer {TORBOX_APITOKEN}"
+
+    with torbox_api_pacer_lock:
+        now = time.monotonic()
+        wait = TORBOX_API_PACER_INTERVAL - (now - torbox_api_last_call)
+        if wait > 0:
+            time.sleep(wait)
+        torbox_api_last_call = time.monotonic()
+
+        response = requests.request(
+            method,
+            TORBOX_API_BASE_URL + path,
+            headers=headers,
+            **kwargs
+        )
+
     response.raise_for_status()
 
     payload = response.json()
@@ -322,6 +341,18 @@ def push_to_torbox(hash):
         raise RuntimeError(f"TorBox API error {payload.get('error')}: {payload.get('detail')}")
 
     return payload
+
+
+def push_to_torbox(hash):
+    return torbox_api_request(
+        "post",
+        "/torrents/createtorrent",
+        files={
+            "magnet": (None, magnet_from_hash(hash)),
+            "seed": (None, "1"),
+        },
+        timeout=30
+    )
 
 
 def remote_scan_local_hashes(provider):
@@ -685,21 +716,14 @@ def rdump_backup(including_backup = True, returning_data = False):
 
 
 def torbox_api_get(path, params=None):
-    if not TORBOX_API_SET:
-        logger.warning("    TB-API| TorBox API key not set, verify TORBOX_APITOKEN in settings.env and restart container")
-        return None
-
-    response = requests.get(
-        TORBOX_API_BASE_URL + path,
-        headers={"Authorization": f"Bearer {TORBOX_APITOKEN}"},
+    payload = torbox_api_request(
+        "get",
+        path,
         params=params or {},
         timeout=20
     )
-    response.raise_for_status()
-
-    payload = response.json()
-    if isinstance(payload, dict) and payload.get("success") is False:
-        raise RuntimeError(f"TorBox API error {payload.get('error')}: {payload.get('detail')}")
+    if payload is None:
+        return None
 
     return payload.get("data", payload) if isinstance(payload, dict) else payload
 
