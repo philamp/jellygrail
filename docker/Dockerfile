@@ -286,6 +286,7 @@ WORKDIR /src
 
 RUN set -eux; \
     git clone --branch "${SACD_RIPPER_REF}" --depth 1 https://github.com/sacd-ripper/sacd-ripper.git .; \
+    sed -i 's/char \*wide_filename;/wchar_t *wide_filename;/g' tools/sacd_extract/main.c; \
     if [ "${TARGETARCH}" = "arm64" ]; then \
         sed -i 's/ -msse2//g' tools/sacd_extract/CMakeLists.txt; \
     fi; \
