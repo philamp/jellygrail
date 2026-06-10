@@ -286,13 +286,17 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                                 logger.info(f"      SCAN| ISO-CACHING| - {path} |totalsize:{result.file_size} |cachedsize:{result.bytes_read}")
 
                     except Exception as e:
-                        stopthere = True
-                        stopreason += ' >> Pre-reading ISO failed'
-                        logger.error(f"  ISO-SCAN| ISO read failed on: {iso_file_path}")
+                        logger.warning(f"  ISO-SCAN| UDF read failed on: {iso_file_path}, trying SACD index read")
+                        if read_sacd_iso_index(iso_file_path):
+                            nomergetype = " - JGxSACD"
+                        else:
+                            stopthere = True
+                            stopreason += ' >> Pre-reading ISO failed'
+                            logger.error(f"  ISO-SCAN| ISO read failed on: {iso_file_path}")
 
 
                     if not stopthere:
-                        prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
+                        prefix = "bluray:" if nomergetype == " - JGxBluRay" else ""
                         (stdout, _, fferr) = get_plain_ffprobe(prefix+iso_file_path)
                         if fferr != 0:
                             stdout = None
@@ -903,6 +907,7 @@ def scanThread(pnt, present_folders, stopEvent):
                             logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
                         '''
 
+                        iso_index_read = False
                         try:
                             with UdfImage(iso_file_path) as udf:
                                 for path in udf.iter_file_paths():
@@ -911,19 +916,24 @@ def scanThread(pnt, present_folders, stopEvent):
                                         nomergetype = " - JGxDVD"
                                         
                                     logger.info(f"      SCAN| ISO-CACHING| - {path} |totalsize:{result.file_size} |cachedsize:{result.bytes_read}")
+                                iso_index_read = True
 
                         except Exception as e:
-                            logger.error(f"      SCAN| ISO-CACHING| ISO read failed on: {iso_file_path}")
+                            logger.warning(f"      SCAN| ISO-CACHING| UDF read failed on: {iso_file_path}, trying SACD index read")
+                            if read_sacd_iso_index(iso_file_path):
+                                nomergetype = " - JGxSACD"
+                                iso_index_read = True
+                            else:
+                                logger.error(f"      SCAN| ISO-CACHING| ISO read failed on: {iso_file_path}")
 
-                        else:
+                        if iso_index_read:
                             stdout = None
-                            prefix = "" if nomergetype == " - JGxDVD" else "bluray:"
+                            prefix = "bluray:" if nomergetype == " - JGxBluRay" else ""
                             (stdout, _, fferr) = get_plain_ffprobe(prefix+iso_file_path)
                             if fferr != 0:
                                 stdout = None
-                        finally:
-                            if os.path.ismount(mountemp):
-                                unmount_iso(mountemp)
+                        if os.path.ismount(mountemp):
+                            unmount_iso(mountemp)
                     
                     
                     threadDB.insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)

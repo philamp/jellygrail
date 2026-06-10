@@ -146,6 +146,36 @@ def unrar_to_void(rar_file_path):
     return "OK"
 
 # ISOs
+def read_sacd_iso_index(iso_path, timeout=60):
+    command = ["sacd_extract", "-i", iso_path, "-P"]
+
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, timeout=timeout)
+    except FileNotFoundError:
+        logger.warning("      SCAN| SACD-CACHING| sacd_extract command not found")
+        return False
+    except subprocess.TimeoutExpired:
+        logger.error(f"      SCAN| SACD-CACHING| sacd_extract timeout ({timeout}s) on {iso_path}")
+        return False
+    except Exception as e:
+        logger.error(f"      SCAN| SACD-CACHING| sacd_extract failed on {iso_path}: {e}")
+        return False
+
+    output = "\n".join(part for part in (result.stdout, result.stderr) if part)
+    if result.returncode != 0:
+        logger.warning(f"      SCAN| SACD-CACHING| sacd_extract rejected ISO: {iso_path}")
+        if output:
+            logger.debug(output.rstrip())
+        return False
+
+    logger.info(f"      SCAN| SACD-CACHING| SACD index read: {iso_path}")
+    if output:
+        for line in output.splitlines():
+            logger.info(f"      SCAN| SACD-CACHING| {line}")
+
+    return True
+
+
 def mount_iso(iso_path, mount_folder):
     logger.debug(f"      > ISO Mounting to get structure and small files: {iso_path} ")
     # Create the mount folder if it doesn't exist

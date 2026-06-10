@@ -10,6 +10,7 @@ ARG IMGPROXY_VERSION=3.29.1
 ARG RAR2FS_VERSION=1.29.6
 ARG UNRAR_VERSION=6.1.3
 ARG S6_OVERLAY_VERSION=3.2.1.0
+ARG SACD_RIPPER_REF=master
 
 ############################
 # GO TOOLCHAIN
@@ -259,6 +260,41 @@ RUN set -eux; \
     gcc -O2 -o /out/ffprobew ffprobew.c
 
 ############################
+# SACD_EXTRACT BUILDER
+############################
+FROM --platform=$TARGETPLATFORM jellyfin/jellyfin:${JELLYFIN_VERSION} AS sacd-extract-builder
+
+ARG DEBIAN_FRONTEND=noninteractive
+ARG SACD_RIPPER_REF
+ARG TARGETARCH
+
+ADD https://api.github.com/repos/sacd-ripper/sacd-ripper/git/refs/heads/master /tmp/sacd_ripper_version.json
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    set -eux; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        ca-certificates \
+        build-essential \
+        cmake \
+        git \
+        libxml2-dev; \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /src
+
+RUN set -eux; \
+    git clone --branch "${SACD_RIPPER_REF}" --depth 1 https://github.com/sacd-ripper/sacd-ripper.git .; \
+    if [ "${TARGETARCH}" = "arm64" ]; then \
+        sed -i 's/ -msse2//g' tools/sacd_extract/CMakeLists.txt; \
+    fi; \
+    cmake -S tools/sacd_extract -B build/sacd_extract \
+      -DCMAKE_BUILD_TYPE=Release; \
+    cmake --build build/sacd_extract -j"$(nproc)"; \
+    install -Dm755 build/sacd_extract/sacd_extract /out/sacd_extract
+
+############################
 # PYTHON VENV BUILDER
 ############################
 FROM --platform=$TARGETPLATFORM jellyfin/jellyfin:${JELLYFIN_VERSION} AS python-builder
@@ -326,11 +362,15 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
         netcat-openbsd \
         wget \
         libudfread0 libudfread-dev libarchive13 \
+        libxml2 \
         ca-certificates; \
     rm -rf /var/lib/apt/lists/*
 
 # rclone
 COPY --from=rclone-builder /out/rclone-linux /usr/bin/rclone-linux
+
+# SACD ISO index reader
+COPY --from=sacd-extract-builder /out/sacd_extract /usr/local/bin/sacd_extract
 
 # imgproxy + libvips
 COPY --from=imgproxy-packager /usr/local /usr/local
