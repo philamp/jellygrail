@@ -31,21 +31,11 @@ JF_COLLECTIONS_METADATA_CONFIG = str(Path(JF_METADATA_ROOT).parents[1] / "config
 
 
 def ensure_jellyfin_collections_metadata_link():
-    os.makedirs(JF_COLLECTIONS_METADATA_DATA, exist_ok=True)
-    os.makedirs(os.path.dirname(JF_COLLECTIONS_METADATA_CONFIG), exist_ok=True)
-
-    if os.path.islink(JF_COLLECTIONS_METADATA_CONFIG):
-        current_target = os.readlink(JF_COLLECTIONS_METADATA_CONFIG)
-        if current_target != JF_COLLECTIONS_METADATA_DATA:
-            logger.warning(f"   NFO-GEN| Jellyfin collections metadata symlink points to {current_target}, expected {JF_COLLECTIONS_METADATA_DATA}")
-        return
-
-    if os.path.exists(JF_COLLECTIONS_METADATA_CONFIG):
-        logger.warning(f"   NFO-GEN| Jellyfin collections metadata path exists and is not a symlink: {JF_COLLECTIONS_METADATA_CONFIG}")
-        return
+    os.makedirs(os.path.dirname(JF_COLLECTIONS_METADATA_DATA), exist_ok=True)
+    os.makedirs(JF_COLLECTIONS_METADATA_CONFIG, exist_ok=True)
 
     try:
-        os.symlink(JF_COLLECTIONS_METADATA_DATA, JF_COLLECTIONS_METADATA_CONFIG)
+        os.symlink(JF_COLLECTIONS_METADATA_CONFIG, JF_COLLECTIONS_METADATA_DATA)
         logger.info(f"   NFO-GEN| Jellyfin collections metadata linked to {JF_COLLECTIONS_METADATA_DATA}")
     except FileExistsError:
         pass
