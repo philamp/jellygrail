@@ -156,11 +156,11 @@ Before installing the add-on, please do the following:
   * Disable `Extract chapter thumbnails`.
   * Disable `Extract thumnails from video files`.
 
-Make sure Webdav is available on your local network : `http://your-server-ip:8085`:
+Make sure Webdav is available on your local network : `http://your-server-ip:8385`:
 - Go to `Settings` > `File mananager` > `Add source` > `Browse` > `Add network location` > `webdav`.
 - `Protocol` : `WebDAV (HTTP)`.
 - `Server address` : Your server local ip.
-- `Port` : `8085`.
+- `Port` : `8385`.
 - Click `Ok`.
 - Go back to `Settings` > `Add-ons` > `Install from zip file`.
 - In the newly created location browse to `actual/kodi/software`.
@@ -191,7 +191,7 @@ At installation, the add-on auto detects the Jellygrail server and let you choos
 2. Monitor `sudo docker logs -f jellygrail` to check for JellyGrail progress or errors.
 3. Wait for the ``./Video_Library/virtual/`` folder to be filled by the scanner.
 4. Access the content in ``./Video_Library/virtual/`` :
-    - WebDAV : http://your_system_ip:8085.
+    - WebDAV : http://your_system_ip:8385.
     - Jellyfin : http://your_system_ip:8096.
     - or Kodi (see Add-on paragraph above).
 5. For Plex you can point your librairies to ``./Video_Library/virtual/movies/`` and ``./Video_Library/virtual/shows/`` folders. If you don't need the virtual filesystem functionality, you can as well point your Plex libraries to folders inside ``./Video_Library/actual/rar2fs_*/``.
@@ -247,7 +247,7 @@ sudo docker logs -f jellygrail
 ### Python service HTTP test
 
 ````
-Browse to http://localhost:8085/status
+Browse to http://localhost:8385/status
 ````
 
 ## Performance
