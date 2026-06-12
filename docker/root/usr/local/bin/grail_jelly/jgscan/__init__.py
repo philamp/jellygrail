@@ -30,6 +30,8 @@ present_virtual_folders_shows = []
 pointNamesAndType = []
 pointNamesAndTypeLI = []
 
+shouldWaitForRclone = False
+
 items_scanned = 0
 
 
@@ -595,6 +597,7 @@ def init_mountpoints():
     #global dual_endpoints
     global pointNamesAndType
     global pointNamesAndTypeLI
+    global shouldWaitForRclone
     logger.info("   STORAGE| Mountpoints initialization...") #toimprove with s6 ?
     time.sleep(0.1)
     for f in os.scandir(MOUNTS_ROOT):
@@ -617,6 +620,10 @@ def init_mountpoints():
 
     to_watch = []
 
+    if any (point_type == 'remote' for (_, point_type) in pointNamesAndType):
+        shouldWaitForRclone = True
+
+
     for (point, point_type) in pointNamesAndType:
         if point_type == 'local':
             for d in os.scandir(MOUNTS_ROOT+"/"+point):
@@ -638,8 +645,8 @@ def multiScan(stopEvent):
 
     jgScan.i_scanned = 0 
     # instanciate as many workers as there are
-    if RD_API_SET:
-        logger.info("MULTI-SCAN| RD update interval wait...") #toimprove , find if remote storage has triggered this
+    if shouldWaitForRclone:
+        logger.info("MULTI-SCAN| Waiting to ensure rclone instances have updated their dir-cache...") #toimprove #todo, maybe send a flush cache command to rclone via RC
         time.sleep(8)
     else:
         logger.info("MULTI-SCAN| No RD, starting immediately...")

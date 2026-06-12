@@ -594,7 +594,9 @@ async def watch_dirs(ctx, stop_event):
                 continue
 
 async def kodiScanWrapper(ctx, stop):
+    time.sleep(0.1)
     reset_kodi_instances_refresh("toScan")
+    time.sleep(0.1)
 
 def remoteScanWrapper(ctx, stop):
     # run jgservices.remoteScan
@@ -640,7 +642,7 @@ def multiScanWrapper(ctx, stop):
     #else----
     
     if ctx["wfid"] == "wf1":
-        logger.info("      SCAN| First jgscan triggers media librairies scans")
+        logger.info("      SCAN| --STARTUP TRIGGERED--")
 
     JobManager.trigger("computePolicies", ctx["wfid"])
 
@@ -673,26 +675,23 @@ def weeklyStopOnWednesdayWrapper(ctx, stop):
 
 
 def nfo_generatorWrapper(ctx, stop):
-    willNfoRefresh = False
-    firsttime = False
+    flushTheNfoBucket = False
 
-    if ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "twf-nfoGenJob-1":
-        logger.info(" SCHEDULER| First workflow or scheduled wf triggers the Nfo generator job")
-        firsttime = True
+    #if ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "twf-nfoGenJob-1":
+    if ctx.get("wfid", "") == "wf1": #or ctx.get("wfid", "") == "twf-nfoGenJob-1":
+        logger.info("   NFO-GEN| --STARTUP TRIGGERED--")
+        flushTheNfoBucket = True
         
-    if nfo_generator.nfo_loop_service(stop) or firsttime:
-        willNfoRefresh = True
-
-    #only called if ctx has later (launched from a scan job) ctx is always a dict here
-    if ctx.get("later", False):
-        JobManager.trigger("kodiScan", ctx["wfid"])
-
-    time.sleep(0.5)
-    if willNfoRefresh:
-        
+    if nfo_generator.nfo_loop_service(stop):
+        flushTheNfoBucket = True
+    
+    time.sleep(0.1)
+    if flushTheNfoBucket:
         reset_kodi_instances_refresh("toNfoRefresh")
         time.sleep(0.1)
 
+    if ctx.get("later", False): # False is the default value here
+        JobManager.trigger("kodiScan", ctx["wfid"])
 
 
 if __name__ == "__main__":
