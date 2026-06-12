@@ -1,6 +1,6 @@
 > [!CAUTION]
 > 23-04-2026: Right now working on stabilizing build whenever dependencies upgrades happen...
-> For now, in case of any failure, please [submit an issue ](https://github.com/philamp/jellygrail/issues), I will fix it ASAP.
+> 12-06-2026: Should be way better now!
 
 <p align="center">
 <img alt="jg" src="jg.png" />
