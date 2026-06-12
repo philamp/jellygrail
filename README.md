@@ -1,6 +1,6 @@
 > [!CAUTION]
-> 23-04-2026: Right now working on stabilizing build whenever dependencies upgrades happen...
-> 12-06-2026: Should be way better now!
+> - 23-04-2026: Right now working on stabilizing build whenever dependencies upgrades happen...
+> - 12-06-2026: Should be way better now!
 
 <p align="center">
 <img alt="jg" src="jg.png" />
