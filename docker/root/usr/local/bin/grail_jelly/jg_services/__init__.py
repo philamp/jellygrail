@@ -26,8 +26,11 @@ DEFAULT_INCR = 0
 WHOLE_CONTENT = True
 TORBOX_API_BASE_URL = "https://api.torbox.app/v1/api"
 TORBOX_API_PACER_INTERVAL = 0.250
+TORBOX_CREATETORRENT_PACER_INTERVAL = 60.0
 torbox_api_pacer_lock = threading.Lock()
+torbox_createtorrent_pacer_lock = threading.Lock()
 torbox_api_last_call = 0.0
+torbox_createtorrent_last_call = 0.0
 
 def get_tb_premium_time_left():
     global tbptl
@@ -371,7 +374,19 @@ def torbox_api_request(method, path, **kwargs):
     return payload
 
 
+def pace_torbox_createtorrent():
+    global torbox_createtorrent_last_call
+
+    with torbox_createtorrent_pacer_lock:
+        now = time.monotonic()
+        wait = TORBOX_CREATETORRENT_PACER_INTERVAL - (now - torbox_createtorrent_last_call)
+        if wait > 0:
+            time.sleep(wait)
+        torbox_createtorrent_last_call = time.monotonic()
+
+
 def push_to_torbox(hash):
+    pace_torbox_createtorrent()
     return torbox_api_request(
         "post",
         "/torrents/createtorrent",
@@ -766,40 +781,96 @@ def torbox_item_has_pile_video(item):
     return any(torbox_file_is_pile_video(file_item) for file_item in item.get("files", []))
 
 
-def tb_progress():
-    data = tbdump_backup(including_backup = False, returning_data = True)
-    if data is not None:
-        dled_tb_hashes = [
-            data_item.get("hash")
-            for data_item in data
-            if data_item.get("hash") and torbox_item_downloaded(data_item) and torbox_item_has_pile_video(data_item)
+def torbox_notification_means_completion(notification):
+    title = str(notification.get("title") or "").lower()
+    return (
+        "ready to download" in title
+        or "download completed" in title
+        or "download complete" in title
+    )
+
+
+def torbox_completion_notifications():
+    try:
+        notifications = torbox_api_get("/notifications/mynotifications")
+        if not isinstance(notifications, list):
+            raise RuntimeError(f"Unexpected notifications payload: {type(notifications).__name__}")
+
+        return [
+            notification
+            for notification in notifications
+            if torbox_notification_means_completion(notification)
         ]
 
-        if os.path.exists(PILE_FILE):
-            _, cur_pile = file_to_array(PILE_FILE)
-            cur_pile_hashes = {normalized_hash(item) for item in cur_pile}
-            if len(dled_tb_hashes) > 0:
-                delta_elements = [item for item in dled_tb_hashes if normalized_hash(item) not in cur_pile_hashes]
-                delta_elements = list(dict.fromkeys(reversed(delta_elements)))
+    except Exception as e:
+        logger.error(f"    TB-API| Getting TorBox notification feed failed: {e}")
+        return None
 
-                array_to_file(PILE_FILE, delta_elements)
 
-                if len(delta_elements) > 0:
-                    logger.info("    TB-API| New downloaded torrent(s) >> Refresh triggered or queued")
-                    return "PLEASE_SCAN"
-                else:
-                    logger.debug("    TB-API| NO new downloaded torrent(s). No trigger.")
-                    return ""
-            else:
-                logger.warning("    TB-API| Zero downloaded torrent (normal if you just started using it)")
-                return ""
+def clear_torbox_notification(notification_id):
+    notification_id = str(notification_id or "").strip()
+    if not notification_id:
+        return
 
-        else:
-            array_to_file(PILE_FILE, dled_tb_hashes, initialize_with_unique_key=True)
-            return "PLEASE_SCAN"
-    else:
+    torbox_api_request(
+        "post",
+        f"/notifications/clear/{notification_id}",
+        timeout=20
+    )
+
+
+def clear_torbox_notifications(notifications):
+    for notification in notifications:
+        try:
+            clear_torbox_notification(notification.get("id"))
+        except Exception as e:
+            logger.warning(f"    TB-API| Could not clear TorBox notification {notification.get('id')}: {e}")
+
+
+def tb_progress():
+    completion_notifications = torbox_completion_notifications()
+    if completion_notifications is None:
+        return ""
+    if len(completion_notifications) == 0:
+        logger.debug("    TB-API| NO new completion notification(s). No trigger.")
+        return ""
+
+    data = tbdump_backup(including_backup = False, returning_data = True)
+    if data is None:
         logger.critical("    TB-API| An error occurred on getting local TorBox data")
         return ""
+
+    dled_tb_hashes = [
+        data_item.get("hash")
+        for data_item in data
+        if data_item.get("hash") and torbox_item_downloaded(data_item) and torbox_item_has_pile_video(data_item)
+    ]
+
+    result = ""
+
+    if os.path.exists(PILE_FILE):
+        _, cur_pile = file_to_array(PILE_FILE)
+        cur_pile_hashes = {normalized_hash(item) for item in cur_pile}
+        if len(dled_tb_hashes) > 0:
+            delta_elements = [item for item in dled_tb_hashes if normalized_hash(item) not in cur_pile_hashes]
+            delta_elements = list(dict.fromkeys(reversed(delta_elements)))
+
+            array_to_file(PILE_FILE, delta_elements)
+
+            if len(delta_elements) > 0:
+                logger.info("    TB-API| New downloaded torrent(s) >> Refresh triggered or queued")
+                result = "PLEASE_SCAN"
+            else:
+                logger.debug("    TB-API| NO new downloaded torrent(s). No trigger.")
+        else:
+            logger.warning("    TB-API| Zero downloaded torrent (normal if you just started using it)")
+
+    else:
+        array_to_file(PILE_FILE, dled_tb_hashes, initialize_with_unique_key=True)
+        result = "PLEASE_SCAN"
+
+    clear_torbox_notifications(completion_notifications)
+    return result
 
 
 def providers_progress():

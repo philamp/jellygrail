@@ -266,7 +266,8 @@ RDUMP_STORE_INTERVAL = 3600*4
 MOUNTS_ROOT = "/mounts"
 
 # jellyfin root for metadata and its len
-JF_METADATA_ROOT = "/jellygrail/jellyfin/config/metadata"
+JF_METADATA_ROOT = "/jellygrail/jellyfin/data/metadata"
+
 JF_MD_SHIFT = len(JF_METADATA_ROOT)
 
 JG_VIRTUAL = "/Video_Library/virtual"
