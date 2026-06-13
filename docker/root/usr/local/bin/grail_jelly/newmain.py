@@ -727,7 +727,7 @@ if __name__ == "__main__":
 
     # HTTP Server
     import uvicorn
-    config = uvicorn.Config(app, host="127.0.0.1", port=WEBSERVICE_INTERNAL_PORT, loop="asyncio", access_log=False)
+    config = uvicorn.Config(app, host="0.0.0.0", port=WEBSERVICE_PUBLIC_PORT, loop="asyncio", access_log=False)
     uvicorn_server = uvicorn.Server(config)
     uvicorn_server.run() #careful, loop.sock_sento is not implemented in uvloop
 

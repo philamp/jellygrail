@@ -89,7 +89,7 @@ KODI_INSTANCES_JSON = "/jellygrail/data/kodi_instances.json"
 CONFIG_VERSION = os.getenv('CONFIG_VERSION') or VERSION # explain : getenv of empty returns "", "" is falsy so CONFIG_VERSION will be VERSION if not set
 
 REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION') or ""
-USE_REMOTE_RDUMP_ACTUALLY = True if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:8385" else False
+USE_REMOTE_RDUMP_ACTUALLY = True if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:16685" else False
 REMOTE_SCAN_TARGET_PROVIDER = (os.getenv('REMOTE_SCAN_TARGET_PROVIDER') or "torbox").strip().lower()
 
 REMOTE_WED_DAV_LOCATION = os.getenv('REMOTE_WED_DAV_LOCATION') or ""
@@ -104,7 +104,7 @@ PROXY_URL = os.getenv('PROXY_URL') if (os.getenv('PROXY_URL') != "https://hostna
 WEBDAV_INTERNAL_PORT = int(os.getenv('WEBDAV_INTERNAL_PORT') or "8385")
 WEBDAV_REMOTE_INTERNAL_PORT = int(os.getenv('WEBDAV_REMOTE_INTERNAL_PORT') or "8389") 
 WEBSERVICE_INTERNAL_PORT = int(os.getenv('WEBSERVICE_INTERNAL_PORT') or "16685")
-WEBSERVICE_PUBLIC_PORT = WEBDAV_INTERNAL_PORT
+WEBSERVICE_PUBLIC_PORT = WEBSERVICE_INTERNAL_PORT # change the host on uvicorn start in newmain.py, but keep the port the same as internal for simplicity in ssdp message and to avoid confusion, if you change this also change the default in settings.env.template and README and constants
 SSDP_PORT = int(os.getenv('SSDP_PORT') or "1900")
 
 # kodi mysql config

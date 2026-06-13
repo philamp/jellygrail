@@ -64,7 +64,7 @@
 > [!CAUTION]
 > - I'm not responsible of any data loss / I'm not responsible of any illegal use / Use at your own risks.
 > - This solution does not include any torrent indexer search. 
-> - Do not open ports 8385 and 8389 to the internet.
+> - Do not open ports 8385, 16685 and 8389 to the internet.
 > - ⚠️⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s)⚠️⚠️.
 > - Jellygrail is still experimental/BETA : you should not submit any issues to the XBMC team (Kodi backend emulation disrupts the way Kodi works by modifying the database directly !).
 
@@ -157,7 +157,7 @@ Before installing the add-on, please do the following:
   * Disable `Extract chapter thumbnails`.
   * Disable `Extract thumnails from video files`.
 
-Make sure Webdav is available on your local network : `http://your-server-ip:8385`:
+Make sure Webdav is available on your local network : `http://your-system-ip:8385`:
 - Go to `Settings` > `File mananager` > `Add source` > `Browse` > `Add network location` > `webdav`.
 - `Protocol` : `WebDAV (HTTP)`.
 - `Server address` : Your server local ip.
@@ -248,7 +248,7 @@ sudo docker logs -f jellygrail
 ### Python service HTTP test
 
 ````
-Browse to http://localhost:8385/status
+Browse to http://localhost:16685/status
 ````
 
 ## Performance
