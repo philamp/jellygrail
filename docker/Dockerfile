@@ -87,7 +87,7 @@ RUN set -eux; \
       --libdir=lib \
       --buildtype=release \
       -Dintrospection=disabled; \
-    meson compile -C build; \
+    meson compile -C build -j2; \
     #meson test -C build; \
     meson install -C build; \
     ldconfig; \
@@ -105,8 +105,13 @@ RUN --mount=type=cache,target=/go/pkg/mod,sharing=locked \
     set -eux; \
     rm -rf /src/*; \
     git clone --branch "v${IMGPROXY_VERSION}" --depth 1 https://github.com/imgproxy/imgproxy.git .; \
+    mkdir -p /root/.cache/go-build/tmp /out; \
+    export GOCACHE=/root/.cache/go-build; \
+    export GOTMPDIR=/root/.cache/go-build/tmp; \
+    export GOMAXPROCS=2; \
     GOOS=${TARGETOS:-linux} GOARCH=${TARGETARCH} \
-    go build -trimpath -ldflags="-s -w" -o /out/imgproxy .
+    go build -p=2 -trimpath -ldflags="-s -w" -o /out/imgproxy .; \
+    rm -rf /root/.cache/go-build/tmp
 
 ENV LD_LIBRARY_PATH=/usr/local/lib
 
