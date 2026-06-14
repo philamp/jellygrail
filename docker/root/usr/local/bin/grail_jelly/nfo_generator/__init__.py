@@ -82,13 +82,8 @@ def fetch_nfo(nfopath):
 
 
     if nfotype != None:
-        if os.path.exists(pathjf_updated):
-            return pathjf_updated
-        elif os.path.exists(pathjf):
+        if os.path.exists(pathjf):
             return pathjf
-        elif os.path.exists(pathjf_done):
-            return pathjf_done
-        
         if os.path.exists(pathjg):
             return pathjg
         else:

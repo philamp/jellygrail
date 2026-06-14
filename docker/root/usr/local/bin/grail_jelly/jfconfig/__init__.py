@@ -214,6 +214,15 @@ def install_librairies():
                     "PathInfos": [
                         {
                             "Path": f"{JG_VIRTUAL}/movies"
+                        },
+                        {
+                            "Path": f"{JG_VIRTUAL}/SACDs"
+                        },
+                        {
+                            "Path": f"{JG_VIRTUAL}/Blurays"
+                        },
+                        {
+                            "Path": f"{JG_VIRTUAL}/DVDs"
                         }
                     ]
                 }

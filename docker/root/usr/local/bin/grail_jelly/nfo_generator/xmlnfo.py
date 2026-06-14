@@ -88,11 +88,15 @@ class Item(msgspec.Struct, omit_defaults=True):
     CriticRating: int | None = None
 
 
+def _minimum_nfo_title(path_part):
+    return os.path.basename(path_part).split(" -", 1)[0].rstrip()
+
+
 def build_jg_nfo_video(nfopath, pathjg, nfotype):
     # mapping NFO2XMLTYPE → root tag
     root_tag = NFO2XMLTYPE.get(nfotype, "movie")
     pathwoext = get_wo_ext(nfopath)
-    title = os.path.basename(pathwoext)
+    title = _minimum_nfo_title(pathwoext)
     dirnames = os.path.dirname(pathjg)
 
     xml_parts = ['<?xml version="1.0" ?>']
@@ -102,7 +106,7 @@ def build_jg_nfo_video(nfopath, pathjg, nfotype):
 
     # choix du titre
     if nfotype in ("bdmv", "dvd"):
-        val = os.path.basename(os.path.dirname(os.path.dirname(nfopath)))
+        val = _minimum_nfo_title(os.path.dirname(os.path.dirname(nfopath)))
     elif nfotype in ("movie", "episodedetails"):
         val = title
     elif nfotype == "tvshow":

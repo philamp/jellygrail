@@ -146,7 +146,7 @@ class sqlKodiDB:
 
         return inserted_id
 
-    def register_dav_if_empty(self, ipport, roots = ["movies", "shows"]):
+    def register_dav_if_empty(self, ipport, roots = ("movies", "shows", "SACDs", "Blurays", "DVDs")):
         #provide urls with final slashs
 
         with self as cursor:

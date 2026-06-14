@@ -13,6 +13,9 @@ def bdd_install():
     # create movies and shows parent folders
     dbinstance.insert_data("/movies", None, None, None, 'all')
     dbinstance.insert_data("/shows", None, None, None, 'all')
+    dbinstance.insert_data("/SACDs", None, None, None, 'all')
+    dbinstance.insert_data("/Blurays", None, None, None, 'all')
+    dbinstance.insert_data("/DVDs", None, None, None, 'all')
     #insert_data("/concerts", None, None, None, 'all')
     dbinstance.sqcommit()
     dbinstance.sqclose()

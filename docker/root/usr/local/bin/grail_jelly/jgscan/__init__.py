@@ -18,6 +18,7 @@ from base.constants import *
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import traceback
+import re
 
 # merge those 2 elements
 ALLOWED_EXTENSIONS = SUB_EXTS + VIDEO_EXTENSIONS
@@ -56,6 +57,16 @@ def _guessit_movie_title_year(name):
     return title, year
 
 
+def _has_explicit_episode_marker(name):
+    separators = r"(^|[.\s_\-])"
+    end = r"([.\s_\-]|$)"
+    return any(re.search(pattern, name, re.IGNORECASE) for pattern in (
+        separators + r"s\d{1,4}e\d{1,4}" + end,
+        separators + r"\d{1,2}x\d{1,4}" + end,
+        separators + r"e\d{1,4}" + end,
+    ))
+
+
 def _guessit_episode(name):
     guess = _guessit(name, {'type': 'episode'})
     title = _first_guessit_value(guess.get('title'))
@@ -65,7 +76,22 @@ def _guessit_episode(name):
         return None
 
     season = _first_guessit_value(guess.get('season')) or 1
+    try:
+        season_int = int(season)
+    except (TypeError, ValueError):
+        season_int = None
+    if season_int is not None and 1900 <= season_int <= 2099 and not _has_explicit_episode_marker(name):
+        return None
+
     return title, str(season).zfill(2), str(episode).zfill(2)
+
+
+def _media_virtual_root(nomergetype):
+    return {
+        " - JGxSACD": "/SACDs",
+        " - JGxBluRay": "/Blurays",
+        " - JGxDVD": "/DVDs",
+    }.get(nomergetype, "/movies")
 
 
 def get_fastpass_ffprobe(file_path):
@@ -518,6 +544,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
             
             rootfilename = os.path.join(item['eroot'], item['efilename'])
             asifrootfilename = os.path.join(item['as_if_vroot'], item['efilename'])
+            media_virtual_root = _media_virtual_root(nomergetype)
 
             # B cache item fetching
             rd_cache_item = rootfilename if rar_item == None else rar_item
@@ -541,9 +568,9 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                             idxdupmovset += idxdupmovset+1
                     jgxmultiple_parse += str(idxdupmovset)
                     jgxmultiple_parses.append(jgxmultiple_parse)
-                    threadDB.insert_data("/movies/"+releasefolder+nomergetype+"/"+jgxmultiple_parse+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
+                    threadDB.insert_data(media_virtual_root+"/"+releasefolder+nomergetype+"/"+jgxmultiple_parse+filename_ext, rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
                 else:
-                    threadDB.insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
+                    threadDB.insert_data(media_virtual_root+"/"+releasefolder+nomergetype+"/"+os.path.relpath(asifrootfilename, os.path.join(endpoint, releasefolder)), rootfilename, release_folder_path, rd_cache_item, dive_e_['mediatype'], ffprobed)
 
             # Esingle case ------------ can have extras but with switch
             elif rootfilename.lower().endswith(ALLOWED_EXTENSIONS):
@@ -571,17 +598,19 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
         # rootfolders for EF case
         for rootfoldername in dive_e_['rootfoldernames']:
             if multiple_movie_or_disc_present:
-                threadDB.insert_data("/movies/"+releasefolder+nomergetype+"/"+os.path.relpath(rootfoldername, os.path.join(endpoint, releasefolder)), None, release_folder_path, rar_item, dive_e_['mediatype'])
+                media_virtual_root = _media_virtual_root(nomergetype)
+                threadDB.insert_data(media_virtual_root+"/"+releasefolder+nomergetype+"/"+os.path.relpath(rootfoldername, os.path.join(endpoint, releasefolder)), None, release_folder_path, rar_item, dive_e_['mediatype'])
 
 
         # RELEASE-like BASE FOLDERs including extras subfolder if applies
         # EF folders
 
         if multiple_movie_or_disc_present:
+            media_virtual_root = _media_virtual_root(nomergetype)
             bdmv_ffprobed = None if bdmv_ffprobed == "None" else bdmv_ffprobed
-            threadDB.insert_data("/movies/"+releasefolder+nomergetype, None, None, None, dive_e_['mediatype'], bdmv_ffprobed)
+            threadDB.insert_data(media_virtual_root+"/"+releasefolder+nomergetype, None, None, None, dive_e_['mediatype'], bdmv_ffprobed)
             if atleastoneextra:
-                threadDB.insert_data("/movies/"+releasefolder+nomergetype+"/extras", None, None, None, dive_e_['mediatype'])
+                threadDB.insert_data(media_virtual_root+"/"+releasefolder+nomergetype+"/extras", None, None, None, dive_e_['mediatype'])
 
         # Esingle folders
         if at_least_one_movie_present:
@@ -942,9 +971,9 @@ def scanThread(pnt, present_folders, stopEvent):
                         if os.path.ismount(mountemp):
                             unmount_iso(mountemp)
                     
-                    
-                    threadDB.insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
-                    threadDB.insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
+                    media_virtual_root = _media_virtual_root(nomergetype)
+                    threadDB.insert_data(media_virtual_root+"/"+title_year+nomergetype, None, f.path, None, mediatype)
+                    threadDB.insert_data(media_virtual_root+"/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
                     threadDB.sqcommit()
                     jgScan.itemincr()
     threadDB.sqclose()
@@ -1113,8 +1142,9 @@ def scan():
                         finally:
                             unmount_iso("/mnt/tmp")
                     
-                    insert_data("/movies/"+title_year+nomergetype, None, f.path, None, mediatype)
-                    insert_data("/movies/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
+                    media_virtual_root = _media_virtual_root(nomergetype)
+                    insert_data(media_virtual_root+"/"+title_year+nomergetype, None, f.path, None, mediatype)
+                    insert_data(media_virtual_root+"/"+title_year+nomergetype+"/"+title_year+metas+filename_ext, f.path, f.path, None, mediatype, stdout)
                     sqcommit()
 
     return items_scanned
