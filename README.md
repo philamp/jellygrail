@@ -1,6 +1,7 @@
 > [!CAUTION]
 > - 23-04-2026: Right now working on stabilizing build whenever dependencies upgrades happen...
 > - 13-06-2026: Latest image available on docker hub
+> - 15-06-2026: relase 1.3.4 was broken sorry
 
 <p align="center">
 <img alt="jg" src="jg.png" />
