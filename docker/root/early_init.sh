@@ -108,7 +108,7 @@ if [ "$JF_WANTED" = "n" ]; then
   rm -f /etc/s6-overlay/s6-rc.d/user/contents.d/jellyfin
 fi
 
-if [ "$REMOTE_WEB_DAV_LOCATION" != "http://hostname-or-ip:8385" ] && [ "$REMOTE_WEB_DAV_LOCATION" != "" ] ; then
+if [ "$REMOTE_WEB_DAV_LOCATION" != "http://hostname-or-ip:8389" ] && [ "$REMOTE_WEB_DAV_LOCATION" != "" ] ; then
   # Copy the example configuration file to the new configuration file
   mkdir -p "/mounts/remote_webdav"
   cp -f "/bash_templates/mounts/remote_webdav/rclone.conf.example" "/mounts/remote_webdav/rclone.conf"
