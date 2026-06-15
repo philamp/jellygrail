@@ -132,6 +132,14 @@ if [ "$TORBOX_APITOKEN" != "PASTE-YOUR-KEY-HERE" ] && [ "$TORBOX_APITOKEN" != ""
   sed -i "s/PASTE-YOUR-KEY-HERE/$TORBOX_APITOKEN/" "/mounts/remote_torbox/rclone.conf"
 fi
 
+if [ "$PREMIUMIZE_APITOKEN" != "PASTE-YOUR-KEY-HERE" ] && [ "$PREMIUMIZE_APITOKEN" != "" ] ; then
+  # Copy the example configuration file to the new configuration file
+  mkdir -p "/mounts/remote_premiumize"
+  cp -f "/bash_templates/mounts/remote_premiumize/rclone.conf.example" "/mounts/remote_premiumize/rclone.conf"
+  # Replace the placeholder with the user-provided API key
+  sed -i "s/PASTE-YOUR-KEY-HERE/$PREMIUMIZE_APITOKEN/" "/mounts/remote_premiumize/rclone.conf"
+fi
+
 # - Webdav conf according to settings.env
 # Webdav port 8085 is default
 if [ "$WEBDAV_INTERNAL_PORT" = "" ] ; then
