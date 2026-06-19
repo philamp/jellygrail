@@ -101,7 +101,9 @@ for dev in /dev/dri/card* /dev/dri/renderD*; do
 done
 
 # - read JG settings
+set -a
 . /jellygrail/config/settings.env
+set +a
 
 # - does not start jellyfin if not wanted
 if [ "$JF_WANTED" = "n" ]; then
