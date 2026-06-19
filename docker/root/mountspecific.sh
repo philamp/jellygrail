@@ -4,9 +4,25 @@ set -eu
 SRC_BASE="/mounts"
 DST_BASE="/localremounts"   # configurable via env
 LIST_FILE="/run/bind-mounts.list"
+DUMPS_SRC="/jellygrail/vfs_cache/dumps"
+DUMPS_DST="$DST_BASE/dumps"
 
 mkdir -p "$DST_BASE" /run
 : > "$LIST_FILE"
+
+mkdir -p "$DUMPS_SRC" "$DUMPS_DST"
+if mountpoint -q "$DUMPS_DST"; then
+  echo "[bind-mounts] already mounted: $DUMPS_DST"
+else
+  mount --bind "$DUMPS_SRC" "$DUMPS_DST"
+
+  if [ "${BIND_RO:-0}" = "1" ]; then
+    mount -o remount,bind,ro "$DUMPS_DST" || true
+  fi
+
+  echo "$DUMPS_DST" >> "$LIST_FILE"
+  echo "[bind-mounts] mounted $DUMPS_SRC -> $DUMPS_DST"
+fi
 
 # Rien à faire si le glob ne matche rien
 set +e

@@ -21,7 +21,7 @@ mkdir -p /jellygrail/jellyfin/cache
 mkdir -p /jellygrail/config
 mkdir -p /jellygrail/log
 mkdir -p /jellygrail/data/bindfs
-mkdir -p /jellygrail/vfs_cache
+mkdir -p /jellygrail/vfs_cache/dumps
 mkdir -p /Video_Library
 mkdir -p /Cache_Check_Video_Library
 mkdir -p /Kodi_Video_Library
