@@ -156,6 +156,13 @@ if [ "$WEBSERVICE_INTERNAL_PORT" = "" ] ; then
   WEBSERVICE_INTERNAL_PORT="16685"
 fi
 
+mkdir -p /var/run/s6/container_environment
+printf '%s' "${REMOTE_SCAN_TARGET_PROVIDER:-torbox}" > /var/run/s6/container_environment/REMOTE_SCAN_TARGET_PROVIDER
+printf '%s' "$WEBSERVICE_INTERNAL_PORT" > /var/run/s6/container_environment/WEBSERVICE_INTERNAL_PORT
+if [ "${JELLYGRAIL_SCAN_TRIGGER_URL:-}" != "" ] ; then
+  printf '%s' "$JELLYGRAIL_SCAN_TRIGGER_URL" > /var/run/s6/container_environment/JELLYGRAIL_SCAN_TRIGGER_URL
+fi
+
 cp -f /bash_templates/nginx.conf /etc/nginx/nginx.conf
 sed -i "s/#WDP#/$WEBDAV_INTERNAL_PORT/" "/etc/nginx/nginx.conf"
 sed -i "s/#REMOTEWDP#/$WEBDAV_REMOTE_INTERNAL_PORT/" "/etc/nginx/nginx.conf"

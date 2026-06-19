@@ -481,6 +481,19 @@ api_routes = tokenize(
     Route("/set_verbose_log", setVerboseLogRoute)
 )
 
+async def trigger_remote_scan(request):
+    provider = request.query_params.get("provider", "rclone")
+    reason = request.query_params.get("reason", "remote_event")
+    wfid = "twf-rclone-"+JobManager.get_new_wfid()
+    logger.info(f" SCHEDULER| Triggering scan workflow from rclone backend provider={provider} reason={reason} with wfid {wfid}")
+    JobManager.trigger("jgScanJob", wfid, ctx={"wfid": wfid, "later": False})
+    return JSONResponse({
+        "status": "success",
+        "wfid": wfid,
+        "provider": provider,
+        "reason": reason
+    })
+
 # no / route here to let the user put a proxy in front of this and the webdav server # TODO remove bypass below to enable
 app = Starlette(
     routes=[
@@ -496,6 +509,7 @@ app.mount("/app", Router(
         Route("/ask_jf_refresh", ask_jf_refresh),
         Route("/test", rd_test_api),
         Route("/getincrement/{arg:int}", incrementRoute),
+        Route("/trigger_remote_scan", trigger_remote_scan),
         Route("/set_verbose_log", setVerboseLogRoute)
     ]
 ))
@@ -701,7 +715,8 @@ if __name__ == "__main__":
     weekly_stop_interval = max(3200, seconds_until_next_wednesday_5am())
 
     # ---------------periodic jobs launched once in startup event
-    JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=15)
+    # Remote provider completion events are now pushed by the rclone backends.
+    # JobManager.register_job("rdProgressLoop", trigger_rd_progress, is_sync=True, interval=15)
     JobManager.register_job("ssdpBroadcast", SSDPTask, is_sync=False) #ASYNC !
 
     JobManager.register_job("watchLocalFolders", watch_dirs, is_sync=False) #ASYNC, launched in startup with watch points as ctx, it will run indefinitely and react to file events, no need to trigger it again since it runs in loop, it will check the stop event to stop itself
