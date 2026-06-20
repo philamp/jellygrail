@@ -18,7 +18,11 @@ async def SSDPTask(ctx, stop):
     # ctx not used, would be elegant to put sock in ctx and to use existing timeout handling in jobmanager
     
     # testablée with nc -ul 
-    await asyncio.wait_for(stop.wait(), timeout=2)  # wait a bit before starting the first broadcast, to let the starlette server start
+    try:
+        await asyncio.wait_for(stop.wait(), timeout=2)  # wait a bit before starting the first broadcast, to let the starlette server start
+        return
+    except asyncio.TimeoutError:
+        pass
     pause = 5
 
     loop = asyncio.get_running_loop()
