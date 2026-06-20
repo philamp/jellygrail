@@ -482,10 +482,10 @@ api_routes = tokenize(
 )
 
 async def trigger_remote_scan(request):
-    provider = request.query_params.get("provider", "rclone")
-    reason = request.query_params.get("reason", "remote_event")
-    wfid = "twf-rclone-"+JobManager.get_new_wfid()
-    logger.info(f" SCHEDULER| Triggering scan workflow from rclone backend provider={provider} reason={reason} with wfid {wfid}")
+    provider = request.query_params.get("provider", "user")
+    reason = request.query_params.get("reason", "none")
+    wfid = "wf-rclone-"+JobManager.get_new_wfid()
+    logger.info(f" SCHEDULER| Scan triggered by provider={provider} reason={reason} with wfid {wfid}")
     JobManager.trigger("jgScanJob", wfid, ctx={"wfid": wfid, "later": False})
     return JSONResponse({
         "status": "success",
@@ -507,8 +507,8 @@ app.mount("/app", Router(
         Route("/ask_kodi_refresh", ask_kodi_refresh),
         Route("/testallevents", all_events_ask),
         Route("/ask_jf_refresh", ask_jf_refresh),
-        Route("/test", rd_test_api),
-        Route("/getincrement/{arg:int}", incrementRoute),
+        #Route("/test", rd_test_api),
+        #Route("/getincrement/{arg:int}", incrementRoute),
         Route("/trigger_remote_scan", trigger_remote_scan),
         Route("/set_verbose_log", setVerboseLogRoute)
     ]
@@ -547,6 +547,9 @@ async def startup_event():
     await asyncio.sleep(0)
     JobManager.trigger("ssdpBroadcast", "🔁 5s loop in thread") #5s is handled in the job itself not in the jobmanager
     JobManager.trigger("watchLocalFolders", "AsyncLocalWatcher", ctx={"wfid": "AsyncLocalWatcher", "watchpoints": watch_points})
+
+    wfid = "wf-startup-" + JobManager.get_new_wfid()
+    JobManager.trigger("jgScanJob", wfid, ctx={"wfid": wfid, "later": False})
     
 
 # === Stopping hook ===
@@ -560,7 +563,7 @@ async def shutdown_event():
 async def watch_dirs(ctx, stop_event):
 
     def trigger():
-        wfid = "twf-watchLocalFolders-"+JobManager.get_new_wfid()
+        wfid = "wf-watchLocalFolders-"+JobManager.get_new_wfid()
         logger.info(f" SCHEDULER| Triggering scan workflow from local file watcher with wfid {wfid}")
         JobManager.trigger("jgScanJob", wfid, ctx={"wfid": wfid, "later": False})
 
@@ -653,10 +656,7 @@ def multiScanWrapper(ctx, stop):
         logger.info("      SCAN| No items to scan.")
         return
     
-    #else----
-    
-    if ctx["wfid"] == "wf1":
-        logger.info("      SCAN| --STARTUP TRIGGERED--")
+    #else
 
     JobManager.trigger("computePolicies", ctx["wfid"])
 
@@ -692,8 +692,8 @@ def nfo_generatorWrapper(ctx, stop):
     flushTheNfoBucket = False
 
     #if ctx.get("wfid", "") == "wf1" or ctx.get("wfid", "") == "twf-nfoGenJob-1":
-    if ctx.get("wfid", "") == "wf1": #or ctx.get("wfid", "") == "twf-nfoGenJob-1":
-        logger.info("   NFO-GEN| --STARTUP TRIGGERED--")
+    if ctx.get("wfid", "") == "twf-nfoGenJob-1": # or ctx.get("wfid", "") == "wf1": #or ctx.get("wfid", "") == "twf-nfoGenJob-1":
+        logger.info("      NFOGEN| Flushing any pending NFO refresh...")
         flushTheNfoBucket = True
         
     if nfo_generator.nfo_loop_service(stop):
@@ -723,7 +723,7 @@ if __name__ == "__main__":
 
 
     # ----------------triggered jobs launched on cascade on event
-    JobManager.register_job("jgScanJob", multiScanWrapper, is_sync=True)
+    JobManager.register_job("jgScanJob", multiScanWrapper, is_sync=True, interval=86400)
     #JobManager.register_job("restartApp", restartAppWrapper, is_sync=True)
     JobManager.register_job("jfScan", lib_refresh_allWrapper, is_sync=True, cond=JF_WANTED_ACTUALLY)
     JobManager.register_job("plexScan", plexScanWrapper, is_sync=True, cond=USE_PLEX_ACTUALLY)

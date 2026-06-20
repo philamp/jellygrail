@@ -31,8 +31,6 @@ present_virtual_folders_shows = []
 pointNamesAndType = []
 pointNamesAndTypeLI = []
 
-shouldWaitForRclone = False
-
 items_scanned = 0
 
 
@@ -626,18 +624,22 @@ def init_mountpoints():
     #global dual_endpoints
     global pointNamesAndType
     global pointNamesAndTypeLI
-    global shouldWaitForRclone
     logger.info("   STORAGE| Mountpoints initialization...") #toimprove with s6 ?
     time.sleep(0.1)
+    aligned_rclone_remotes = {"remote_realdebrid", "remote_torbox", "remote_premiumize"}
+    has_unaligned_remote = False
     for f in os.scandir(MOUNTS_ROOT):
         if f.name == "remote_webdav":
+            has_unaligned_remote = True
             for g in os.scandir(MOUNTS_ROOT+"/remote_webdav"):
                 if g.is_dir() and g.name.startswith("local_") and not '@eaDir' in g.name and not g.name.startswith("local_import"):
                     typem = "remote"
-                    logger.info(f"   STORAGE| remote_webdav/{g.name}")
+                    logger.info(f" JG-FRIEND| remote_webdav/{g.name}")
                     pointNamesAndType.append(("remote_webdav/"+g.name,typem))
         elif f.is_dir() and (f.name.startswith("remote_") or f.name.startswith("local_")) and not '@eaDir' in f.name and not f.name.startswith("local_import"):
             typem = "local" if f.name.startswith("local_") else "remote"
+            if typem == "remote" and f.name not in aligned_rclone_remotes:
+                has_unaligned_remote = True
             #logger.info(f"   STORAGE| {f.name}")
             pointNamesAndType.append((f.name,typem))
         elif f.is_dir() and f.name.startswith("local_import"):
@@ -649,9 +651,6 @@ def init_mountpoints():
 
     to_watch = []
 
-    if any (point_type == 'remote' for (_, point_type) in pointNamesAndType):
-        shouldWaitForRclone = True
-
 
     for (point, point_type) in pointNamesAndType:
         if point_type == 'local':
@@ -660,6 +659,10 @@ def init_mountpoints():
                     continue
                 if d.is_dir():
                     to_watch.append(MOUNTS_ROOT+"/"+point+"/"+d.name)
+
+    if has_unaligned_remote:
+        logger.info("   STORAGE| Non aligned remote backend detected, waiting 10s for rclone mount readiness...")
+        time.sleep(10)
 
     return to_watch
 
@@ -674,11 +677,6 @@ def multiScan(stopEvent):
 
     jgScan.i_scanned = 0 
     # instanciate as many workers as there are
-    if shouldWaitForRclone:
-        logger.info("MULTI-SCAN| Waiting to ensure rclone instances have updated their dir-cache...") #toimprove #todo, maybe send a flush cache command to rclone via RC
-        time.sleep(8)
-    else:
-        logger.info("MULTI-SCAN| No RD, starting immediately...")
     logger.info(f"   STORAGE| There are currently {len(pointNamesAndType)+len(pointNamesAndTypeLI)} storage(s):")
     for src1, storetype in pointNamesAndTypeLI:
         logger.info(f"          | /{src1} | Type: {storetype}")
