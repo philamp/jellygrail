@@ -54,6 +54,7 @@ def premium_timeleft():
         return 0
     else:
         ptl = str(expseconds/86400)[:4]
+        genericClass.setDays("rd", int(expseconds/86400))
         return max(0, expseconds)
 
 

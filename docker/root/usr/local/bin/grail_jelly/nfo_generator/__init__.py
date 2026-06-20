@@ -71,6 +71,12 @@ def fetch_nfo(nfopath):
 
     elif "/movies" in nfopath[:7]:
         nfotype = "movie"
+
+    elif "/DVDs" in nfopath[:5]:
+        nfotype = "movie"
+
+    elif "/Blurays" in nfopath[:8]:
+        nfotype = "movie"
                 
     # switch for tvshow file
     elif os.path.basename(nfopath) == "tvshow.nfo":

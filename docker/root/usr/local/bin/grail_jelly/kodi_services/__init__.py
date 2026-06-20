@@ -109,8 +109,9 @@ def get_kodi_instances_by_kodi_version(pkodi_version, puid):
 
 
     jginfo = {
-        "tbpdays": get_tb_premium_time_left(),
-        "pdays": get_premium_time_left(),
+        "tbpdays": str(genericClass.getDays("tb")),
+        "pdays": str(genericClass.getDays("rd")),
+        "pmdays": str(genericClass.getDays("pm")),
         "version": VERSION,
         "davport": WEBDAV_INTERNAL_PORT,
         "proxyurl": PROXY_URL,

@@ -66,6 +66,8 @@ def play_splash():
         print(f"|  - Real-Debrid API:                Enabled (token set)")
     if TORBOX_API_SET:
         print(f"|  - TorBox API:                     Enabled (token set)")
+    if PREMIUMIZE_API_SET:
+        print(f"|  - Premiumize API:                 Enabled (token set)")
     if USE_PLEX_ACTUALLY:
         print(f"|  - Plex refresh URL(s): {', '.join(PLEX_URLS_ARRAY)}")
     else:

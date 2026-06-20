@@ -4,11 +4,15 @@ import socket
 
 import threading
 
-VERSION = "v1.3.5" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
+VERSION = "v1.4.0" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 
 class genericClass:
 	verboseLog = True
 	_event = threading.Event()
+	days = {}
+	days['tb'] = 0
+	days['rd'] = 0
+	days['pm'] = 0
 
 	@classmethod
 	def setVerboseLog(cls, enabled: bool):
@@ -25,8 +29,14 @@ class genericClass:
 	@classmethod
 	def getEvent(cls):
 		return cls._event
+	
+	@classmethod
+	def setDays(cls, rem: str, days: int):
+		cls.days[rem] = days
 
-    
+	@classmethod
+	def getDays(cls, rem: str):
+		return cls.days.get(rem, 0)
 
 
 ISO_639_2T_TO_2B = {
@@ -311,6 +321,9 @@ RD_API_SET = RD_APITOKEN != "PASTE-YOUR-KEY-HERE" and RD_APITOKEN != ""
 
 TORBOX_APITOKEN = os.getenv('TORBOX_APITOKEN') or ""
 TORBOX_API_SET = TORBOX_APITOKEN != "PASTE-YOUR-KEY-HERE" and TORBOX_APITOKEN != ""
+
+PREMIUMIZE_APITOKEN = os.getenv('PREMIUMIZE_APITOKEN') or ""
+PREMIUMIZE_API_SET = PREMIUMIZE_APITOKEN != "PASTE-YOUR-KEY-HERE" and PREMIUMIZE_APITOKEN != ""
 
 INTERESTED_LANGUAGES = os.getenv('INTERESTED_LANGUAGES') or INT_LANG_DEFAULTS
 

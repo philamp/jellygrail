@@ -122,6 +122,9 @@ async def homepage(request):
     if TORBOX_API_SET:
         items.append("TorBox API: Enabled (token set)")
 
+    if PREMIUMIZE_API_SET:
+        items.append("Premiumize API: Enabled (token set)")
+
     if USE_PLEX_ACTUALLY:
         items.append(f"Plex refresh URL(s): {escape(', '.join(PLEX_URLS_ARRAY))}")
     else:
@@ -533,8 +536,6 @@ async def startup_event():
     if RD_API_SET:
         logger.warning(f"REALDEBRID| Premium days remaining: {str(jg_services.premium_timeleft()/86400)[:4]}")
     
-    if TORBOX_API_SET:
-        logger.warning(f"    TORBOX| Premium days remaining: {str(jg_services.torboxgetpremiumtimeleft()/86400)[:4]}")
 
     if JF_WANTED:
         jfconfig()

@@ -147,94 +147,96 @@ def install_librairies():
 
     if declaredlibs := jfapi.jellyfin(f'Library/VirtualFolders', method='get'):
         declaredlibs = declaredlibs.json()
-        if not any(f"{JG_VIRTUAL}/movies" in (dlibs.get("Locations") or []) for dlibs in declaredlibs):
+        movie_library_options = {
+            "Enabled": True,
+            "EnableArchiveMediaFiles": False,
+            "EnablePhotos": True,
+            "EnableRealtimeMonitor": False,
+            "EnableLUFSScan": True,
+            "ExtractTrickplayImagesDuringLibraryScan": False,
+            "SaveTrickplayWithMedia": False,
+            "EnableTrickplayImageExtraction": False,
+            "ExtractChapterImagesDuringLibraryScan": False,
+            "EnableChapterImageExtraction": False,
+            "EnableInternetProviders": True,
+            "SaveLocalMetadata": False,
+            "EnableAutomaticSeriesGrouping": False,
+            "PreferredMetadataLanguage": JF_LANGUAGE,
+            "MetadataCountryCode": JF_COUNTRY,
+            "SeasonZeroDisplayName": "Specials",
+            "AutomaticRefreshIntervalDays": 0,
+            "EnableEmbeddedTitles": False,
+            "EnableEmbeddedExtrasTitles": False,
+            "EnableEmbeddedEpisodeInfos": False,
+            "AllowEmbeddedSubtitles": "AllowAll",
+            "SkipSubtitlesIfEmbeddedSubtitlesPresent": False,
+            "SkipSubtitlesIfAudioTrackMatches": False,
+            "SaveSubtitlesWithMedia": True,
+            "SaveLyricsWithMedia": False,
+            "RequirePerfectSubtitleMatch": True,
+            "AutomaticallyAddToCollection": True,
+            "PreferNonstandardArtistsTag": False,
+            "UseCustomTagDelimiters": False,
+            "MetadataSavers": [],
+            "TypeOptions": [
+                {
+                    "Type": "Movie",
+                    "MetadataFetchers": MetaSwitch,
+                    "MetadataFetcherOrder": MetaSwitch,
+                    "ImageFetchers": MetaSwitch,
+                    "ImageFetcherOrder": MetaSwitch
+                }
+            ],
+            "LocalMetadataReaderOrder": [
+                "Nfo"
+            ],
+            "SubtitleDownloadLanguages": list(USED_LANGS_JF),
+            "CustomTagDelimiters": [
+                "/",
+                "|",
+                ";",
+                "\\"
+            ],
+            "DelimiterWhitelist": [],
+            "DisabledSubtitleFetchers": [
+                "subbuzz"
+            ],
+            "SubtitleFetcherOrder": [
+                "subbuzz"
+            ],
+            "DisabledLyricFetchers": [],
+            "LyricFetcherOrder": []
+        }
 
+        movie_libraries = [
+            ("Movies", f"{JG_VIRTUAL}/movies"),
+            ("SACDs", f"{JG_VIRTUAL}/SACDs"),
+            ("Blurays", f"{JG_VIRTUAL}/Blurays"),
+            ("DVDs", f"{JG_VIRTUAL}/DVDs")
+        ]
 
-            #logger.info("> Now we can add Librariries")
+        for library_name, library_path in movie_libraries:
+            if any(library_path in (dlibs.get("Locations") or []) for dlibs in declaredlibs):
+                continue
+
             movielib = {
                 "LibraryOptions": {
-                    "Enabled": True,
-                    "EnableArchiveMediaFiles": False,
-                    "EnablePhotos": True,
-                    "EnableRealtimeMonitor": False,
-                    "EnableLUFSScan": True,
-                    "ExtractTrickplayImagesDuringLibraryScan": False,
-                    "SaveTrickplayWithMedia": False,
-                    "EnableTrickplayImageExtraction": False,
-                    "ExtractChapterImagesDuringLibraryScan": False,
-                    "EnableChapterImageExtraction": False,
-                    "EnableInternetProviders": True,
-                    "SaveLocalMetadata": False,
-                    "EnableAutomaticSeriesGrouping": False,
-                    "PreferredMetadataLanguage": JF_LANGUAGE,
-                    "MetadataCountryCode": JF_COUNTRY,
-                    "SeasonZeroDisplayName": "Specials",
-                    "AutomaticRefreshIntervalDays": 0,
-                    "EnableEmbeddedTitles": False,
-                    "EnableEmbeddedExtrasTitles": False,
-                    "EnableEmbeddedEpisodeInfos": False,
-                    "AllowEmbeddedSubtitles": "AllowAll",
-                    "SkipSubtitlesIfEmbeddedSubtitlesPresent": False,
-                    "SkipSubtitlesIfAudioTrackMatches": False,
-                    "SaveSubtitlesWithMedia": True,
-                    "SaveLyricsWithMedia": False,
-                    "RequirePerfectSubtitleMatch": True,
-                    "AutomaticallyAddToCollection": True,
-                    "PreferNonstandardArtistsTag": False,
-                    "UseCustomTagDelimiters": False,
-                    "MetadataSavers": [],
-                    "TypeOptions": [
-                        {
-                            "Type": "Movie",
-                            "MetadataFetchers": MetaSwitch,
-                            "MetadataFetcherOrder": MetaSwitch,
-                            "ImageFetchers": MetaSwitch,
-                            "ImageFetcherOrder": MetaSwitch
-                        }
-                    ],
-                    "LocalMetadataReaderOrder": [
-                        "Nfo"
-                    ],
-                    "SubtitleDownloadLanguages": list(USED_LANGS_JF),
-                    "CustomTagDelimiters": [
-                        "/",
-                        "|",
-                        ";",
-                        "\\"
-                    ],
-                    "DelimiterWhitelist": [],
-                    "DisabledSubtitleFetchers": [
-                        "subbuzz"
-                    ],
-                    "SubtitleFetcherOrder": [
-                        "subbuzz"
-                    ],
-                    "DisabledLyricFetchers": [],
-                    "LyricFetcherOrder": [],
+                    **movie_library_options,
                     "PathInfos": [
                         {
-                            "Path": f"{JG_VIRTUAL}/movies"
-                        },
-                        {
-                            "Path": f"{JG_VIRTUAL}/SACDs"
-                        },
-                        {
-                            "Path": f"{JG_VIRTUAL}/Blurays"
-                        },
-                        {
-                            "Path": f"{JG_VIRTUAL}/DVDs"
+                            "Path": library_path
                         }
                     ]
                 }
             }
 
             if not jfapi.jellyfin(f'Library/VirtualFolders', json=movielib, method='post', params=dict(
-                name='Movies', collectionType="movies", refreshLibrary="true"
+                name=library_name, collectionType="movies", refreshLibrary="true"
             )):
-                logger.critical("  JELLYFIN| Movies library installation failed")
+                logger.critical(f"  JELLYFIN| {library_name} library installation failed")
                 return False
             else:
-                logger.info("  JELLYFIN| Movie Library installed")
+                logger.info(f"  JELLYFIN| {library_name} Library installed")
                 at_least_one_installed = True
             
         if not any(f"{JG_VIRTUAL}/shows" in (dlibs.get("Locations") or []) for dlibs in declaredlibs):

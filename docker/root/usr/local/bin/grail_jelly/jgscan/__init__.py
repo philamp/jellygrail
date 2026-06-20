@@ -666,6 +666,22 @@ def init_mountpoints():
 
     return to_watch
 
+def subscription_days_from_mount(remote_name):
+    subscription_path = os.path.join(MOUNTS_ROOT, remote_name, "subscription")
+    try:
+        for entry in os.scandir(subscription_path):
+            if not entry.is_file():
+                continue
+            name = entry.name
+            if not name.endswith(".days"):
+                continue
+            days = name[:-5]
+            if days.isdigit():
+                return days
+    except Exception as e:
+        logger.warning(f"   STORAGE| Could not read subscription info from /{remote_name}: {e}")
+    return None
+
 #### new stuff BEGIN
 
 
@@ -674,6 +690,18 @@ def multiScan(stopEvent):
 
     #if not pointNamesAndType:
     #    init_mountpoints()
+
+    
+    if TORBOX_API_SET:
+        days = subscription_days_from_mount("remote_torbox")
+        if days is not None:
+            logger.warning(f"    TORBOX| Premium days remaining: {days}")
+            genericClass.setDays("tb", days)
+    if PREMIUMIZE_API_SET:
+        days = subscription_days_from_mount("remote_premiumize")
+        if days is not None:
+            logger.warning(f" PREMIUMIZE| Premium days remaining: {days}")
+            genericClass.setDays("pm", days)
 
     jgScan.i_scanned = 0 
     # instanciate as many workers as there are
