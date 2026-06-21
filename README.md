@@ -132,7 +132,7 @@ philamp/jellygrail:latest
 
 > [!TIP]
 > - run `sudo docker logs -f jellygrail` to monitor the console output.
-> - Check http://your-server-ip:8085/status.
+> - Check http://your-server-ip:16685/status.
 
 ### Put your custom rclone.conf file
 Real-Debrid support is included, but if you have another rclone compatible cloud storage you can add it this way:
