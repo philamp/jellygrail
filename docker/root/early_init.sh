@@ -1,9 +1,9 @@
 #!/bin/sh -e
-YVERSION="v1.4.0"
+YVERSION="v1.4.1"
 # - Jellygrail figlet:
 cat << "EOF"
 
-github.com/philamp/jellygrail
+                    github.com/philamp/
      _     _ _        ____          _ _
     | |___| | |_   _ / __/ _ ____ _(_) |
  _  | / _ \ | | | | | |  _/ '_/ _` | | |

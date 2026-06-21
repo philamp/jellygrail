@@ -4,7 +4,7 @@ import socket
 
 import threading
 
-VERSION = "v1.4.0" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
+VERSION = "v1.4.1" # Should be aligned to settings.env.template and early_init.sh and kodi addon init_context!!!
 
 class genericClass:
 	verboseLog = True
