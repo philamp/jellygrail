@@ -9,7 +9,7 @@
 <p align="center">
 <strong>One compatibility layer to rule them all.</strong><br/>
 <i>Enhanced Jellyfin Docker image that bridges local, cloud and Debrid media sources to players like Kodi, Jellyfin, and Plex through unified virtual filesystem (JGFS) and easy synchronisation.</i><br/>
-<strong>WARNING: This project is still experimental !</strong><br/>
+<strong>WARNING: This project is still experimental/ALPHA !</strong><br/>
 
 <img alt="jg" src="https://img.shields.io/docker/pulls/philamp/jellygrail" />
 <img alt="jg" src="https://github.com/philamp/jellygrail/actions/workflows/container-build.yml/badge.svg" />
@@ -31,7 +31,8 @@
   - Virtual moving/renaming.
   - Writing new files goes into local fallback storage.
   - Deleting virtual files deletes underlying actual files.
-  - Native Real-Debrid integration + rclone optimization (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly.
+  - Native Debrid integration + rclone optimization (with iso/rar structure cache) - https://github.com/philamp/rclone_jelly.
+    - Supports Real-Debrid, Premiumize and Torbox 🆕.
   - ffprobe wrapper to avoid redundant ffprobe requests (except with Plex).
   - Keep movie extras and subtitles.
   - Comprehensive folders structure and naming pattern to maximize compatibility and readability.
@@ -40,11 +41,11 @@
   - Jellyfin included with zero-click setup.
   - Kodi (v20 and v21) native sync with multiple Kodi players support :
     - Based on MariaDB + Nginx WebDAV server (with local storage fallback).
-    - Kodi add-on with exclusive functionalities - https://github.com/philamp/grail_kodi
+    - Kodi add-on with exclusive functionalities - https://github.com/philamp/grail_kodi.
     - Seamless local server detection and setup.
     - Update triggering + metadata synced from Jellyfin.
     - Auto-merging of movies variants.
-    - Image resampling to reduce Kodi’s memory usage ([imgproxy](https://github.com/imgproxy/imgproxy))
+    - Image resampling to reduce Kodi’s memory usage ([imgproxy](https://github.com/imgproxy/imgproxy)).
   - External Plex support.
   - Basic WebDAV server.
 
@@ -66,7 +67,7 @@
 > - This solution does not include any torrent indexer search. 
 > - Do not open ports 8385, 16685 and 8389 to the internet.
 > - ⚠️⚠️ File Deletion in the virtual folder actually deletes corresponding files of underlying file-system(s)⚠️⚠️.
-> - Jellygrail is still experimental/BETA : you should not submit any issues to the XBMC team (Kodi backend emulation disrupts the way Kodi works by modifying the database directly !).
+> - Jellygrail is still experimental/ALPHA : you should not submit any issues to the XBMC team (Kodi backend emulation disrupts the way Kodi works by modifying the database directly !).
 
 ## Install
 
@@ -99,7 +100,7 @@ sudo chmod +x jg-config.sh _MOUNT.SH
 Launch your adapted variant of this docker run command, still inside the root folder of the project.
 
 > [!TIP]
-> Beware that by default this working folder will store `jellygrail` subfolder with config and runtime data such as the rclone ISO/RAR structure cache _(0.5%~ of your real-debrid storage size)_.
+> Beware that by default this working folder will store `jellygrail` subfolder with config and runtime data such as the rclone ISO/RAR structure cache _(0.5%~ of your debrid storage size)_.
 
 ````
 sudo docker run -d \
@@ -135,11 +136,14 @@ philamp/jellygrail:latest
 > - Check http://your-server-ip:16685/status.
 
 ### Put your custom rclone.conf file
-Real-Debrid support is included, but if you have another rclone compatible cloud storage you can add it this way:
+Some Debrid services support are included, but if you have another rclone compatible cloud storage you can add it this way:
 - Create a dedicated folder named `remote_yourservice`.
 - Put the rclone file in it.
 - The rclone file content should start with `[remote_yourservice]`.
 - Check docker run command above (`-v /path/remote_yourservice:/mounts/remote_yourservice  `) to mount it.
+
+> [!TIP]
+> If the cloud service is not compatible with polling (https://forum.rclone.org/t/which-remotes-support-polling/47445), you can trigger the scan manually with `http://your-server-ip:16685/trigger_remote_scan`
 
 ## Kodi Add-on
 
@@ -170,6 +174,7 @@ Make sure Webdav is available on your local network : `http://your-system-ip:838
 > [!WARNING]
 > - If you have custom `<video> <sources>` nodes in profile/sources.xml, they will be erased.
 > - If you have custom `<videodatabase>` nodes in profile/advancedsettings.xml, they will be erased.
+> - If you want to uninstall, you should manually remove the `<videodatabase>` node from the profile/advancedsettings.xml file (or erase Kodi install completely).
 
 
 ### Add-on features
