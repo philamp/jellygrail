@@ -60,8 +60,8 @@ def play_splash():
     if USE_REMOTE_RDUMP_ACTUALLY:
         print(f"|  - Remote JG WS URL:               {REMOTE_RDUMP_BASE_LOCATION}")
         print(f"|  - Remote JG target provider:      {REMOTE_SCAN_TARGET_PROVIDER}")
-    if USE_REMOTE_WED_DAV_ACTUALLY:
-        print(f"|  - Remote JG WebDAV URL:           {REMOTE_WED_DAV_LOCATION}")
+    if USE_REMOTE_WEB_DAV_ACTUALLY:
+        print(f"|  - Remote JG WebDAV URL:           {REMOTE_WEB_DAV_LOCATION}")
     if RD_API_SET:
         print(f"|  - Real-Debrid API:                Enabled (token set)")
     if TORBOX_API_SET:

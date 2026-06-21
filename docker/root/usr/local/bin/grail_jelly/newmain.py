@@ -113,8 +113,8 @@ async def homepage(request):
         items.append(f"Remote JG WS URL: {escape(REMOTE_RDUMP_BASE_LOCATION)}")
         items.append(f"Remote JG target provider: {escape(REMOTE_SCAN_TARGET_PROVIDER)}")
 
-    if USE_REMOTE_WED_DAV_ACTUALLY:
-        items.append(f"Remote JG WebDAV URL: {escape(REMOTE_WED_DAV_LOCATION)}")
+    if USE_REMOTE_WEB_DAV_ACTUALLY:
+        items.append(f"Remote JG WebDAV URL: {escape(REMOTE_WEB_DAV_LOCATION)}")
 
     if RD_API_SET:
         items.append("Real-Debrid API: Enabled (token set)")

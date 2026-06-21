@@ -159,6 +159,7 @@ fi
 mkdir -p /var/run/s6/container_environment
 printf '%s' "${REMOTE_SCAN_TARGET_PROVIDER:-torbox}" > /var/run/s6/container_environment/REMOTE_SCAN_TARGET_PROVIDER
 printf '%s' "$WEBSERVICE_INTERNAL_PORT" > /var/run/s6/container_environment/WEBSERVICE_INTERNAL_PORT
+printf '%s' "${REMOTE_WEB_DAV_LOCATION:-}" > /var/run/s6/container_environment/REMOTE_WEB_DAV_LOCATION
 if [ "${JELLYGRAIL_SCAN_TRIGGER_URL:-}" != "" ] ; then
   printf '%s' "$JELLYGRAIL_SCAN_TRIGGER_URL" > /var/run/s6/container_environment/JELLYGRAIL_SCAN_TRIGGER_URL
 fi

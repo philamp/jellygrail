@@ -78,7 +78,7 @@ def _guessit_episode(name):
         season_int = int(season)
     except (TypeError, ValueError):
         season_int = None
-    if season_int is not None and 1900 <= season_int <= 2099 and not _has_explicit_episode_marker(name):
+    if season_int is not None and (1900 <= season_int <= 2160 or season_int == 1080) and not _has_explicit_episode_marker(name):
         return None
 
     return title, str(season).zfill(2), str(episode).zfill(2)

@@ -102,8 +102,8 @@ REMOTE_RDUMP_BASE_LOCATION = os.getenv('REMOTE_RDUMP_BASE_LOCATION') or ""
 USE_REMOTE_RDUMP_ACTUALLY = True if REMOTE_RDUMP_BASE_LOCATION.startswith('http') and REMOTE_RDUMP_BASE_LOCATION != "http://hostname-or-ip:16685" else False
 REMOTE_SCAN_TARGET_PROVIDER = (os.getenv('REMOTE_SCAN_TARGET_PROVIDER') or "torbox").strip().lower()
 
-REMOTE_WED_DAV_LOCATION = os.getenv('REMOTE_WED_DAV_LOCATION') or ""
-USE_REMOTE_WED_DAV_ACTUALLY = True if REMOTE_WED_DAV_LOCATION.startswith('http') and REMOTE_WED_DAV_LOCATION != "http://hostname-or-ip:8089" else False
+REMOTE_WEB_DAV_LOCATION = os.getenv('REMOTE_WEB_DAV_LOCATION') or ""
+USE_REMOTE_WEB_DAV_ACTUALLY = True if REMOTE_WEB_DAV_LOCATION.startswith('http') and REMOTE_WEB_DAV_LOCATION != "http://hostname-or-ip:8389" else False
 # Defaults used if not set in environment (same values are also set in settings.env.template so it's double ensured)
 INT_LANG_DEFAULTS = 'fre eng' # JG made in french speaking country so its the defaults but can be set in settings.env....
 LAN_IP = guess_lan_ip() or "127.0.0.1" 
