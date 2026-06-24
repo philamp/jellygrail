@@ -118,7 +118,6 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
     #logger.info(f"  > BROWSING PATH: {endpoint}/{releasefolder}")
 
-    mountemp = f"/mnt/tmp-{endpoint}"
 
     # 0 - init some default values
     multiple_movie_or_disc_present = False
@@ -290,85 +289,86 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                 # EF non-video files only (ISO)
                 elif filename.lower().endswith('.iso') and not season_present:
-                    multiple_movie_or_disc_present = True
-                    bdmv_present = True
-                    dive_e_['mediatype'] = '_bdmv'
+                    if not SIMPLE_SCAN_MODE:
+                        multiple_movie_or_disc_present = True
+                        bdmv_present = True
+                        dive_e_['mediatype'] = '_bdmv'
 
-                    # cache-heater 0bis for all iso files if storing is remote
-                    # done here because a RAR can store an ISO
-                    # if storetype == 'remote': # change : read them even if not remote to know if its a dvd or bluray
-                    nomergetype = " - JGxBluRay"
-
-
-                    iso_file_path = os.path.join(root, filename)
-
-                    try:
-                        with UdfImage(iso_file_path) as udf:
-                            for path in udf.iter_file_paths():
-                                result = udf.read_head(path, max_bytes=30 * 1024 * 1024)
-                                if path.lower().endswith(".vob"):
-                                    nomergetype = " - JGxDVD"
-                                    
-                                logger.info(f"      SCAN| ISO-CACHING| - {path} |totalsize:{result.file_size} |cachedsize:{result.bytes_read}")
-
-                    except Exception as e:
-                        logger.warning(f"  ISO-SCAN| UDF read failed on: {iso_file_path}, trying SACD index read")
-                        if read_sacd_iso_index(iso_file_path):
-                            nomergetype = " - JGxSACD"
-                        else:
-                            stopthere = True
-                            stopreason += ' >> Pre-reading ISO failed'
-                            logger.error(f"  ISO-SCAN| ISO read failed on: {iso_file_path}")
+                        # cache-heater 0bis for all iso files if storing is remote
+                        # done here because a RAR can store an ISO
+                        # if storetype == 'remote': # change : read them even if not remote to know if its a dvd or bluray
+                        nomergetype = " - JGxBluRay"
 
 
-                    if not stopthere:
-                        prefix = "bluray:" if nomergetype == " - JGxBluRay" else ""
-                        (stdout, _, fferr) = get_plain_ffprobe(prefix+iso_file_path)
-                        if fferr != 0:
-                            stdout = None
-                        
+                        iso_file_path = os.path.join(root, filename)
 
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : stdout})
+                        try:
+                            with UdfImage(iso_file_path) as udf:
+                                for path in udf.iter_file_paths():
+                                    result = udf.read_head(path, max_bytes=30 * 1024 * 1024)
+                                    if path.lower().endswith(".vob"):
+                                        nomergetype = " - JGxDVD"
+                                        
+                                    logger.info(f"      SCAN| ISO-CACHING| - {path} |totalsize:{result.file_size} |cachedsize:{result.bytes_read}")
+
+                        except Exception as e:
+                            logger.warning(f"  ISO-SCAN| UDF read failed on: {iso_file_path}, trying SACD index read")
+                            if read_sacd_iso_index(iso_file_path):
+                                nomergetype = " - JGxSACD"
+                            else:
+                                stopthere = True
+                                stopreason += ' >> Pre-reading ISO failed'
+                                logger.error(f"  ISO-SCAN| ISO read failed on: {iso_file_path}")
+
+
+                        if not stopthere:
+                            prefix = "bluray:" if nomergetype == " - JGxBluRay" else ""
+                            (stdout, _, fferr) = get_plain_ffprobe(prefix+iso_file_path)
+                            if fferr != 0:
+                                stdout = None
+                            
+
+                            dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : stdout})
                     
 
 
                 # EF non-video files only (BDMV)
                 elif ('BDMV' in os.path.normpath(root).split(os.sep) or 'VIDEO_TS' in os.path.normpath(root).split(os.sep)) and not season_present:
+                    if not SIMPLE_SCAN_MODE:
+
+
+                        multiple_movie_or_disc_present = True
+                        bdmv_present = True # in the meaning of any disc dvd or bluray
+                        dive_e_['mediatype'] = '_bdmv' # bindfs mediatype not yet refined
+                        nomergetype = " - JGxBluRay"
+
+                        ffprobed = None
+
+                        if rar_item == None and storetype == 'remote':
+                            if not read_file_with_timeout(os.path.join(root, filename)):
+                                logger.error(f" - FAILURE_direct_read: IO or timeout on bdmv file: {os.path.join(root, filename)}")
+                                stopthere = True
+                                stopreason += ' >> Pre-reading BDMV files failed'
 
 
 
-                    multiple_movie_or_disc_present = True
-                    bdmv_present = True # in the meaning of any disc dvd or bluray
-                    dive_e_['mediatype'] = '_bdmv' # bindfs mediatype not yet refined
-                    nomergetype = " - JGxBluRay"
+                        if 'VIDEO_TS' in os.path.normpath(root).split(os.sep): # DVD struct
+                            nomergetype = " - JGxDVD"
+                            if filename.lower() == "vts_01_1.vob": 
+                                (ffprobed, _, fferr) = get_plain_ffprobe(os.path.join(root, filename))
+                                if fferr != 0:
+                                    ffprobed = None
 
-                    ffprobed = None
-
-                    if rar_item == None and storetype == 'remote':
-                        if not read_file_with_timeout(os.path.join(root, filename)):
-                            logger.error(f" - FAILURE_direct_read: IO or timeout on bdmv file: {os.path.join(root, filename)}")
-                            stopthere = True
-                            stopreason += ' >> Pre-reading BDMV files failed'
-
-
-
-                    if 'VIDEO_TS' in os.path.normpath(root).split(os.sep): # DVD struct
-                        nomergetype = " - JGxDVD"
-                        if filename.lower() == "vts_01_1.vob": 
-                            (ffprobed, _, fferr) = get_plain_ffprobe(os.path.join(root, filename))
+                        elif bdmv_ffprobed == None: #bluray struct
+                            (stdout, _, fferr) = get_plain_ffprobe("bluray:"+os.path.join(endpoint, releasefolder))
                             if fferr != 0:
-                                ffprobed = None
+                                stdout = None
+                                bdmv_ffprobed = "None" # error code, if it does not work the first time, don't retry and then, later, "None" will be understood as real None
+                            else:
+                                bdmv_ffprobed = stdout
 
-                    elif bdmv_ffprobed == None: #bluray struct
-                        (stdout, _, fferr) = get_plain_ffprobe("bluray:"+os.path.join(endpoint, releasefolder))
-                        if fferr != 0:
-                            stdout = None
-                            bdmv_ffprobed = "None" # error code, if it does not work the first time, don't retry and then, later, "None" will be understood as real None
-                        else:
-                            bdmv_ffprobed = stdout
-
-                    if not stopthere:
-                        dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : ffprobed})
+                        if not stopthere:
+                            dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : ffprobed})
 
                 # S+E remaining mess
                 else:
@@ -389,7 +389,7 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
                         dive_e_['rootfiles'].append({'as_if_vroot': root, 'eroot': root, 'efilename': filename, 'efilesize': 0, 'ffprobed' : None})
 
             elif ('BDMV' not in os.path.normpath(root).split(os.sep) and filename.lower().endswith(('.m2ts'))):
-                stopreason += ' >> m2ts outside its BDMV structure (verify ALL_FILES_INCLUDING_STRUCTURE in settings.env)'
+                stopreason += ' >> m2ts outside its BDMV structure'
                 #wont necessarily stop there is other filed are found
 
 
@@ -795,7 +795,6 @@ def scanThread(pnt, present_folders, stopEvent):
 
     dual_ep = []
 
-    mountemp = f"/mnt/tmp-{pnt[0]}"
 
     for d in os.scandir(MOUNTS_ROOT+"/"+pnt[0]):
         if d.name == '@eaDir':
@@ -881,7 +880,7 @@ def scanThread(pnt, present_folders, stopEvent):
                         threadDB.sqcommit()
 
                 
-                elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or f.name.lower().endswith('.iso')):
+                elif not '@eaDir' in f.name and not '.DS_Store' in f.name and (f.name.lower().endswith(VIDEO_EXTENSIONS) or (not SIMPLE_SCAN_MODE and f.name.lower().endswith('.iso'))):
 
                     logger.info(f"      SCAN| >< (folder-orphan) {f.name}")
 
@@ -960,14 +959,6 @@ def scanThread(pnt, present_folders, stopEvent):
                         nomergetype = " - JGxBluRay"
                         iso_file_path = f.path
 
-                        '''
-                        try:
-                            mount_iso(iso_file_path, mountemp)
-                            if read_small_files(mountemp):
-                                nomergetype = " - JGxDVD"
-                        except Exception as e:
-                            logger.error(f" - FAILURE_iso: mount or read failed on: {iso_file_path}")
-                        '''
 
                         iso_index_read = False
                         try:
@@ -994,8 +985,7 @@ def scanThread(pnt, present_folders, stopEvent):
                             (stdout, _, fferr) = get_plain_ffprobe(prefix+iso_file_path)
                             if fferr != 0:
                                 stdout = None
-                        if os.path.ismount(mountemp):
-                            unmount_iso(mountemp)
+
                     
                     media_virtual_root = _media_virtual_root(nomergetype)
                     threadDB.insert_data(media_virtual_root+"/"+title_year+nomergetype, None, f.path, None, mediatype)
