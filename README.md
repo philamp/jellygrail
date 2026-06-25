@@ -1,7 +1,7 @@
 > [!CAUTION]
-> - 23-04-2026: Right now working on stabilizing build whenever dependencies upgrades happen...
 > - 13-06-2026: Latest image available on docker hub
 > - 15-06-2026: relase 1.3.4 was broken sorry
+> - 25-06-2026: Warning, in settings.env, RCLONE_VERBOSE must be set to '0','1' or '2' not 'y' or 'n'
 
 <p align="center">
 <img alt="jg" src="jg.png" />
