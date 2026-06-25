@@ -64,11 +64,6 @@ create_service() {
   sed -i "s|<dst_folder>|${dst_folder}|g" "${service_dir}/run"
   [ ! -z "${cfg_file}" ] && sed -i "s|<cfg_file>|${cfg_file}|g" "${service_dir}/run"
   [ ! -z "${src_folder}" ] && sed -i "s|<src_folder>|${src_folder}|g" "${service_dir}/run"
-  verbose=""
-  if [ "${template_path}" = "/bash_templates/rclone.tpl.sh" ] && [ "${RCLONE_VERBOSE:-}" = "y" ]; then
-    verbose=" -vvv"
-  fi
-  sed -i "s|<verbose>|${verbose}|g" "${service_dir}/run"
   sed -i "s|<service_name>|${service_name}|g" "${service_dir}/run"
 }
 
