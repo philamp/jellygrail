@@ -143,7 +143,7 @@ Some Debrid services support are included, but if you have another rclone compat
 - Check docker run command above (`-v /path/remote_yourservice:/mounts/remote_yourservice  `) to mount it.
 
 > [!TIP]
-> If the cloud service is not compatible with polling (https://forum.rclone.org/t/which-remotes-support-polling/47445), you can trigger the scan manually with `http://your-server-ip:16685/trigger_remote_scan`
+> If the cloud service is not compatible with polling (https://forum.rclone.org/t/which-remotes-support-polling/47445), you can trigger the scan manually with `http://your-server-ip:16685/app/trigger_remote_scan`
 
 ## Kodi Add-on
 
