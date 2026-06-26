@@ -2,6 +2,7 @@
 > - 13-06-2026: Latest image available on docker hub
 > - 15-06-2026: relase 1.3.4 was broken sorry
 > - 25-06-2026: Warning, in settings.env, RCLONE_VERBOSE must be set to '0','1' or '2' not 'y' or 'n'
+> - 26-06-2026: there is an infinite loop on Add-on install, just restart Kodi to make it stop (fixed soon) 
 
 <p align="center">
 <img alt="jg" src="jg.png" />
