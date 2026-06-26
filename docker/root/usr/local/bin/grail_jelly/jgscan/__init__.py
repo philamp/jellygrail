@@ -65,6 +65,23 @@ def _has_explicit_episode_marker(name):
     ))
 
 
+def _looks_like_resolution_episode_parse(name, season, episode):
+    try:
+        season_int = int(season)
+        episode_int = int(episode)
+    except (TypeError, ValueError):
+        return False
+
+    compact_episode = f"{season_int}{episode_int:02d}"
+    if (
+        compact_episode not in {"480", "576", "720", "1080", "1440", "2160", "4320"}
+        and not (1900 <= int(compact_episode) <= 2160)
+    ):
+        return False
+
+    return any(token == compact_episode for token in re.findall(r"\d+", name))
+
+
 def _guessit_episode(name):
     guess = _guessit(name, {'type': 'episode'})
     title = _first_guessit_value(guess.get('title'))
@@ -78,8 +95,11 @@ def _guessit_episode(name):
         season_int = int(season)
     except (TypeError, ValueError):
         season_int = None
-    if season_int is not None and (1900 <= season_int <= 2160 or season_int == 1080) and not _has_explicit_episode_marker(name):
-        return None
+    if not _has_explicit_episode_marker(name):
+        if season_int is not None and (1900 <= season_int <= 2160 or season_int == 1080):
+            return None
+        if _looks_like_resolution_episode_parse(name, season, episode):
+            return None
 
     return title, str(season).zfill(2), str(episode).zfill(2)
 
@@ -170,12 +190,15 @@ def release_browse(endpoint, releasefolder, rar_item, release_folder_path, store
 
                 # S case with itegrated similar show/season/episode fetch (at file loop level):
                 if filename.lower().endswith(ALLOWED_EXTENSIONS):
-                    parsed_episode = _guessit_episode(get_wo_ext(filename))
-                    if not parsed_episode and filename.lower().endswith(SUB_EXTS):
+                    filename_wo_ext = get_wo_ext(filename)
+                    if filename.lower().endswith(SUB_EXTS):
+                        parsed_episode = _guessit_episode(filename_wo_ext) if _has_explicit_episode_marker(filename_wo_ext) else None
                         parent_srt_folder = os.path.basename(root)
                         #logger.info(f"----- releasefolder = {releasefolder} and parent_srt_folder = {parent_srt_folder}")
-                        if (parent_srt_folder != releasefolder):
+                        if not parsed_episode and (parent_srt_folder != releasefolder):
                             parsed_episode = _guessit_episode(parent_srt_folder)
+                    else:
+                        parsed_episode = _guessit_episode(filename_wo_ext)
                     
 
                         
