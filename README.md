@@ -2,6 +2,8 @@
 > - 13-06-2026: Latest image available on docker hub
 > - 15-06-2026: relase 1.3.4 was broken sorry
 > - 25-06-2026: Warning, in settings.env, RCLONE_VERBOSE must be set to '0','1' or '2' not 'y' or 'n'
+> - 26-06-2026: there is an infinite loop on Add-on install, just restart Kodi to make it stop (fixed soon)
+> - Also, tvshows filename parsing is worse than before now... fixing it...
 
 <p align="center">
 <img alt="jg" src="jg.png" />
@@ -143,7 +145,7 @@ Some Debrid services support are included, but if you have another rclone compat
 - Check docker run command above (`-v /path/remote_yourservice:/mounts/remote_yourservice  `) to mount it.
 
 > [!TIP]
-> If the cloud service is not compatible with polling (https://forum.rclone.org/t/which-remotes-support-polling/47445), you can trigger the scan manually with `http://your-server-ip:16685/trigger_remote_scan`
+> If the cloud service is not compatible with polling (https://forum.rclone.org/t/which-remotes-support-polling/47445), you can trigger the scan manually with `http://your-server-ip:16685/app/trigger_remote_scan`
 
 ## Kodi Add-on
 
