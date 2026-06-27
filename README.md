@@ -1,9 +1,6 @@
 > [!CAUTION]
 > - 13-06-2026: Latest image available on docker hub
-> - 15-06-2026: relase 1.3.4 was broken sorry
-> - 25-06-2026: Warning, in settings.env, RCLONE_VERBOSE must be set to '0','1' or '2' not 'y' or 'n'
-> - 26-06-2026: there is an infinite loop on Add-on install, just restart Kodi to make it stop (fixed soon)
-> - Also, tvshows filename parsing is worse than before now... fixing it...
+> - 27.06.2026: Biggest issues have been fixed now (add-on, parser, env vars...). Release v1.4.4 should be ok
 
 <p align="center">
 <img alt="jg" src="jg.png" />
