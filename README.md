@@ -99,7 +99,8 @@ sudo chmod +x jg-config.sh _MOUNT.SH
 Launch your adapted variant of this docker run command, still inside the root folder of the project.
 
 > [!TIP]
-> Beware that by default this working folder will store `jellygrail` subfolder with config and runtime data such as the rclone ISO/RAR structure cache _(0.5%~ of your debrid storage size)_.
+> - Beware to remove any existing philamp/jellygrail:latest image in your docker local repo `sudo docker image rm philamp/jellygrail:latest`
+> - Beware that by default this working folder will store `jellygrail` subfolder with config and runtime data such as the rclone ISO/RAR structure cache _(0.5%~ of your debrid storage size)_.
 
 ````
 sudo docker run -d \
