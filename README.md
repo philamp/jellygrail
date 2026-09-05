@@ -25,6 +25,8 @@
 
 ---
 
+## Features
+
 - Merging multiple media sources into one virtualized filesystem (JGFS) - https://github.com/philamp/bindfs_jelly :
   - On-the-fly unraring - https://github.com/hasse69/rar2fs.
   - Virtual moving/renaming.
