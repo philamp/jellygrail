@@ -15,6 +15,7 @@
 </p>
 
 <p align="center">
+  <a href="#features">Features</a> &bull;
   <a href="#prerequisites">Prerequisites</a> &bull;
   <a href="#install">Install</a> &bull;
   <a href="#kodi-add-on">Kodi add-on</a> &bull;
@@ -22,8 +23,6 @@
   <a href="#troubleshooting">Troubleshooting</a> &bull;
   <a href="#performance">Performance</a>
 </p>
-
----
 
 ## Features
 
@@ -50,6 +49,7 @@
   - External Plex support.
   - Basic WebDAV server.
 
+---
 
 ## Prerequisites
 
